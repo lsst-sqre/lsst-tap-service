@@ -1,0 +1,41 @@
+env:
+  DOCKER_COMPOSE_VERSION: 1.21.2
+  GRADLE_VERSION: 4.7
+
+language: java
+sudo: required
+group: edge
+dist: trusty
+
+jdk:
+  - openjdk7
+  - oraclejdk8
+
+services:
+  - docker
+
+before_script: 
+  - openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; sudo keytool -importcert -noprompt -file /tmp/gradle.crt -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -alias root -storepass changeit;
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y install docker-ce
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+    -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose && sudo mv docker-compose /usr/local/bin
+  - docker-compose -v
+  - mkdir /opt/gradle
+  - curl -sSLO "https://downloads.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+  - unzip -d /opt/gradle gradle-${GRADLE_VERSION}-bin.zip
+  - sudo rm -f /usr/local/bin/gradle
+  - sudo ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+  - gradle -v  
+
+script: 
+  - gradle --stacktrace clean assemble javadoc build test || break -1; cd ../
+  - cp build/libs/*.war docker/
+  - cd docker/
+  - docker-compose up -d && ./waitForContainersReady.sh
+  - curl -vL http://localhost:8080/tap/availability | grep "The TAP ObsCore service is accepting queries"
+  - curl -Ls -o /dev/null -w "%{http_code}" -d 'QUERY=SELECT+TOP+1+*+FROM+TAP_SCHEMA.obscore&LANG=ADQL' http://localhost:8080/tap/sync | grep 200 || break -1;
