@@ -38,4 +38,4 @@ script:
   - cd docker/
   - docker-compose up -d && ./waitForContainersReady.sh
   - curl -vL http://localhost:8080/tap/availability | grep "The TAP ObsCore service is accepting queries"
-  - curl -Ls -o /dev/null -w "%{http_code}" -d 'QUERY=SELECT+TOP+1+*+FROM+TAP_SCHEMA.obscore&LANG=ADQL' http://localhost:8080/tap/sync | grep 200 || break -1;
+  - curl -Ls -o /dev/null -w "%{http_code}" -d 'QUERY=SELECT+TOP+1+*+FROM+TAP_SCHEMA.obscore&LANG=ADQL' http://localhost:8080/tap/sync | grep 200 || echo "Bad response code from query.";
