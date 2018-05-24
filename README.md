@@ -15,7 +15,7 @@ to create the `build/libs/tap##%VERSION%.war` file, where the `%VERSION%` will b
 ### Docker
 This is a working prototype using a TAP implementation with an Oracle 11 _g_ database.
 
-After the [Build](#Build) step above, we can create a Docker deployment like so:
+After the [Build](#build) step above, we can create a Docker deployment like so:
 
   - `cp build/libs/*.war docker/`
   - `cd docker/`
@@ -35,4 +35,4 @@ Then the TAP service is running properly.  You can then issue a query to the sam
 
 ### Dedicated web server
 
-If you have a dedicated Servlet Container (i.e. [Tomcat](http://tomcat.apache.org)) running already, run the [Build](#Build) step above, then copy the WAR artifact from `build/libs/` to your Servlet Container's webapp deployment directory.
+If you have a dedicated Servlet Container (i.e. [Tomcat](http://tomcat.apache.org)) running already, run the [Build](#build) step above, then copy the WAR artifact from `build/libs/` to your Servlet Container's webapp deployment directory.
