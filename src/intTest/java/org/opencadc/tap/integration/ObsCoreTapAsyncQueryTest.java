@@ -72,9 +72,13 @@ package org.opencadc.tap.integration;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import ca.nrc.cadc.conformance.uws2.JobResultWrapper;
 import ca.nrc.cadc.tap.integration.TapAsyncQueryTest;
 import ca.nrc.cadc.util.FileUtil;
 import ca.nrc.cadc.util.Log4jInit;
+import ca.nrc.cadc.uws.ExecutionPhase;
+import ca.nrc.cadc.uws.Result;
 
 import java.io.File;
 import java.net.URI;
@@ -95,11 +99,27 @@ public class ObsCoreTapAsyncQueryTest extends TapAsyncQueryTest {
     public ObsCoreTapAsyncQueryTest() {
         super(URI.create("ivo://cadc.nrc.ca/tap"));
 
-        File testFile = FileUtil.getFileFromResource("AsyncResultTest-caom2.observation.properties",
+        File testFile = FileUtil.getFileFromResource("AsyncResultTest-ivoa.ObsCore.properties",
                                                      ObsCoreTapAsyncQueryTest.class);
         if (testFile.exists()) {
             File testDir = testFile.getParentFile();
             super.setPropertiesDir(testDir, "AsyncResultTest");
         }
+    }
+
+    @Override
+    protected void validateResponse(JobResultWrapper result) {
+        Assert.assertEquals(ExecutionPhase.COMPLETED, result.job.getExecutionPhase());
+
+        //Result r = result.job.getResultsList().get(0);
+        Result r = null;
+        for (Result jr : result.job.getResultsList()) {
+            if ("result".equals(jr.getName())) {
+                r = jr;
+                break;
+            }
+        }
+
+        Assert.assertNotNull("found result", r);
     }
 }

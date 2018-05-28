@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2011.                            (c) 2011.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,80 +63,92 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
 package org.opencadc.tap.impl;
 
-import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
-import net.sf.jsqlparser.util.deparser.SelectDeParser;
-import ca.nrc.cadc.tap.AdqlQuery;
-import ca.nrc.cadc.tap.expression.OracleExpressionDeParser;
-import ca.nrc.cadc.tap.parser.converter.OracleCeilingConverter;
-import ca.nrc.cadc.tap.parser.converter.OracleSubstringConverter;
-import ca.nrc.cadc.tap.parser.converter.OracleTopConverter;
-import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
-import ca.nrc.cadc.tap.parser.converter.TableNameReferenceConverter;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.tap.ResultStore;
+import ca.nrc.cadc.uws.Job;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.sql.ResultSet;
 
 
-/**
- * TAP service implementors must implement this class and add customisations of the
- * navigatorList as shown below. Custom query visitors can be used to validate or modify
- * the query; the base class runs all the visitors in the navigatorList once before
- * converting the result into SQL for execution.
- *
- * @author pdowler
- */
-public class AdqlQueryImpl extends AdqlQuery {
-    public AdqlQueryImpl() {
-        super();
+public class ResultStoreImpl implements ResultStore {
+    private String filename;
+
+
+    @Override
+    public URL put(final ResultSet resultSet,
+                   final TableWriter<ResultSet> resultSetTableWriter)
+        throws IOException {
+        final File file = getOutputFile();
+
+        try (final FileOutputStream os = new FileOutputStream(file)) {
+            resultSetTableWriter.write(resultSet, os);
+        }
+
+        return file.toURI().toURL();
     }
 
     @Override
-    protected void init() {
-        super.init();
+    public URL put(Throwable throwable, TableWriter tableWriter)
+        throws IOException {
+        final File file = getOutputFile();
 
-        // For Oracle, the TOP keyword is replaced with a WHERE ROWNUM <= count clause.
-        navigatorList.add(new OracleTopConverter(new ExpressionNavigator(), new ReferenceNavigator(),
-                                                 new FromItemNavigator()));
+        try (final FileOutputStream os = new FileOutputStream(file)) {
+            tableWriter.write(throwable, os);
+        }
 
-        // For Oracle, the CEILING function is actually CEIL.
-        navigatorList.add(new OracleCeilingConverter(new ExpressionNavigator(), new ReferenceNavigator(),
-                                                     new FromItemNavigator()));
-
-        navigatorList.add(new OracleSubstringConverter(new ExpressionNavigator(), new ReferenceNavigator(),
-                                                       new FromItemNavigator()));
-
-        // TAP-1.1 tap_schema version is encoded in table names
-        TableNameConverter tnc = new TableNameConverter(true);
-        tnc.put("tap_schema.schemas", "tap_schema.schemas11");
-        tnc.put("tap_schema.tables", "tap_schema.tables11");
-        tnc.put("tap_schema.columns", "tap_schema.columns11");
-        tnc.put("tap_schema.keys", "tap_schema.keys11");
-        tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
-        TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
-        navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
-
-        // TODO: add more custom query visitors here
+        return file.toURI().toURL();
     }
 
-    /**
-     * Provide implementation of expression deparser if the default (BaseExpressionDeParser)
-     * is not sufficient. For example, postgresql+pg_sphere requires the PgsphereDeParser to
-     * support spoint and spoly. the default is to return a new BaseExpressionDeParser.
-     *
-     * @param dep
-     * @param sb
-     * @return expression deparser impl
-     */
     @Override
-    protected ExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb) {
-        return new OracleExpressionDeParser(dep, sb);
+    public URL put(final ResultSet resultSet,
+                   final TableWriter<ResultSet> resultSetTableWriter,
+                   final Integer integer) throws IOException {
+        final File file = getOutputFile();
+
+        try (final FileOutputStream os = new FileOutputStream(file)) {
+            if (integer == null) {
+                resultSetTableWriter.write(resultSet, os);
+            } else {
+                resultSetTableWriter.write(resultSet, os, integer.longValue());
+            }
+        }
+
+        return file.toURI().toURL();
+    }
+
+    private File getOutputFile() {
+        // work around for COMP-8106: AQ: asa_aq directory disappearing
+        final File resultsDir = new File("/tmp/");
+
+        if (!resultsDir.exists()) {
+            if (!resultsDir.mkdirs()) {
+                throw new RuntimeException("Failed to create results directory: " + resultsDir);
+            }
+        }
+
+        return new File(resultsDir.getPath() + File.separator + filename);
+    }
+
+    @Override
+    public void setContentType(String contentType) {
+    }
+
+    @Override
+    public void setJob(Job _job) {
+    }
+
+    @Override
+    public void setFilename(String filename) {
+        this.filename = filename;
     }
 }
