@@ -11,7 +11,7 @@ CREATE TABLE TAP_SCHEMA.obscore
    s_ra BINARY_DOUBLE,
    s_dec BINARY_DOUBLE,
    s_fov BINARY_DOUBLE,
-   s_region varchar2(2048),
+   s_region VARCHAR2(2048),
    s_resolution BINARY_DOUBLE,
    t_min timestamp,
    t_max timestamp,
@@ -27,11 +27,23 @@ CREATE TABLE TAP_SCHEMA.obscore
    PRIMARY KEY (obs_publisher_did)
 );
 
+INSERT INTO TAP_SCHEMA.schemas11 (schema_name, description, utype) 
+  VALUES ('SYS', 'An Oracle system schema', NULL);
+
+INSERT INTO TAP_SCHEMA.schemas (schema_name, description, utype) 
+  VALUES ('SYS', 'An Oracle system schema', NULL);
+
 INSERT INTO TAP_SCHEMA.tables11 (schema_name, table_name, table_type, description, utype, table_index)
   VALUES ('TAP_SCHEMA', 'TAP_SCHEMA.obscore', 'table', 'description of schemas in this tableset', NULL, 1);
 
+INSERT INTO TAP_SCHEMA.tables11 (schema_name, table_name, table_type, description, utype, table_index)
+  VALUES ('SYS', 'SYS.DUAL', 'table', 'Oracle system table.', NULL, 2);
+
 INSERT INTO TAP_SCHEMA.tables (schema_name, table_name, table_type, description, utype, table_index)
   VALUES ('TAP_SCHEMA', 'TAP_SCHEMA.obscore', 'table', 'description of schemas in this tableset', NULL, 1);
+
+INSERT INTO TAP_SCHEMA.tables (schema_name, table_name, table_type, description, utype, table_index)
+  VALUES ('SYS', 'SYS.DUAL', 'table', 'Oracle system table', NULL, 2);
 
 INSERT ALL
   INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id) 
@@ -82,6 +94,8 @@ INSERT ALL
   VALUES ('TAP_SCHEMA.obscore','pol_states','obscore:Char.PolarizationAxis.stateList','meta.code;phys.polarization',null,'polarization states present in the data','char','32*',null,1,0,1,22,null)
   INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id) 
   VALUES ('TAP_SCHEMA.obscore','o_ucd','obscore:Char.ObservableAxis.ucd','meta.ucd',null,'UCD describing the observable axis (pixel values)','char','32*',null,1,0,1,21,null)
+  INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id) 
+  VALUES ('SYS.DUAL','SYSDATE',NULL, NULL,null,'Current date','char','64*',null,1,0,1,25,null)
 SELECT 1 FROM DUAL;
 
 INSERT ALL
@@ -133,4 +147,6 @@ INSERT ALL
   VALUES ('TAP_SCHEMA.obscore','access_url','obscore:Access.Reference','meta.ref.url',null,'URL to download the data','adql:CLOB',null,null,1,0,1,6,null)
   INTO TAP_SCHEMA.columns (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,"size",principal,indexed,std,column_index,id) 
   VALUES ('TAP_SCHEMA.obscore','access_estsize','obscore:Access.Size','phys.size;meta.file','kbyte','estimated size of the download','adql:BIGINT',null,null,1,0,1,7,null)
+  INTO TAP_SCHEMA.columns (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,"size",principal,indexed,std,column_index,id) 
+  VALUES ('SYS.DUAL','SYSDATE',NULL, NULL,null,'Current date','adql:TIMESTAMP',null,null,1,0,1,25,null)  
 SELECT 1 FROM DUAL;  

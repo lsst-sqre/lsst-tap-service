@@ -1,9 +1,10 @@
+
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2011.                            (c) 2011.
+ *  (c) 2018.                            (c) 2018.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,80 +63,41 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.tap.impl;
+package org.opencadc.tap.schema;
 
-import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
-import net.sf.jsqlparser.util.deparser.SelectDeParser;
-import ca.nrc.cadc.tap.AdqlQuery;
-import ca.nrc.cadc.tap.expression.OracleExpressionDeParser;
-import ca.nrc.cadc.tap.parser.converter.OracleCeilingConverter;
-import ca.nrc.cadc.tap.parser.converter.OracleSubstringConverter;
-import ca.nrc.cadc.tap.parser.converter.OracleTopConverter;
-import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
-import ca.nrc.cadc.tap.parser.converter.TableNameReferenceConverter;
-import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
-import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
-import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
-import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.tap.schema.FunctionDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 
+import java.util.List;
 
-/**
- * TAP service implementors must implement this class and add customisations of the
- * navigatorList as shown below. Custom query visitors can be used to validate or modify
- * the query; the base class runs all the visitors in the navigatorList once before
- * converting the result into SQL for execution.
- *
- * @author pdowler
- */
-public class AdqlQueryImpl extends AdqlQuery {
-    public AdqlQueryImpl() {
-        super();
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-
-        // For Oracle, the TOP keyword is replaced with a WHERE ROWNUM <= count clause.
-        navigatorList.add(new OracleTopConverter(new ExpressionNavigator(), new ReferenceNavigator(),
-                                                 new FromItemNavigator()));
-
-        // For Oracle, the CEILING function is actually CEIL.
-        navigatorList.add(new OracleCeilingConverter(new ExpressionNavigator(), new ReferenceNavigator(),
-                                                     new FromItemNavigator()));
-
-        navigatorList.add(new OracleSubstringConverter(new ExpressionNavigator(), new ReferenceNavigator(),
-                                                       new FromItemNavigator()));
-
-        // TAP-1.1 tap_schema version is encoded in table names
-        TableNameConverter tnc = new TableNameConverter(true);
-        tnc.put("tap_schema.schemas", "tap_schema.schemas11");
-        tnc.put("tap_schema.tables", "tap_schema.tables11");
-        tnc.put("tap_schema.columns", "tap_schema.columns11");
-        tnc.put("tap_schema.keys", "tap_schema.keys11");
-        tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
-        TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
-        navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
-
-        // TODO: add more custom query visitors here
-    }
-
+public class ALMATapSchemaDAO extends TapSchemaDAO {
     /**
-     * Provide implementation of expression deparser if the default (BaseExpressionDeParser)
-     * is not sufficient. For example, postgresql+pg_sphere requires the PgsphereDeParser to
-     * support spoint and spoly. the default is to return a new BaseExpressionDeParser.
+     * Get white-list of supported functions. TAP implementors that want to allow
+     * additional functions to be used in queries to be used should override this
+     * method, call <code>super.getFunctionDescs()</code>, and then add additional
+     * FunctionDesc descriptors to the list before returning it.
      *
-     * @param dep
-     * @param sb
-     * @return expression deparser impl
+     * @return white list of allowed functions
      */
     @Override
-    protected ExpressionDeParser getExpressionDeparser(SelectDeParser dep, StringBuffer sb) {
-        return new OracleExpressionDeParser(dep, sb);
+    protected List<FunctionDesc> getFunctionDescs() {
+        final List<FunctionDesc> functionDescs = super.getFunctionDescs();
+
+        functionDescs.add(new FunctionDesc("SUBSTRING", TapDataType.CHAR));
+        functionDescs.add(new FunctionDesc("SUBSTR", TapDataType.CHAR));
+        functionDescs.add(new FunctionDesc("TO_CHAR", TapDataType.CHAR));
+        functionDescs.add(new FunctionDesc("TO_NUMBER", TapDataType.DOUBLE));
+
+        // SQL Date functions.
+        functionDescs.add(new FunctionDesc("TO_DATE", TapDataType.TIMESTAMP));
+        functionDescs.add(new FunctionDesc("COALESCE", TapDataType.FUNCTION_ARG));
+        functionDescs.add(new FunctionDesc("CONCAT", TapDataType.CHAR));
+
+        return functionDescs;
     }
 }

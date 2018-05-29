@@ -44,6 +44,7 @@ dependencies {
     compile 'log4j:log4j:1.2.+'
 
     compile 'com.oracle:ojdbc6:11.2.0.3'
+    compile 'org.restlet.jee:org.restlet.ext.servlet:2.0.3'
     compile 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
     compile 'org.opencadc:cadc-adql:[1.1,)'
