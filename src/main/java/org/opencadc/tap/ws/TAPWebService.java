@@ -90,8 +90,8 @@ public class TAPWebService implements AvailabilityPlugin {
     private final static String TAPDS_NAME = "jdbc/tapuser";
     // note tap_schema table names
     private final static String TAPDS_TEST =
-        "select schema_name from alma.asa_tap_schemas where schema_name='ALMA'";
-    private final static String ALMA_TEST = "select dataset_id from alma.asa_science where rownum = 1";
+        "select SCHEMA_NAME from TAP_SCHEMA.SCHEMAS where SCHEMA_NAME='TAP_SCHEMA'";
+    private final static String ALMA_TEST = "select DATASET_ID from ALMA.ASA_SCIENCE where ROWNUM = 1";
 
     private String applicationName;
 
