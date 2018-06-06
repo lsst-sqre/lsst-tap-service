@@ -3,7 +3,7 @@
 set -e
 
 # Max query attempts before consider setup failed
-MAX_TRIES=10
+MAX_TRIES=20
 
 # Return true-like values if and only if logs
 # contain the expected "ready" line
