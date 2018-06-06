@@ -148,10 +148,7 @@ public class TAPWebService implements AvailabilityPlugin {
      * @return  True if the omit-alma-test system property is set.
      */
     private boolean omitALMATest() {
-        final Properties properties = System.getProperties();
-
-        return properties.contains(OMIT_ALMA_TEST_PROPERTY)
-            && properties.getProperty(OMIT_ALMA_TEST_PROPERTY).equalsIgnoreCase("true");
+        return Boolean.parseBoolean(System.getProperty(OMIT_ALMA_TEST_PROPERTY));
     }
 
     @Override
