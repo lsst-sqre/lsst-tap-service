@@ -92,7 +92,7 @@
          This implementation uses the TAP_SCHEMA to find the required metadata -->
     <servlet>
         <servlet-name>TableServlet</servlet-name>
-        <servlet-class>ca.nrc.cadc.vosi.TableServlet</servlet-class>
+        <servlet-class>org.opencadc.tap.impl.ALMATableServlet</servlet-class>
         <load-on-startup>3</load-on-startup>
     </servlet>
 
@@ -128,6 +128,11 @@
     <servlet-mapping>
         <servlet-name>AvailabilityServlet</servlet-name>
         <url-pattern>/availability</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>TableServlet</servlet-name>
+        <url-pattern>/tables/*</url-pattern>
     </servlet-mapping>
 
     <welcome-file-list>

@@ -75,6 +75,7 @@ import ca.nrc.cadc.vosi.AvailabilityStatus;
 import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
 
+import ca.nrc.cadc.vosi.avail.CheckResource;
 import org.apache.log4j.Logger;
 
 
@@ -89,7 +90,8 @@ public class TAPWebService implements AvailabilityPlugin {
     private final static String TAPDS_NAME = "jdbc/tapuser";
     // note tap_schema table names
     private final static String TAPDS_TEST =
-        "select schema_name from tap_schema.schemas where schema_name='tap_schema'";
+        "select schema_name from alma.asa_tap_schemas where schema_name='ALMA'";
+    private final static String ALMA_TEST = "select dataset_id from alma.asa_science where rownum = 1";
 
     private String applicationName;
 
@@ -115,8 +117,11 @@ public class TAPWebService implements AvailabilityPlugin {
                                     StringUtil.hasText(applicationName) ? " " + applicationName : "");
         try {
             // test query using standard TAP data source
-            final CheckDataSource checkDataSource = new CheckDataSource(TAPDS_NAME, TAPDS_TEST);
-            checkDataSource.check();
+            CheckResource cr = new CheckDataSource(TAPDS_NAME, TAPDS_TEST);
+            cr.check();
+
+            cr = new CheckDataSource(TAPDS_NAME, ALMA_TEST);
+            cr.check();
         } catch (CheckException ce) {
             // tests determined that the resource is not working
             isGood = false;

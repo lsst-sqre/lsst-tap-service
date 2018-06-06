@@ -1,4 +1,3 @@
-
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -63,41 +62,41 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
+ *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.tap.schema;
+package org.opencadc.tap.impl;
 
-import ca.nrc.cadc.tap.schema.*;
+import ca.nrc.cadc.db.DBUtil;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
+import ca.nrc.cadc.vosi.TableServlet;
 import org.apache.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.opencadc.tap.schema.ALMATapSchemaDAO;
 
-import java.util.List;
+import javax.sql.DataSource;
 
-public class ALMATapSchemaDAO extends TapSchemaDAO {
-    /**
-     * Get white-list of supported functions. TAP implementors that want to allow
-     * additional functions to be used in queries to be used should override this
-     * method, call <code>super.getFunctionDescs()</code>, and then add additional
-     * FunctionDesc descriptors to the list before returning it.
-     *
-     * @return white list of allowed functions
-     */
+/**
+ *
+ * @author pdowler
+ */
+public class ALMATableServlet extends TableServlet {
+    private static final Logger log = Logger.getLogger(ALMATableServlet.class);
+
+    private final static String TAPDS_NAME = "jdbc/tapuser";
+
+    public ALMATableServlet() { }
+
     @Override
-    protected List<FunctionDesc> getFunctionDescs() {
-        final List<FunctionDesc> functionDescs = super.getFunctionDescs();
-
-        functionDescs.add(new FunctionDesc("SUBSTRING", TapDataType.CHAR));
-        functionDescs.add(new FunctionDesc("SUBSTR", TapDataType.CHAR));
-        functionDescs.add(new FunctionDesc("TO_CHAR", TapDataType.CHAR));
-        functionDescs.add(new FunctionDesc("TO_NUMBER", TapDataType.DOUBLE));
-
-        // SQL Date functions.
-        functionDescs.add(new FunctionDesc("TO_DATE", TapDataType.TIMESTAMP));
-        functionDescs.add(new FunctionDesc("COALESCE", TapDataType.FUNCTION_ARG));
-        functionDescs.add(new FunctionDesc("CONCAT", TapDataType.CHAR));
-
-        return functionDescs;
+    protected DataSource getQueryDataSource() 
+        throws Exception {
+        return DBUtil.findJNDIDataSource(TAPDS_NAME);
     }
+
+    @Override
+    protected TapSchemaDAO getTapSchemaDAO() {
+        return new ALMATapSchemaDAO();
+    }
+
 }
