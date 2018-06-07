@@ -78,6 +78,8 @@ import ca.nrc.cadc.vosi.avail.CheckException;
 import ca.nrc.cadc.vosi.avail.CheckResource;
 import org.apache.log4j.Logger;
 
+import java.util.Properties;
+
 
 /**
  * VOSI Plugin interface for the AvailabilityServlet.
@@ -87,10 +89,11 @@ import org.apache.log4j.Logger;
 public class TAPWebService implements AvailabilityPlugin {
     private static final Logger log = Logger.getLogger(TAPWebService.class);
 
+    private final static String OMIT_ALMA_TEST_PROPERTY = "omit-alma-test";
     private final static String TAPDS_NAME = "jdbc/tapuser";
     // note tap_schema table names
     private final static String TAPDS_TEST =
-        "select SCHEMA_NAME from TAP_SCHEMA.SCHEMAS where SCHEMA_NAME='TAP_SCHEMA'";
+        "select SCHEMA_NAME from TAP_SCHEMA.SCHEMAS11 where SCHEMA_NAME='TAP_SCHEMA'";
     private final static String ALMA_TEST = "select DATASET_ID from ALMA.ASA_SCIENCE where ROWNUM = 1";
 
     private String applicationName;
@@ -116,12 +119,13 @@ public class TAPWebService implements AvailabilityPlugin {
         String note = String.format("The%s service is accepting queries",
                                     StringUtil.hasText(applicationName) ? " " + applicationName : "");
         try {
-            // test query using standard TAP data source
-            CheckResource cr = new CheckDataSource(TAPDS_NAME, TAPDS_TEST);
-            cr.check();
+            // Test query using standard TAP data source
+            check(TAPDS_TEST);
 
-            cr = new CheckDataSource(TAPDS_NAME, ALMA_TEST);
-            cr.check();
+            // Won't run in Travis.
+            if (!omitALMATest()) {
+                check(ALMA_TEST);
+            }
         } catch (CheckException ce) {
             // tests determined that the resource is not working
             isGood = false;
@@ -133,6 +137,18 @@ public class TAPWebService implements AvailabilityPlugin {
             note = "test failed, reason: " + t;
         }
         return new AvailabilityStatus(isGood, null, null, null, note);
+    }
+
+    private void check(final String query) throws CheckException {
+        new CheckDataSource(TAPDS_NAME, query).check();
+    }
+
+    /**
+     * Omit this test in Travis since the ALMA database is unreachable.
+     * @return  True if the omit-alma-test system property is set.
+     */
+    private boolean omitALMATest() {
+        return Boolean.parseBoolean(System.getProperty(OMIT_ALMA_TEST_PROPERTY));
     }
 
     @Override
