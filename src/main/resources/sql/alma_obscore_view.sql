@@ -55,4 +55,5 @@ FROM ALMA.asa_science science
 INNER JOIN ALMA.asa_energy energy ON energy.asa_dataset_id = science.dataset_id
 INNER JOIN ALMA.asa_project asap ON asap.code = science.project_code
 INNER JOIN ALMA.asa_ous aous ON aous.asa_ous_id = science.asa_ous_id  
-LEFT OUTER JOIN ALMA.asa_product_files apf ON energy.asa_energy_id = apf.asa_energy_id;
+LEFT OUTER JOIN ALMA.asa_product_files apf ON energy.asa_energy_id = apf.asa_energy_id
+WHERE science.product_type = 'MOUS';
