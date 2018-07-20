@@ -54,12 +54,10 @@ dependencies {
 
     testCompile 'junit:junit:4.+'
 
-    testCompile 'ca.nrc.cadc:tap-util:[1.1.2,)'
     testCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     testCompile 'org.opencadc:cadc-test-vosi:[1.0.2,)'
     testCompile 'org.opencadc:cadc-test-tap:[1.1,)'
 
-    intTestCompile 'ca.nrc.cadc:tap-util:[1.1.2,)'
     intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.2,)'
     intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'

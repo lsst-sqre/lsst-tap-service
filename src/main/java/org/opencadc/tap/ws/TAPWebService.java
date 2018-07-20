@@ -74,11 +74,7 @@ import ca.nrc.cadc.vosi.AvailabilityPlugin;
 import ca.nrc.cadc.vosi.AvailabilityStatus;
 import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
-
-import ca.nrc.cadc.vosi.avail.CheckResource;
 import org.apache.log4j.Logger;
-
-import java.util.Properties;
 
 
 /**

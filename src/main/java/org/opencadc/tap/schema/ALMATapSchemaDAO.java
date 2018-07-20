@@ -69,10 +69,9 @@
 
 package org.opencadc.tap.schema;
 
-import ca.nrc.cadc.tap.schema.*;
-import org.apache.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
-
+import ca.nrc.cadc.tap.schema.FunctionDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.util.List;
 
 public class ALMATapSchemaDAO extends TapSchemaDAO {
