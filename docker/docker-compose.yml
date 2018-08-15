@@ -13,22 +13,13 @@ services:
   tap_obscore:
     image: opencadc/tap-obscore:alma-alpine
     build: ./
-    depends_on:
-      - 'tapdb'
     ports:
       - '8080:8080'      
       - '5555:5555'
     networks:
       - 'tap_obscore'
-    environment: 
-      CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@tapdb:1521/XE -Dca.nrc.cadc.reg.client.RegistryClient.local=true"
-  tapdb:
-    image: opencadc/tap-oracle:11-xe
-    shm_size: 1gb
-    networks:
-      - 'tap_obscore'
-    volumes:
-      - './sql:/docker-entrypoint-initdb.d/startup'
+    env_file:
+      - './config/alma-tap.properties'
 
 networks:
   tap_obscore:
