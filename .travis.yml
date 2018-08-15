@@ -36,7 +36,7 @@ script:
   - gradle --stacktrace clean assemble javadoc build test || break -1
   - cp build/libs/*.war docker/
   - cd docker/
-  - docker-compose up -d && ./waitForContainersReady.sh
+  - docker-compose -f docker-compose-withdb.yml up -d && ./waitForContainersReady.sh
   - curl -vL http://localhost:8080/tap/availability
   - curl -vL http://localhost:8080/tap/availability | grep "The TAP ObsCore service is accepting queries"
   - curl -Ls -o /dev/null -w "%{http_code}" -d 'QUERY=SELECT+TOP+1+*+FROM+TAP_SCHEMA.obscore&LANG=ADQL' http://localhost:8080/tap/sync | grep 200 || echo "Bad response code from query.";
