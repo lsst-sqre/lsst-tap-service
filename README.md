@@ -19,7 +19,7 @@ After the [Build](#build) step above, we can create a Docker deployment like so:
 
   - `cp build/libs/*.war docker/`
   - `cd docker/`
-  - `docker-compose -f docker-compose-withdb.yml up -d && ./waitForContainersReady.sh`
+  - `docker-compose up -d && ./waitForContainersReady.sh`
 
 The necessary Docker images will be downloaded, including the large Oracle one, then the service will be available on port `8080`.  You can then issue a request like:
 
