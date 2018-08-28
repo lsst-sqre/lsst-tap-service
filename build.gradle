@@ -14,8 +14,7 @@ repositories {
     // - mavenOracleUsername
     // - mavenOraclePassword
     maven {
-        name 'maven.oracle.com'
-        url 'https://maven.oracle.com'
+        url 'https://www.oracle.com/content/secure/maven/content'
         credentials {
             username = System.getenv("MAVEN_ORACLE_USERNAME") ?: mavenOracleUsername
             password = System.getenv("MAVEN_ORACLE_PASSWORD") ?: mavenOraclePassword
@@ -42,7 +41,7 @@ configurations {
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
-    compile 'com.oracle:ojdbc7:12.1.0.2'
+    compile 'com.oracle.jdbc:ojdbc7:12.1.0.2'
     compile 'org.restlet.jee:org.restlet.ext.servlet:2.0.3'
     compile 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
