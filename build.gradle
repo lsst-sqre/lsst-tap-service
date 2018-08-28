@@ -42,8 +42,7 @@ configurations {
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
-
-    compile 'com.oracle:ojdbc6:11.2.0.3'
+    compile 'com.oracle:ojdbc7:12.1.0.2'
     compile 'org.restlet.jee:org.restlet.ext.servlet:2.0.3'
     compile 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
@@ -53,7 +52,6 @@ dependencies {
     runtime 'org.opencadc:cadc-registry:[1.2.1,)'
 
     testCompile 'junit:junit:4.+'
-
     testCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
     testCompile 'org.opencadc:cadc-test-vosi:[1.0.2,)'
     testCompile 'org.opencadc:cadc-test-tap:[1.1,)'
