@@ -11,8 +11,8 @@ services:
     depends_on: 
       - 'tap_obscore'
   tap_obscore:
-    image: opencadc/tap-obscore:alpine
-    build: ./
+    image: opencadc/alma-tap:1.0.0
+    #build: ./
     depends_on:
       - 'tapdb'
     ports:
