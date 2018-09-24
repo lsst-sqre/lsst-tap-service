@@ -6,6 +6,7 @@ CREATE TABLE TAP_SCHEMA.obscore
    dataproduct_type varchar2(5),
    calib_level char(20),
    access_url varchar2(256),
+   access_format varchar(16),
    access_estsize decimal(20,0),
    target_name varchar2(256),
    s_ra BINARY_DOUBLE,
@@ -74,6 +75,8 @@ INSERT ALL
   VALUES ('TAP_SCHEMA.obscore','em_res_power','obscore:Char.SpectralAxis.Resolution.ResolPower.refval','spect.resolution',null,'typical spectral resolution','double',null,null,1,0,1,20,null)
   INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id) 
   VALUES ('TAP_SCHEMA.obscore','access_url','obscore:Access.Reference','meta.ref.url',null,'URL to download the data','char','*','clob',1,0,1,6,null)
+  INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id)
+  VALUES ('TAP_SCHEMA.obscore','access_format','obscore:Access.Format','meta.code.mime',null,'Content format of the data','char','128*',null,1,0,1,31,null)
   INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id) 
   VALUES ('TAP_SCHEMA.obscore','access_estsize','obscore:Access.Size','phys.size;meta.file','kbyte','estimated size of the download','long',null,null,1,0,1,7,null)
   INTO TAP_SCHEMA.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id) 
@@ -145,6 +148,8 @@ INSERT ALL
   VALUES ('TAP_SCHEMA.obscore','o_ucd','obscore:Char.ObservableAxis.ucd','meta.ucd',null,'UCD describing the observable axis (pixel values)','adql:VARCHAR',32,32,1,0,1,21,null)
   INTO TAP_SCHEMA.columns (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,"size",principal,indexed,std,column_index,id) 
   VALUES ('TAP_SCHEMA.obscore','access_url','obscore:Access.Reference','meta.ref.url',null,'URL to download the data','adql:CLOB',null,null,1,0,1,6,null)
+  INTO TAP_SCHEMA.columns (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,"size",principal,indexed,std,column_index,id)
+  VALUES ('TAP_SCHEMA.obscore','access_format','obscore:Access.Format','meta.code.mime',null,'Content format of the data','adql:VARCHAR',null,null,1,0,1,26,null)
   INTO TAP_SCHEMA.columns (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,"size",principal,indexed,std,column_index,id) 
   VALUES ('TAP_SCHEMA.obscore','access_estsize','obscore:Access.Size','phys.size;meta.file','kbyte','estimated size of the download','adql:BIGINT',null,null,1,0,1,7,null)
   INTO TAP_SCHEMA.columns (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,"size",principal,indexed,std,column_index,id) 
