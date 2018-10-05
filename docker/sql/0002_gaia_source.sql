@@ -25,7 +25,7 @@ CREATE TABLE gaia_dr2.gaia_source
   designation VARCHAR2(256),
   source_id NUMBER(19),
   random_index NUMBER(19),
-  PRIMARY KEY (solution_id)
+  PRIMARY KEY (source_id)
 );
 
 GRANT SELECT ON gaia_dr2.gaia_source TO PUBLIC;
@@ -46,4 +46,28 @@ INSERT ALL
   VALUES ('gaia_dr2.gaia_source', 'source_id', NULL, 'meta.id', NULL, 'Unique source identifier (unique within a particular data release)', 'adql:BIGINT', NULL, NULL, 1, 1, 0, 3, NULL)
   INTO TAP_SCHEMA.columns11 (table_name, column_name, utype, ucd, unit, description, datatype, arraysize, "size", principal, indexed, std, column_index, id)
   VALUES ('gaia_dr2.gaia_source', 'random_index', NULL, 'meta.code', NULL, 'Random index used to select subsets', 'adql:BIGINT', NULL, NULL, 0, 1, 0, 4, NULL)
+SELECT 1 FROM SYS.DUAL;
+
+-- Insert a few placeholder rows of a few columns to be able to return results.
+INSERT ALL
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES (1635721458409799680,'Gaia DR2 6034031547369479040',6034031547369479040,608968508)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES (1635721458409799680,'Gaia DR2 6034033334073459328',6034033334073459328,304484254)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034057729491345792',6034057729491345792,152242127)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034029451422889344',6034029451422889344,1629643001)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034060821870405376',6034060821870405376,1481152574)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034057037994974208',6034057037994974208,740576287)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034043573277904512',6034043573277904512,1258885895)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034061818313112832',6034061818313112832,1061882131)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034029618930403328',6034029618930403328,530941065)
+  INTO gaia_dr2.gaia_source (solution_id, designation, source_id, random_index)
+  VALUES(1635721458409799680,'Gaia DR2 6034032543813805568',6034032543813805568,1206477090)
 SELECT 1 FROM SYS.DUAL;
