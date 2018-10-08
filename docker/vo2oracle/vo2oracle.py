@@ -49,6 +49,34 @@ cQuery = f"SELECT * FROM TAP_SCHEMA.columns WHERE table_name = '{tableName}'"
 logging.info("Running metadata query to determine columns [%s]", cQuery)
 cMetadata = service.search(cQuery)
 
+# Create the table in Oracle.
+createTable = f"CREATE TABLE {tableName} (\n"
+
+def getOracleType(c):
+  mapping = {
+    'BIGINT': 'NUMBER',
+    'VARCHAR': f"VARCHAR({c.get('arraysize', 256)})",
+    'DOUBLE': 'BINARY_DOUBLE',
+    'REAL': 'BINARY_FLOAT',
+    'INTEGER': 'INTEGER',
+    'SMALLINT': 'INTEGER',
+    'BOOLEAN': 'NUMBER(1)',
+  }
+
+  return mapping[c['datatype'].decode()]
+
+primaryColumns = []
+
+for c in cMetadata:
+  createTable += f"  {c['column_name'].decode()} {getOracleType(c)},\n"
+  if c['principal']:
+    primaryColumns.append(c['column_name'].decode())
+
+createTable += f"  PRIMARY KEY ({','.join(primaryColumns)})\n"
+
+# Cap off the create table statement and emit it.
+print(createTable + ");")
+
 # For each column in this table, emit an INSERT to
 # put it into TAP_SCHEMA.columns.
 for c in cMetadata:
