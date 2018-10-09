@@ -52,7 +52,8 @@ cMetadata = service.search(cQuery)
 # Create the table in Oracle.
 createTable = f"CREATE TABLE {tableName} (\n"
 
-def getOracleType(c):
+def dbtype(c):
+  # Map from ADQL datatypes to corresponding Oracle types
   mapping = {
     'BIGINT': 'NUMBER',
     'VARCHAR': f"VARCHAR({c.get('arraysize', 256)})",
@@ -65,12 +66,26 @@ def getOracleType(c):
 
   return mapping[c['datatype'].decode()]
 
+def column_name(c):
+  mapping = {
+    'astrometric_pseudo_colour_error': 'astrometric_pseudo_colour_e',
+    'astrometric_matched_observations': 'astrometric_matched_obs'
+  }
+
+  orig = c['column_name'].decode()
+  return mapping.get(orig, orig)
+
+def escape_unit(c):
+  # For GAIA DR2, some of the units have quotes in them.
+  # For oracle, to insert a string with a ' in it, use ''.
+  return c['unit'].decode().replace('\'', '\'\'')
+
 primaryColumns = []
 
 for c in cMetadata:
-  createTable += f"  {c['column_name'].decode()} {getOracleType(c)},\n"
+  createTable += f"  {column_name(c)} {dbtype(c)},\n"
   if c['principal']:
-    primaryColumns.append(c['column_name'].decode())
+    primaryColumns.append(column_name(c))
 
 createTable += f"  PRIMARY KEY ({','.join(primaryColumns)})\n"
 
@@ -80,10 +95,6 @@ print(createTable + ");")
 # For each column in this table, emit an INSERT to
 # put it into TAP_SCHEMA.columns.
 for c in cMetadata:
-  # For GAIA DR2, some of the units have quotes in them.
-  # For oracle, to insert a string with a ' in it, use ''.
-  escapedUnit = c['unit'].decode().replace('\'', '\'\'')
-
   print(f"""
 INSERT INTO TAP_SCHEMA.columns11 (
   table_name,
@@ -102,10 +113,10 @@ INSERT INTO TAP_SCHEMA.columns11 (
   id
 ) VALUES (
   '{c['table_name'].decode()}',
-  '{c['column_name'].decode()}',
+  '{column_name(c)}',
   '{c['utype'].decode()}',
   '{c['ucd'].decode()}',
-  '{escapedUnit}',
+  '{escape_unit(c)}',
   '{c['description'].decode()}',
   '{c['datatype'].decode()}',
   {c.get('arraysize', 'NULL')},
