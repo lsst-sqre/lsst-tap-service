@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 
+import numpy
 import pyvo
 
 # Configuration and setup.
@@ -67,13 +68,15 @@ def dbtype(c):
   return mapping[c['datatype'].decode()]
 
 def column_name(c):
+  return escape_column_name(c['column_name'].decode())
+
+def escape_column_name(c):
   mapping = {
     'astrometric_pseudo_colour_error': 'astrometric_pseudo_colour_e',
     'astrometric_matched_observations': 'astrometric_matched_obs'
   }
 
-  orig = c['column_name'].decode()
-  return mapping.get(orig, orig)
+  return mapping.get(c, c)
 
 def escape_unit(c):
   # For GAIA DR2, some of the units have quotes in them.
@@ -91,6 +94,9 @@ createTable += f"  PRIMARY KEY ({','.join(primaryColumns)})\n"
 
 # Cap off the create table statement and emit it.
 print(createTable + ");")
+
+# Make the table public
+print(f"GRANT SELECT ON {tableName} TO PUBLIC;")
 
 # For each column in this table, emit an INSERT to
 # put it into TAP_SCHEMA.columns.
@@ -128,3 +134,39 @@ INSERT INTO TAP_SCHEMA.columns11 (
   {c.get('id', 'NULL')}
 );
 """)
+
+
+dQuery = f"SELECT * FROM {tableName}"
+maxrec = 50000
+logging.info("Running data query maxrec=[%d] [%s]", maxrec, dQuery)
+dResults = service.search(dQuery, maxrec=maxrec)
+
+for d in dResults:
+  values = []
+  columns = []
+
+  for c in dResults.fieldnames:
+    columns.append(escape_column_name(c))
+
+    # Based on the column type, we have to do different
+    # rules about how to put it in the insert statement.
+    ct = type(d[c])
+
+    if ct is bytes:
+      # If the type is a string, enclose it in 's.
+      values.append('\'' + d[c].decode() + '\'')
+    elif ct is numpy.bool_:
+      # If it's boolean, convert to 0/1.
+      values.append(str(int(d[c] == True)))
+    elif numpy.isnan(d[c]):
+      # NaNs go to 'NaN' for Oracle.
+      values.append('\'NaN\'')
+    else:
+      # If it's a number, or anything else, just a string
+      # representation will be fine.
+      values.append(str(d[c]))
+
+  columnString = ',\n  '.join(columns)
+  valuesString = ',\n  '.join(values)
+
+  print(f"INSERT INTO {tableName} ({columnString}) VALUES ({valuesString});")
