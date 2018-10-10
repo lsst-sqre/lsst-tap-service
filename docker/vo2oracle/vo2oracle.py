@@ -4,9 +4,40 @@ import logging
 import numpy
 import pyvo
 
+# Helper functions
+
+def dbtype(c):
+  # Map from ADQL datatypes to corresponding Oracle types
+  mapping = {
+    'BIGINT': 'NUMBER',
+    'VARCHAR': f"VARCHAR({c.get('arraysize', 256)})",
+    'DOUBLE': 'BINARY_DOUBLE',
+    'REAL': 'BINARY_FLOAT',
+    'INTEGER': 'INTEGER',
+    'SMALLINT': 'INTEGER',
+    'BOOLEAN': 'NUMBER(1)',
+  }
+
+  return mapping[c['datatype'].decode()]
+
+def column_name(c):
+  return escape_column_name(c['column_name'].decode())
+
+def escape_column_name(c):
+  mapping = {
+    'astrometric_pseudo_colour_error': 'astrometric_pseudo_colour_e',
+    'astrometric_matched_observations': 'astrometric_matched_obs'
+  }
+
+  return mapping.get(c, c)
+
+def escape_unit(c):
+  # For GAIA DR2, some of the units have quotes in them.
+  # For oracle, to insert a string with a ' in it, use ''.
+  return c['unit'].decode().replace('\'', '\'\'')
+
 # Configuration and setup.
 logging.basicConfig(level=logging.DEBUG)
-
 tableName = 'gaiadr2.gaia_source'
 service = pyvo.dal.TAPService('http://gea.esac.esa.int/tap-server/tap')
 
@@ -52,36 +83,6 @@ cMetadata = service.search(cQuery)
 
 # Create the table in Oracle.
 createTable = f"CREATE TABLE {tableName} (\n"
-
-def dbtype(c):
-  # Map from ADQL datatypes to corresponding Oracle types
-  mapping = {
-    'BIGINT': 'NUMBER',
-    'VARCHAR': f"VARCHAR({c.get('arraysize', 256)})",
-    'DOUBLE': 'BINARY_DOUBLE',
-    'REAL': 'BINARY_FLOAT',
-    'INTEGER': 'INTEGER',
-    'SMALLINT': 'INTEGER',
-    'BOOLEAN': 'NUMBER(1)',
-  }
-
-  return mapping[c['datatype'].decode()]
-
-def column_name(c):
-  return escape_column_name(c['column_name'].decode())
-
-def escape_column_name(c):
-  mapping = {
-    'astrometric_pseudo_colour_error': 'astrometric_pseudo_colour_e',
-    'astrometric_matched_observations': 'astrometric_matched_obs'
-  }
-
-  return mapping.get(c, c)
-
-def escape_unit(c):
-  # For GAIA DR2, some of the units have quotes in them.
-  # For oracle, to insert a string with a ' in it, use ''.
-  return c['unit'].decode().replace('\'', '\'\'')
 
 primaryColumns = []
 
