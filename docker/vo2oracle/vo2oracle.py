@@ -125,7 +125,7 @@ INSERT INTO TAP_SCHEMA.columns11 (
   '{c['ucd'].decode()}',
   '{escape_unit(c)}',
   '{c['description'].decode()}',
-  '{c['datatype'].decode()}',
+  '{c['datatype'].decode().lower()}',
   {c.get('arraysize', 'NULL')},
   {c['size']},
   {c['principal']},
