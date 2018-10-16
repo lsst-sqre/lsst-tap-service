@@ -22,6 +22,9 @@ services:
       - 'tap_obscore'
     environment: 
       CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@tapdb:1521/XE -Dca.nrc.cadc.reg.client.RegistryClient.local=true"
+      GOOGLE_APPLICATION_CREDENTIALS: "/etc/google_creds.json"
+    volumes:
+      - './google_creds.json:/etc/google_creds.json'
   tapdb:
     image: opencadc/tap-oracle:11-xe
     shm_size: 1gb
