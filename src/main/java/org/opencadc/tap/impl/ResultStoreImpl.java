@@ -73,70 +73,75 @@ import ca.nrc.cadc.dali.tables.TableWriter;
 import ca.nrc.cadc.tap.ResultStore;
 import ca.nrc.cadc.uws.Job;
 
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
+import java.nio.channels.Channels;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.ResultSet;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ResultStoreImpl implements ResultStore {
     private String filename;
+    private static final String bucket = "async-results.lsst.rocks";
+    private static final String bucketURL = "http://async-results.lsst.rocks";
 
 
     @Override
     public URL put(final ResultSet resultSet,
                    final TableWriter<ResultSet> resultSetTableWriter)
         throws IOException {
-        final File file = getOutputFile();
-
-        try (final FileOutputStream os = new FileOutputStream(file)) {
-            resultSetTableWriter.write(resultSet, os);
-        }
-
-        return file.toURI().toURL();
+        OutputStream os = getOutputStream();
+        resultSetTableWriter.write(resultSet, os);
+        os.close();
+        return getURL();
     }
 
     @Override
     public URL put(Throwable throwable, TableWriter tableWriter)
         throws IOException {
-        final File file = getOutputFile();
-
-        try (final FileOutputStream os = new FileOutputStream(file)) {
-            tableWriter.write(throwable, os);
-        }
-
-        return file.toURI().toURL();
+        OutputStream os = getOutputStream();
+        tableWriter.write(throwable, os);
+        os.close();
+        return getURL();
     }
 
     @Override
     public URL put(final ResultSet resultSet,
                    final TableWriter<ResultSet> resultSetTableWriter,
                    final Integer integer) throws IOException {
-        final File file = getOutputFile();
+        OutputStream os = getOutputStream();
 
-        try (final FileOutputStream os = new FileOutputStream(file)) {
-            if (integer == null) {
-                resultSetTableWriter.write(resultSet, os);
-            } else {
-                resultSetTableWriter.write(resultSet, os, integer.longValue());
-            }
+        if (integer == null) {
+            resultSetTableWriter.write(resultSet, os);
+        } else {
+            resultSetTableWriter.write(resultSet, os, integer.longValue());
         }
 
-        return file.toURI().toURL();
+        os.close();
+
+        return getURL();
     }
 
-    private File getOutputFile() {
-        // work around for COMP-8106: AQ: asa_aq directory disappearing
-        final File resultsDir = new File("/tmp/");
+    private OutputStream getOutputStream() {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        BlobId blobId = BlobId.of(bucket, filename);
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("application/x-votable+xml").build();
+        Blob blob = storage.create(blobInfo);
+        return Channels.newOutputStream(blob.writer());
+    }
 
-        if (!resultsDir.exists()) {
-            if (!resultsDir.mkdirs()) {
-                throw new RuntimeException("Failed to create results directory: " + resultsDir);
-            }
-        }
-
-        return new File(resultsDir.getPath() + File.separator + filename);
+    private URL getURL() throws MalformedURLException {
+        URL bucket = new URL(bucketURL);
+        return new URL(bucket, filename);
     }
 
     @Override
