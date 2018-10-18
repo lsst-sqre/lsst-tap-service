@@ -18,4 +18,19 @@
               validationQuery="SELECT 1 FROM DUAL"
     />
     
+    <Resource name="jdbc/uws"
+              auth="Container"
+              type="javax.sql.DataSource"
+              factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+              minEvictableIdleTimeMillis="30000"
+              maxActive="1" maxIdle="1" maxWait="20000"
+              username="${uws.jdbc.username}" password="${uws.jdbc.password}"
+              driverClassName="${uws.jdbc.driverClassName}"
+              url="${uws.jdbc.url}"
+              removeAbandoned="false"
+              removeAbandonedTimeout="600"
+              logAbandoned="true"
+              testOnBorrow="true"
+              validationQuery="SELECT 1 FROM JobAvailability"
+    />
 </Context>

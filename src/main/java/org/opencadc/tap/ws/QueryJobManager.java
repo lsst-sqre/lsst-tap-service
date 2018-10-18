@@ -2,9 +2,10 @@
 package org.opencadc.tap.ws;
 
 
+import ca.nrc.cadc.auth.ACIdentityManager;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.uws.server.JobExecutor;
-import ca.nrc.cadc.uws.server.MemoryJobPersistence;
+import ca.nrc.cadc.uws.server.impl.PostgresJobPersistence;
 import ca.nrc.cadc.uws.server.SimpleJobManager;
 import ca.nrc.cadc.uws.server.ThreadPoolExecutor;
 
@@ -21,8 +22,7 @@ public class QueryJobManager extends SimpleJobManager {
     public QueryJobManager() {
         super();
 
-        // Persist UWS jobs to memory by default.
-        final MemoryJobPersistence jobPersist = new MemoryJobPersistence();
+        PostgresJobPersistence jobPersist = new PostgresJobPersistence(new ACIdentityManager());
 
         // max threads: 6 == number of simultaneously running async queries (per
         // web server), plus sync queries, plus VOSI-tables queries

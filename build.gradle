@@ -50,6 +50,11 @@ dependencies {
     compile 'org.opencadc:cadc-adql:[1.1,)'
     compile 'org.opencadc:cadc-vosi:[1.0.1,2.0)'
 
+    compile 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
+
+    // https://mvnrepository.com/artifact/org.postgresql/postgresql
+    compile group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
+
     runtime 'org.opencadc:cadc-registry:[1.2.1,)'
 
     testCompile 'junit:junit:4.+'
