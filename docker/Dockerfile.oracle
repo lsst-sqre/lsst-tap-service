@@ -1,0 +1,3 @@
+FROM opencadc/tap-oracle:11-xe
+
+ADD ./sql/* /docker-entrypoint-initdb.d/startup/
