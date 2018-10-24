@@ -1,14 +1,7 @@
-# ALMA TAP
-
-[IVOA TAP](http://ivoa.net/Documents/TAP/) service for the [ALMA Science Archive](http://almascience.nrao.edu/).
-
+# LSST TAP Demo service
 ## Build
 
-Building the service creates a WAR artifact.  From the root fo the `alma-tap` folder, run:
-
-`gradle --info clean build`
-
-to create the `build/libs/tap##%VERSION%.war` file, where the `%VERSION%` will be replaced with the actual version number declared in the [build.gradle](build.gradle) file.
+Run ./build.sh
 
 ## Deployment
 
