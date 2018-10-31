@@ -55,6 +55,9 @@ dependencies {
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     compile group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
 
+    // https://mvnrepository.com/artifact/mysql/mysql-connector-java
+    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.13'
+
     runtime 'org.opencadc:cadc-registry:[1.2.1,)'
 
     testCompile 'junit:junit:4.+'

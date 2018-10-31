@@ -1,13 +1,14 @@
+CREATE DATABASE tap_schema;
 
--- minimal TAP_SCHEMA creation
+-- minimal tap_schema creation
 
--- assumes that the TAP_SCHEMA schema exists
+-- assumes that the tap_schema schema exists
 
 -- sizes for fields are rather arbitrary and generous
 
 -- tested with: PostgreSQL 9.x, 10.x
 
-create table TAP_SCHEMA.schemas11
+create table tap_schema.schemas11
 (
 	schema_name   varchar(64)  NOT NULL,
 	utype         varchar(512),
@@ -17,7 +18,7 @@ create table TAP_SCHEMA.schemas11
 )
 ;
 
-create table TAP_SCHEMA.schemas
+create table tap_schema.schemas
 (
 	schema_name   varchar(64)  NOT NULL,
 	utype         varchar(512),
@@ -27,7 +28,7 @@ create table TAP_SCHEMA.schemas
 )
 ;
 
-create table TAP_SCHEMA.tables11
+create table tap_schema.tables11
 (
 	schema_name   varchar(64)  NOT NULL,
 	table_name    varchar(128) NOT NULL,
@@ -37,11 +38,11 @@ create table TAP_SCHEMA.tables11
 	table_index   integer,
 	
 	primary key (table_name),
-	foreign key (schema_name) references TAP_SCHEMA.schemas11 (schema_name)
+	foreign key (schema_name) references tap_schema.schemas11 (schema_name)
 )
 ;
 
-create table TAP_SCHEMA.tables
+create table tap_schema.tables
 (
 	schema_name   varchar(64)  NOT NULL,
 	table_name    varchar(128) NOT NULL,
@@ -51,11 +52,11 @@ create table TAP_SCHEMA.tables
 	table_index   integer,
 	
 	primary key (table_name),
-	foreign key (schema_name) references TAP_SCHEMA.schemas11 (schema_name)
+	foreign key (schema_name) references tap_schema.schemas11 (schema_name)
 )
 ;
 
-create table TAP_SCHEMA.columns11
+create table tap_schema.columns11
 (
 	table_name    varchar(128) NOT NULL,
 	column_name   varchar(64)  NOT NULL,
@@ -79,12 +80,12 @@ create table TAP_SCHEMA.columns11
         id            varchar(32),
 	
 	primary key (table_name,column_name),
-	foreign key (table_name) references TAP_SCHEMA.tables11 (table_name)
+	foreign key (table_name) references tap_schema.tables11 (table_name)
 )
 ;
 
 
-create table TAP_SCHEMA.columns
+create table tap_schema.columns
 (
 	table_name    varchar(128) NOT NULL,
 	column_name   varchar(64)  NOT NULL,
@@ -108,11 +109,11 @@ create table TAP_SCHEMA.columns
         id            varchar(32),
 	
 	primary key (table_name,column_name),
-	foreign key (table_name) references TAP_SCHEMA.tables11 (table_name)
+	foreign key (table_name) references tap_schema.tables11 (table_name)
 )
 ;
 
-create table TAP_SCHEMA.keys11
+create table tap_schema.keys11
 (
 	key_id        varchar(64)  NOT NULL,
 	from_table    varchar(128) NOT NULL,
@@ -121,12 +122,12 @@ create table TAP_SCHEMA.keys11
 	description   varchar(512),
 
 	primary key (key_id),
-	foreign key (from_table) references TAP_SCHEMA.tables11 (table_name),
-	foreign key (target_table) references TAP_SCHEMA.tables11 (table_name)
+	foreign key (from_table) references tap_schema.tables11 (table_name),
+	foreign key (target_table) references tap_schema.tables11 (table_name)
 )
 ;
 
-create table TAP_SCHEMA.keys
+create table tap_schema.keys
 (
 	key_id        varchar(64)  NOT NULL,
 	from_table    varchar(128) NOT NULL,
@@ -135,30 +136,28 @@ create table TAP_SCHEMA.keys
 	description   varchar(512),
 
 	primary key (key_id),
-	foreign key (from_table) references TAP_SCHEMA.tables11 (table_name),
-	foreign key (target_table) references TAP_SCHEMA.tables11 (table_name)
+	foreign key (from_table) references tap_schema.tables11 (table_name),
+	foreign key (target_table) references tap_schema.tables11 (table_name)
 )
 ;
 
-create table TAP_SCHEMA.key_columns11
+create table tap_schema.key_columns11
 (
 	key_id          varchar(64) NOT NULL,
 	from_column     varchar(64) NOT NULL,
 	target_column   varchar(64) NOT NULL,
 
-	foreign key (key_id) references TAP_SCHEMA.keys11 (key_id)
+	foreign key (key_id) references tap_schema.keys11 (key_id)
 )
 ;
 
 
-create table TAP_SCHEMA.key_columns
+create table tap_schema.key_columns
 (
 	key_id          varchar(64) NOT NULL,
 	from_column     varchar(64) NOT NULL,
 	target_column   varchar(64) NOT NULL,
 
-	foreign key (key_id) references TAP_SCHEMA.keys11 (key_id)
+	foreign key (key_id) references tap_schema.keys11 (key_id)
 )
 ;
-
-

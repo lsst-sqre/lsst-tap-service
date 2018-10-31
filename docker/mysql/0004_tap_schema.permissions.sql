@@ -1,4 +1,5 @@
 
--- grant usage on schema TAP_SCHEMA to ''@'%';
+-- grant usage on schema tap_schema to ''@'%';
 
-grant select on TAP_SCHEMA.* to 'TAP_SCHEMA'@'%';
+GRANT SELECT ON tap_schema.* TO 'TAP_SCHEMA'@'%';
+FLUSH PRIVILEGES;
