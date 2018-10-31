@@ -38,6 +38,17 @@ services:
       - 'tap_obscore'
     volumes:
       - './uws-sql:/docker-entrypoint-initdb.d'
+  mysql:
+    image: mysql/mysql-server:8.0.13-1.1.8
+    networks:
+      - 'tap_obscore'
+    environment:
+      MYSQL_DATABASE: "TAP_SCHEMA"
+      MYSQL_USER: "TAP_SCHEMA"
+      MYSQL_PASSWORD: "TAP_SCHEMA"
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - './mysql:/docker-entrypoint-initdb.d/'
 
 networks:
   tap_obscore:
