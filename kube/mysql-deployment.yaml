@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        env:
+        - name: MYSQL_DATABASE
+          value: "TAP_SCHEMA"
+        - name: MYSQL_USER
+          value: "TAP_SCHEMA"
+        - name: MYSQL_PASSWORD
+          value: "TAP_SCHEMA"
+        - name: MYSQL_ROOT_HOST
+          value: "%"
+        image: mysql/mysql-server:8.0.13-1.1.8
+        ports:
+        - containerPort: 3306
