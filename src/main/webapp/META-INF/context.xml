@@ -15,7 +15,6 @@
               removeAbandonedTimeout="600"
               logAbandoned="true"
               testOnBorrow="true"
-              validationQuery="SELECT 1 FROM DUAL"
     />
     
     <Resource name="jdbc/uws"
