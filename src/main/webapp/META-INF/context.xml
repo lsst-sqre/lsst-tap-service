@@ -17,6 +17,21 @@
               testOnBorrow="true"
     />
     
+    <Resource name="jdbc/qservuser"
+              auth="Container"
+              type="javax.sql.DataSource"
+              factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+              minEvictableIdleTimeMillis="30000"
+              maxActive="1" maxIdle="1" maxWait="20000"
+              username="${qservuser.jdbc.username}" password="${qservuser.jdbc.password}"
+              driverClassName="${qservuser.jdbc.driverClassName}"
+              url="${qservuser.jdbc.url}"
+              removeAbandoned="false"
+              removeAbandonedTimeout="600"
+              logAbandoned="true"
+              testOnBorrow="true"
+    />
+
     <Resource name="jdbc/uws"
               auth="Container"
               type="javax.sql.DataSource"
