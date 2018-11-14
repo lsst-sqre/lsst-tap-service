@@ -6,3 +6,4 @@ cp build/libs/tap##1000.war docker
 (cd docker && docker build . -t lsstdax/oracle-db-demo -f Dockerfile.oracle)
 (cd docker && docker build . -t lsstdax/postgresql-db-demo -f Dockerfile.postgresql)
 (cd docker && docker build . -t lsstdax/mysql-db-demo -f Dockerfile.mysql)
+(cd docker && docker build . -t lsstdax/presto -f Dockerfile.presto)

@@ -29,6 +29,11 @@ server:
       connection-url=jdbc:mysql://mysql-service:3306/?useSSL=false
       connection-user=TAP_SCHEMA
       connection-password=TAP_SCHEMA
+    qserv.properties: |
+      connector.name=qserv
+      connection-url=jdbc:mysql://mysql-service:3306/?useSSL=false
+      connection-user=TAP_SCHEMA
+      connection-password=TAP_SCHEMA
     uws.properties: |
       connector.name=postgresql
       connection-url=jdbc:postgresql://postgresql-service/
@@ -36,9 +41,9 @@ server:
       connection-password=
 
 image:
-  repository: bivas/presto
-  tag: 0.196
-  pullPolicy: IfNotPresent
+  repository: lsstdax/presto
+  tag: latest
+  pullPolicy: Always
 
 service:
   type: ClusterIP
