@@ -25,6 +25,6 @@ spec:
           value: "TAP_SCHEMA"
         - name: MYSQL_ROOT_HOST
           value: "%"
-        image: lsstdax/mysql-db-demo
+        image: lsstdax/mysql-db-demo:latest
         ports:
         - containerPort: 3306
