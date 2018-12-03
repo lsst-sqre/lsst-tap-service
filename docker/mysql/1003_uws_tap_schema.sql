@@ -12,4 +12,4 @@ INSERT INTO tap_schema.tables11 (schema_name, table_name, table_type, descriptio
 
 INSERT
   INTO tap_schema.columns11 (table_name, column_name, utype, ucd, unit, description, datatype, arraysize, size, principal, indexed, std, column_index, id) VALUES
-  ('uws.Job', 'jobid', NULL, '', NULL, 'Job ID', 'VARCHAR', NULL, NULL, 0, 1, 0, 1, NULL);
+  ('uws.Job', 'jobid', NULL, '', NULL, 'Job ID', 'char', 16, NULL, 0, 1, 0, 1, NULL);
