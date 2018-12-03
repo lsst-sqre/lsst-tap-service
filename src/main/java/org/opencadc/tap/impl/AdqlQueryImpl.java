@@ -113,14 +113,13 @@ public class AdqlQueryImpl extends AdqlQuery
         tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
         tnc.put("uws.job", "uws.uws.job");
         tnc.put("wise_00.allsky_2band_p1bm_frm", "qserv.wise_00.allsky_2band_p1bm_frm");
-/*
         tnc.put("wise_00.allsky_3band_p1bm_frm", "qserv.wise_00.allsky_3band_p1bm_frm");
         tnc.put("wise_00.allsky_4band_p1bm_frm", "qserv.wise_00.allsky_4band_p1bm_frm");
         tnc.put("wise_00.allwise_p3am_cdd", "qserv.wise_00.allwise_p3am_cdd");
         tnc.put("wise_00.allwise_p3as_cdd", "qserv.wise_00.allwise_p3as_cdd");
         tnc.put("wise_00.allwise_p3as_mep", "qserv.wise_00.allwise_p3as_mep");
         tnc.put("wise_00.allwise_p3as_psd", "qserv.wise_00.allwise_p3as_psd");
-*/
+
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
         
