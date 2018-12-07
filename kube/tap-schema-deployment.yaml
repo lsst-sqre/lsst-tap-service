@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-deployment
+  name: tap-schema-deployment
   labels:
-    app: mysql
+    app: tap-schema
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql
+      app: tap-schema
   template:
     metadata:
       labels:
-        app: mysql
+        app: tap-schema
     spec:
       containers:
-      - name: mysql
+      - name: tap-schema
         env:
         - name: MYSQL_DATABASE
           value: "TAP_SCHEMA"

@@ -5,8 +5,8 @@ kubectl delete deployment/oracle-deployment
 kubectl delete service/oracle-service
 
 # Delete the mysql backend.
-kubectl delete deployment/mysql-deployment
-kubectl delete service/mysql-service
+kubectl delete deployment/tap-schema-deployment
+kubectl delete service/tap-schema-service
 
 # Delete the postgres backend for UWS jobs.
 kubectl delete service/postgresql-service

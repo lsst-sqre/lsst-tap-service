@@ -26,7 +26,7 @@ server:
       presto-logs.http-request-log.pattern=*.log
     tap_schema.properties: |
       connector.name=mysql
-      connection-url=jdbc:mysql://mysql-service:3306/?useSSL=false
+      connection-url=jdbc:mysql://tap-schema-service:3306/?useSSL=false
       connection-user=TAP_SCHEMA
       connection-password=TAP_SCHEMA
     qserv.properties: |
