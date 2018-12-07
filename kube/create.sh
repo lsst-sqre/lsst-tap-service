@@ -3,13 +3,22 @@
 kubectl create -f oracle-deployment.yaml
 kubectl create -f oracle-service.yaml
 
-# Create the mysql backend for TAP data.
+# Create the mysql backend for TAP_SCHEMA data.
 kubectl create -f mysql-deployment.yaml
 kubectl create -f mysql-service.yaml
 
 # Create the postgresql backend for UWS data.
 kubectl create -f postgresql-deployment.yaml
 kubectl create -f postgresql-service.yaml
+
+# Create the Presto deployment using Helm.
+if [ ! -d "/tmp/presto-chart" ]; then
+  # Use this version of the presto chart, which supports creating
+  # backends via the values.yaml.
+  git clone https://github.com/lotuc/presto-chart.git /tmp/presto-chart
+fi
+
+helm install -f presto-helm-values.yaml /tmp/presto-chart/ --name dax
 
 # Create the CADC TAP service.
 kubectl create -f tap-service.yaml
