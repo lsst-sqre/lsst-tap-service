@@ -7,6 +7,10 @@ kubectl create -f oracle-service.yaml
 kubectl create -f tap-schema-deployment.yaml
 kubectl create -f tap-schema-service.yaml
 
+# Create the mock qserv backend.
+kubectl create -f mock-qserv-deployment.yaml
+kubectl create -f mock-qserv-service.yaml
+
 # Create the postgresql backend for UWS data.
 kubectl create -f postgresql-deployment.yaml
 kubectl create -f postgresql-service.yaml

@@ -31,9 +31,9 @@ server:
       connection-password=TAP_SCHEMA
     qserv.properties: |
       connector.name=qserv
-      connection-url=jdbc:mysql://mysql-service:3306/?useSSL=false
-      connection-user=TAP_SCHEMA
-      connection-password=TAP_SCHEMA
+      connection-url=jdbc:mysql://qserv-master01:4040/?useSSL=false
+      connection-user=qsmaster
+      connection-password=
     uws.properties: |
       connector.name=postgresql
       connection-url=jdbc:postgresql://postgresql-service/

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-qserv-deployment
+  labels:
+    app: mock-qserv
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-qserv
+  template:
+    metadata:
+      labels:
+        app: mock-qserv
+    spec:
+      containers:
+      - name: mock-qserv
+        env:
+        - name: MYSQL_DATABASE
+          value: "wise00"
+        - name: MYSQL_USER
+          value: "qsmaster"
+        - name: MYSQL_PASSWORD
+          value: ""
+        - name: MYSQL_ROOT_HOST
+          value: "%"
+        image: mysql/mysql-server:8.0.13-1.1.8
+        ports:
+        - containerPort: 3306
