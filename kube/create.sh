@@ -1,4 +1,9 @@
 #!/bin/bash -ex
+# If the hostname we're deploying from is at NCSA,
+# this string will not be empty, allowing for us to
+# do different things for GKE / NCSA.
+NCSA_DEPLOY=`hostname -f | grep ncsa`
+
 # Create the oracle backend for TAP data.
 kubectl create -f oracle-deployment.yaml
 kubectl create -f oracle-service.yaml
@@ -7,9 +12,11 @@ kubectl create -f oracle-service.yaml
 kubectl create -f tap-schema-deployment.yaml
 kubectl create -f tap-schema-service.yaml
 
-# Create the mock qserv backend.
-kubectl create -f mock-qserv-deployment.yaml
-kubectl create -f mock-qserv-service.yaml
+if [ -z "$NCSA_DEPLOY" ]; then
+  # Create the mock qserv backend if we're not at NCSA
+  kubectl create -f mock-qserv-deployment.yaml
+  kubectl create -f mock-qserv-service.yaml
+fi
 
 # Create the postgresql backend for UWS data.
 kubectl create -f postgresql-deployment.yaml
@@ -28,5 +35,10 @@ helm install -f presto-helm-values.yaml /tmp/presto-chart/ --name dax
 kubectl create -f tap-service.yaml
 kubectl create -f tap-deployment.yaml
 
-# Create the ingress rule for incoming requests.
-kubectl create -f tap-ingress.yaml
+if [ -z "$NCSA_DEPLOY" ]; then
+  # Create the ingress rule for incoming requests.
+  kubectl create -f tap-ingress.yaml
+else
+  # Create the ingress rule containing the NCSA hostname.
+  kubectl create -f tap-ingress-ncsa.yaml
+fi
