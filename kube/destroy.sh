@@ -10,7 +10,7 @@ kubectl delete service/tap-schema-service
 
 # Delete the mock qserv backend.
 kubectl delete deployment/mock-qserv-deployment
-kubectl delete service/mock-qserv-service
+kubectl delete service/qserv-master01
 
 # Delete the postgres backend for UWS jobs.
 kubectl delete service/postgresql-service
