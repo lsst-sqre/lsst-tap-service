@@ -1,0 +1,58 @@
+USE wise_00;
+
+CREATE TABLE `allwise_p3as_mep` (
+
+    `source_id_mf`  VARCHAR(28)         NOT NULL,  -- foreign key to the primary key of the allwise_cat table
+    `ra`            DECIMAL(10,7)   DEFAULT NULL,
+    `decl`          DECIMAL(9,7)    DEFAULT NULL,
+    `w1x_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w1y_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w1mpro_ep`     DECIMAL(5,3)    DEFAULT NULL,
+    `w1sigmpro_ep`  DECIMAL(4,3)    DEFAULT NULL,
+    `w1rchi2_ep`    FLOAT           DEFAULT NULL,
+    `w1flux_ep`     FLOAT           DEFAULT NULL,
+    `w1sigflux_ep`  FLOAT           DEFAULT NULL,
+    `w2x_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w2y_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w2mpro_ep`     DECIMAL(5,3)    DEFAULT NULL,
+    `w2sigmpro_ep`  DECIMAL(4,3)    DEFAULT NULL,
+    `w2rchi2_ep`    FLOAT           DEFAULT NULL,
+    `w2flux_ep`     FLOAT           DEFAULT NULL,
+    `w2sigflux_ep`  FLOAT           DEFAULT NULL,
+    `w3x_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w3y_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w3mpro_ep`     DECIMAL(5,3)    DEFAULT NULL,
+    `w3sigmpro_ep`  DECIMAL(4,3)    DEFAULT NULL,
+    `w3rchi2_ep`    FLOAT           DEFAULT NULL,
+    `w3flux_ep`     FLOAT           DEFAULT NULL,
+    `w3sigflux_ep`  FLOAT           DEFAULT NULL,
+    `w4x_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w4y_ep`        DECIMAL(7,3)    DEFAULT NULL,
+    `w4mpro_ep`     DECIMAL(5,3)    DEFAULT NULL,
+    `w4sigmpro_ep`  DECIMAL(4,3)    DEFAULT NULL,
+    `w4rchi2_ep`    FLOAT           DEFAULT NULL,
+    `w4flux_ep`     FLOAT           DEFAULT NULL,
+    `w4sigflux_ep`  FLOAT           DEFAULT NULL,
+    `mjd`           DECIMAL(13,8)   DEFAULT NULL,
+    `frame_id`      VARCHAR(9)      DEFAULT NULL,
+    `nb`            SMALLINT        DEFAULT NULL,
+    `na`            SMALLINT        DEFAULT NULL,
+    `cc_flags`      VARCHAR(4)      DEFAULT NULL,
+    `cntr_mf`       BIGINT          DEFAULT NULL,
+    `cat`           SMALLINT        DEFAULT NULL,
+    `qi_fact`       DECIMAL(2,1)    DEFAULT NULL,
+    `saa_sep`       SMALLINT        DEFAULT NULL,
+    `moon_masked`   VARCHAR(4)      DEFAULT NULL,
+    `load_id`       INT             DEFAULT NULL,
+    `cntr`          BIGINT          DEFAULT NULL,
+    `x`             DECIMAL(17,16)  DEFAULT NULL,
+    `y`             DECIMAL(17,16)  DEFAULT NULL,
+    `z`             DECIMAL(17,16)  DEFAULT NULL,
+    `spt_ind`       INT             DEFAULT NULL,
+    `htm20`         BIGINT          DEFAULT NULL,
+
+    KEY `idx_source_id_mf` (`source_id_mf`),
+    KEY `idx_htm20`        (`htm20`)
+
+) ENGINE=MyISAM;
+
