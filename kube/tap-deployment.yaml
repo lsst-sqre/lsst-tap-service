@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: tap
-        image: lsstdax/lsst-tap-demo
+        image: lsstdax/lsst-tap-demo:latest
         ports:
         - containerPort: 8080
         volumeMounts:
@@ -25,7 +25,8 @@ spec:
           readOnly: true
         env:
         - name: CATALINA_OPTS
-          value: "-Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@oracle-service:1521/XE -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://postgresql-service/"
+          # Presto backend
+          value: "-Dqservuser.jdbc.username=TAP_SCHEMA -Dqservuser.jdbc.password= -Dqservuser.jdbc.driverClassName=com.facebook.presto.jdbc.PrestoDriver -Dqservuser.jdbc.url=jdbc:presto://dax-presto:8080/tap_schema -Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password= -Dtapuser.jdbc.driverClassName=com.facebook.presto.jdbc.PrestoDriver -Dtapuser.jdbc.url=jdbc:presto://dax-presto:8080/tap_schema -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://postgresql-service/"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: "/etc/creds/google_creds.json"
       volumes:

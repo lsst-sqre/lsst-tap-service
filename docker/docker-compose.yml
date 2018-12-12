@@ -11,7 +11,7 @@ services:
     depends_on: 
       - 'tap_obscore'
   tap_obscore:
-    image: opencadc/alma-tap:1.0.0
+    image: lsstdax/lsst-tap-demo:latest
     #build: ./
     depends_on:
       - 'tapdb'
@@ -20,8 +20,11 @@ services:
       - '5555:5555'
     networks:
       - 'tap_obscore'
-    environment: 
-      CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@tapdb:1521/XE -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://uwsdb/"
+    environment:
+      # Oracle is the backend.
+      #CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=oracle.jdbc.OracleDriver -Dtapuser.jdbc.url=jdbc:oracle:thin:@tapdb:1521/XE -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://uwsdb/"
+      # mysql is the backend.
+      CATALINA_OPTS: "-Dtapuser.jdbc.username=TAP_SCHEMA -Domit-alma-test=true -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=com.mysql.jdbc.Driver -Dtapuser.jdbc.url=jdbc:mysql://mysqldb:3306/ -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://uwsdb/"
       GOOGLE_APPLICATION_CREDENTIALS: "/etc/google_creds.json"
     volumes:
       - './google_creds.json:/etc/google_creds.json'
@@ -38,6 +41,17 @@ services:
       - 'tap_obscore'
     volumes:
       - './uws-sql:/docker-entrypoint-initdb.d'
+  mysqldb:
+    image: mysql/mysql-server:8.0.13-1.1.8
+    networks:
+      - 'tap_obscore'
+    environment:
+      MYSQL_DATABASE: "TAP_SCHEMA"
+      MYSQL_USER: "TAP_SCHEMA"
+      MYSQL_PASSWORD: "TAP_SCHEMA"
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - './mysql:/docker-entrypoint-initdb.d/'
 
 networks:
   tap_obscore:

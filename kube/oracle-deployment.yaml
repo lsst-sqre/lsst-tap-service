@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: oracle
-        image: lsstdax/oracle-db-demo
+        image: lsstdax/oracle-db-demo:latest
         ports:
         - containerPort: 1521
         volumeMounts:

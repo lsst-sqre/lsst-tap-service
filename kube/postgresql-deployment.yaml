@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: postgresql
-        image: lsstdax/postgresql-db-demo
+        image: lsstdax/postgresql-db-demo:latest
         ports:
         - containerPort: 5432
