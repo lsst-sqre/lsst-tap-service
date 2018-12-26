@@ -13,8 +13,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ADD --chown=presto presto-server-0.214-SNAPSHOT ${PRESTO_HOME}
-ADD --chown=presto presto-cli-0.214-SNAPSHOT-executable.jar ${PRESTO_HOME}/bin/presto
+ADD --chown=presto presto-server-SNAPSHOT ${PRESTO_HOME}
+ADD --chown=presto presto-cli-* ${PRESTO_HOME}/bin/presto
 
 USER ${PRESTO_USER}
 RUN mkdir -p /presto/etc/catalog
