@@ -371,10 +371,6 @@ public class QServQueryRunner implements JobRunner
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
 
-                    /* [DM-16711] Stop messing with the autocommit value in this layer,
-                     * use the context.xml to set it overall to true in tomcat.
-                    connection.setAutoCommit(false);
-                     */
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
@@ -439,15 +435,6 @@ public class QServQueryRunner implements JobRunner
             {
                 if (connection != null)
                 {
-/*
- * [DM-16711] Stop messing with the autocommit value in this layer,
- * use the context.xml to set it overall to true in tomcat.
-                    try
-                    {
-                        connection.setAutoCommit(true);
-                    }
-                    catch(Throwable ignore) { }
-*/
                     try
                     {
                         resultSet.close();
