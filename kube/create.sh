@@ -2,7 +2,9 @@
 # If the hostname we're deploying from is at NCSA,
 # this string will not be empty, allowing for us to
 # do different things for GKE / NCSA.
-NCSA_DEPLOY=`hostname -f | grep ncsa`
+# Since grep returns exit code 1 if not found,
+# which makes the script exit, always return true.
+NCSA_DEPLOY=`hostname -f | grep ncsa || true`
 
 # Create the oracle backend for TAP data.
 kubectl create -f oracle-deployment.yaml

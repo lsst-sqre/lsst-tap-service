@@ -20,6 +20,8 @@
                 ca.nrc.cadc.tap
                 org.opencadc.tap
                 ca.nrc.cadc.log
+                ca.nrc.cadc.rest
+                ca.nrc.cadc.uws
             </param-value>
         </init-param>
         <init-param>
@@ -35,36 +37,45 @@
 
     <!-- asynchronous access to JobManager service -->
     <servlet>
+        <load-on-startup>2</load-on-startup>
         <servlet-name>AsyncServlet</servlet-name>
-        <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>
+        <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
         <init-param>
-            <param-name>org.restlet.application</param-name>
-            <param-value>ca.nrc.cadc.uws.web.restlet.UWSAsyncApplication</param-value>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.uws.web.GetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>post</param-name>
+            <param-value>ca.nrc.cadc.uws.web.PostAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>delete</param-name>
+            <param-value>ca.nrc.cadc.uws.web.DeleteAction</param-value>
         </init-param>
         <init-param>
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
             <param-value>org.opencadc.tap.ws.QueryJobManager</param-value>
         </init-param>
-        <load-on-startup>2</load-on-startup>
     </servlet>
 
     <!-- synchronous access to JobManager service -->
     <servlet>
+        <load-on-startup>2</load-on-startup>
         <servlet-name>SyncServlet</servlet-name>
-        <servlet-class>ca.nrc.cadc.uws.server.SyncServlet</servlet-class>
+        <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
+        <init-param>
+            <param-name>get</param-name>
+            <param-value>ca.nrc.cadc.uws.web.SyncGetAction</param-value>
+        </init-param>
+        <init-param>
+            <param-name>post</param-name>
+            <param-value>ca.nrc.cadc.uws.web.SyncPostAction</param-value>
+        </init-param>
+
         <init-param>
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
             <param-value>org.opencadc.tap.ws.QueryJobManager</param-value>
         </init-param>
-        <init-param>
-            <param-name>ca.nrc.cadc.uws.server.SyncServlet.execOnGET</param-name>
-            <param-value>true</param-value>
-        </init-param>
-        <init-param>
-            <param-name>ca.nrc.cadc.uws.server.SyncServlet.execOnPOST</param-name>
-            <param-value>false</param-value>
-        </init-param>
-        <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
