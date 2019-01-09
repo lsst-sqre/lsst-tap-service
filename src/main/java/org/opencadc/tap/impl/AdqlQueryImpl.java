@@ -78,6 +78,7 @@ import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.impl.QServRegionConverter;
 
 /**
  * TAP service implementors must implement this class and add customisations of the 
@@ -126,7 +127,6 @@ public class AdqlQueryImpl extends AdqlQuery
 
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
-        
-        // TODO: add more custom query visitors here
+        super.navigatorList.add(new QServRegionConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
     }
 }

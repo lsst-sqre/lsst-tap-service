@@ -97,6 +97,12 @@ public class ALMATapSchemaDAO extends TapSchemaDAO {
         functionDescs.add(new FunctionDesc("COALESCE", TapDataType.FUNCTION_ARG));
         functionDescs.add(new FunctionDesc("CONCAT", TapDataType.CHAR));
 
+        // QServ specific functions.
+        functionDescs.add(new FunctionDesc("qserv_areaspec_circle", TapDataType.DOUBLE));
+
+        // SciSQL specific functions.
+        functionDescs.add(new FunctionDesc("scisql_angSep", TapDataType.DOUBLE));
+
         return functionDescs;
     }
 }
