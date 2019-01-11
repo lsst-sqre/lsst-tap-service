@@ -105,6 +105,9 @@
                 <form>POINT</form>
             </feature>
             <feature>
+                <form>BOX</form>
+            </feature>
+            <feature>
                 <form>CIRCLE</form>
             </feature>
             <feature>
