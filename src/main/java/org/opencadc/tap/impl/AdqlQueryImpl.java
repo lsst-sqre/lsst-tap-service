@@ -78,6 +78,7 @@ import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.impl.QServRegionConverter;
 
 /**
  * TAP service implementors must implement this class and add customisations of the 
@@ -111,6 +112,9 @@ public class AdqlQueryImpl extends AdqlQuery
         tnc.put("tap_schema.columns", "tap_schema.columns11");
         tnc.put("tap_schema.keys", "tap_schema.keys11");
         tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
+
+        /* [DM-17021] Don't remap table names when connecting directly.
+         * This only needs to happen when we use presto.
         tnc.put("uws.job", "uws.uws.job");
         tnc.put("wise_00.allsky_2band_p1bm_frm", "qserv.wise_00.allsky_2band_p1bm_frm");
         tnc.put("wise_00.allsky_3band_p1bm_frm", "qserv.wise_00.allsky_3band_p1bm_frm");
@@ -119,10 +123,10 @@ public class AdqlQueryImpl extends AdqlQuery
         tnc.put("wise_00.allwise_p3as_cdd", "qserv.wise_00.allwise_p3as_cdd");
         tnc.put("wise_00.allwise_p3as_mep", "qserv.wise_00.allwise_p3as_mep");
         tnc.put("wise_00.allwise_p3as_psd", "qserv.wise_00.allwise_p3as_psd");
+         */
 
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
-        
-        // TODO: add more custom query visitors here
+        super.navigatorList.add(new QServRegionConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
     }
 }
