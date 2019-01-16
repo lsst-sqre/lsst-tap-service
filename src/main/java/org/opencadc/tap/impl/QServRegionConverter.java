@@ -102,4 +102,13 @@ public class QServRegionConverter extends RegionFinder
     {
         return new QServBox(adqlFunction.getParameters().getExpressions());
     }
+
+    /**
+     * This method is called when a POLYGON geometry value is found.
+     **/
+    @Override
+    protected Expression handlePolygon(List<Expression> expressions)
+    {
+        return new QServPolygon(expressions);
+    }
 }
