@@ -6,3 +6,4 @@ docker push lsstdax/tap-schema-db:latest
 docker push lsstdax/mock-qserv:latest
 docker push lsstdax/lsst-tap-demo:latest
 docker push lsstdax/presto:latest
+docker push lsstdax/querymonkey:latest

@@ -9,3 +9,4 @@ cp build/libs/tap##1000.war docker
 (cd docker && docker build . -t lsstdax/tap-schema-db:latest -f Dockerfile.tap_schema)
 (cd docker && docker build . -t lsstdax/mock-qserv:latest -f Dockerfile.mock_qserv)
 (cd docker && docker build . -t lsstdax/presto:latest -f Dockerfile.presto)
+docker build . -t lsstdax/querymonkey:latest -f docker/Dockerfile.querymonkey
