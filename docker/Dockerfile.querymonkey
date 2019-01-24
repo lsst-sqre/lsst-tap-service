@@ -1,0 +1,7 @@
+FROM python:3.7
+
+ADD ./integration_test/querymonkey /opt/querymonkey/
+
+RUN pip install -r /opt/querymonkey/requirements.txt
+
+ENTRYPOINT ["/opt/querymonkey/run.sh"]

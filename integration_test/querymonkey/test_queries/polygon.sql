@@ -1,0 +1,1 @@
+SELECT 'monkey', ra, decl FROM wise_00.allwise_p3as_mep WHERE CONTAINS(POINT('ICRS', ra, decl), POLYGON('ICRS', {{ ra }}, {{ limit_dec(dec + r1) }}, {{ ra + r2 }}, {{ dec }}, {{ ra }}, {{ limit_dec(dec - r3) }}, {{ ra - r3 }}, {{ dec }})) = 1
