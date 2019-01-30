@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Context>
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
-       
+
     <Resource name="jdbc/tapuser"
               auth="Container"
               type="javax.sql.DataSource"
@@ -18,7 +18,7 @@
               validationQuery="SELECT 1"
               defaultAutoCommit="true"
     />
-    
+
     <Resource name="jdbc/qservuser"
               auth="Container"
               type="javax.sql.DataSource"
