@@ -1,0 +1,11 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: qserv-master01
+spec:
+  selector:
+    app: mock-qserv
+  ports:
+  - protocol: TCP
+    port: 4040
+    targetPort: 3306

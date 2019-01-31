@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: querymonkey-deployment
+  labels:
+    app: querymonkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: querymonkey
+  template:
+    metadata:
+      labels:
+        app: querymonkey
+    spec:
+      containers:
+      - name: querymonkey
+        image: lsstdax/querymonkey:latest
+        env:
+        - name: TAP_URL
+          value: "https://lsst-lspdev.ncsa.illinois.edu/tap"
+        - name: SLACK_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: slack-webhook
+              key: webhook
