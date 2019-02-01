@@ -10,9 +10,10 @@ metadata:
   name: tap-ingress
 spec:
   rules:
-  - http:
+  - host: lsst-lsp-stable.ncsa.illinois.edu
+    http:
       paths:
-      - path: /tap
-        backend: 
+      - backend:
           serviceName: tap-service
           servicePort: 8080
+        path: /tap

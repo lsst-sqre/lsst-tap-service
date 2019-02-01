@@ -19,7 +19,7 @@ spec:
         image: lsstdax/querymonkey:latest
         env:
         - name: TAP_URL
-          value: "https://lsst-lspdev.ncsa.illinois.edu/tap"
+          value: "https://lsst-lsp-stable.ncsa.illinois.edu/tap"
         - name: SLACK_WEBHOOK
           valueFrom:
             secretKeyRef:
