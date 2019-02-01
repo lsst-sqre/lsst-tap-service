@@ -1,31 +1,24 @@
 #!/bin/bash -x
-# If the hostname we're deploying from is at NCSA,
-# this string will not be empty, allowing for us to
-# do different things for GKE / NCSA.
-NCSA_DEPLOY=`hostname -f | grep ncsa`
+# Destroy the lsst-lsp-int environment.
+# This assumes it is being run at NCSA.
+DAX_NAMESPACE=${DAX_NAMESPACE:-'dax-int'}
 
 # Delete the Oracle backend.
-kubectl delete deployment/oracle-deployment
-kubectl delete service/oracle-service
+kubectl delete deployment/oracle-deployment --namespace $DAX_NAMESPACE
+kubectl delete service/oracle-service --namespace $DAX_NAMESPACE
 
 # Delete the mysql backend.
-kubectl delete deployment/tap-schema-deployment
-kubectl delete service/tap-schema-service
-
-if [ -z "$NCSA_DEPLOY" ]; then
-  # Delete the mock qserv backend.
-  kubectl delete deployment/mock-qserv-deployment
-  kubectl delete service/qserv-master01
-fi
+kubectl delete deployment/tap-schema-deployment --namespace $DAX_NAMESPACE
+kubectl delete service/tap-schema-service --namespace $DAX_NAMESPACE
 
 # Delete the postgres backend for UWS jobs.
-kubectl delete service/postgresql-service
-kubectl delete deployment/postgresql-deployment
+kubectl delete service/postgresql-service --namespace $DAX_NAMESPACE
+kubectl delete deployment/postgresql-deployment --namespace $DAX_NAMESPACE
 
 # Delete the TAP service and ingress rule.
-kubectl delete deployment/tap-deployment
-kubectl delete service/tap-service
-kubectl delete ingress/tap-ingress
+kubectl delete deployment/tap-deployment --namespace $DAX_NAMESPACE
+kubectl delete service/tap-service --namespace $DAX_NAMESPACE
+kubectl delete ingress/tap-ingress --namespace $DAX_NAMESPACE
 
 # Delete the presto deployment.
-helm delete --purge dax
+helm delete --purge dax-presto-int
