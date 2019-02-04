@@ -7,6 +7,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/rewrite-target: /tap
   name: tap-ingress
 spec:
   rules:
@@ -16,4 +17,4 @@ spec:
       - backend:
           serviceName: tap-service
           servicePort: 8080
-        path: /tap
+        path: /api/tap
