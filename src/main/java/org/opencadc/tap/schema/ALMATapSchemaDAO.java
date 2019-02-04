@@ -97,9 +97,6 @@ public class ALMATapSchemaDAO extends TapSchemaDAO {
         functionDescs.add(new FunctionDesc("COALESCE", TapDataType.FUNCTION_ARG));
         functionDescs.add(new FunctionDesc("CONCAT", TapDataType.CHAR));
 
-        // Add BOX for ADQL.
-        functionDescs.add(new FunctionDesc("BOX", new TapDataType("double", "5", "box")));
-
         // QServ specific functions.
         functionDescs.add(new FunctionDesc("qserv_areaspec_box", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("qserv_areaspec_circle", TapDataType.INTEGER));
