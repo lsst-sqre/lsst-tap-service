@@ -1,0 +1,11 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: tap-schema-service
+spec:
+  selector:
+    app: tap-schema
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
