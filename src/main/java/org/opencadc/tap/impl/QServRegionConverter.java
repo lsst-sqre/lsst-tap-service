@@ -14,7 +14,6 @@ import net.sf.jsqlparser.expression.Function;
 
 import org.apache.log4j.Logger;
 
-import org.opencadc.tap.impl.QServBox;
 import org.opencadc.tap.impl.QServCircle;
 import org.opencadc.tap.impl.QServPoint;
 
@@ -91,16 +90,12 @@ public class QServRegionConverter extends RegionFinder
 
     /**
      * This method is called whenever BOX geometry is found.
-     * We must convert it to a qserv_area_box function.
-     *
-     * BOX(ra center, dec center, width (len of ra leg), height (len of dec leg))
-     * converted to
-     * qserv_areaspec_box(min ra, min dec, max ra, max dec)
+     * We don't support this.
      */
     @Override
     protected Expression handleBox(Function adqlFunction)
     {
-        return new QServBox(adqlFunction.getParameters().getExpressions());
+        throw new UnsupportedOperationException("ADQL BOX is not supported.  You might be able to use qserv_areaspec_box and scisql_s2PtInBox.");
     }
 
     /**

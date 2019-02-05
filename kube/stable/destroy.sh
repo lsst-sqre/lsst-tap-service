@@ -22,3 +22,6 @@ kubectl delete ingress/tap-ingress --namespace $DAX_NAMESPACE
 
 # Delete the presto deployment.
 helm delete --purge dax-presto-stable
+
+# Delete the query monkey if it is running
+kubectl delete deployment/querymonkey-deployment --namespace $DAX_NAMESPACE
