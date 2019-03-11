@@ -108,6 +108,9 @@
                 <form>CIRCLE</form>
             </feature>
             <feature>
+                <form>DISTANCE</form>
+            </feature>
+            <feature>
                 <form>POLYGON</form>
             </feature>
             <feature>

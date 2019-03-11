@@ -11,6 +11,7 @@ import ca.nrc.cadc.tap.parser.RegionFinder;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 
 import org.apache.log4j.Logger;
 
@@ -105,5 +106,35 @@ public class QServRegionConverter extends RegionFinder
     protected Expression handlePolygon(List<Expression> expressions)
     {
         return new QServPolygon(expressions);
+    }
+
+    /**
+     * This method is called when a DISTANCE function is found.
+     **/
+    @Override
+    protected Expression handleDistance(Expression left, Expression right)
+    {
+        if(!(left instanceof QServPoint)) {
+            throw new UnsupportedOperationException("DISTANCE first argument must be a point");
+
+        }
+
+        if(!(right instanceof QServPoint)) {
+            throw new UnsupportedOperationException("DISTANCE second argument must be a point");
+        }
+
+        QServPoint p1 = (QServPoint)left;
+        QServPoint p2 = (QServPoint)right;
+
+        List<Expression> params = new ArrayList<Expression>();
+        params.add(p1.getRA());
+        params.add(p1.getDec());
+        params.add(p2.getRA());
+        params.add(p2.getDec());
+
+        Function distanceFunction = new Function();
+        distanceFunction.setName("scisql_angSep");
+        distanceFunction.setParameters(new ExpressionList(params));
+        return distanceFunction;
     }
 }

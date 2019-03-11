@@ -47,7 +47,7 @@ dependencies {
     compile 'org.restlet.jee:org.restlet.ext.servlet:2.0.3'
     compile 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
     compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
-    compile 'org.opencadc:cadc-adql:[1.1,)'
+    compile 'org.opencadc:cadc-adql:[1.1.4,)'
     compile 'org.opencadc:cadc-vosi:[1.0.1,2.0)'
 
     compile 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
