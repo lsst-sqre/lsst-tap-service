@@ -14,7 +14,7 @@ jdk:
 services:
   - docker
 
-before_script: 
+before_script:
   - openssl s_client -CApath /etc/ssl/certs/ -connect plugins.gradle.org:443 </dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/gradle.crt; sudo keytool -importcert -noprompt -file /tmp/gradle.crt -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -alias root -storepass changeit;
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -30,13 +30,10 @@ before_script:
   - unzip -d /opt/gradle gradle-${GRADLE_VERSION}-bin.zip
   - sudo rm -f /usr/local/bin/gradle
   - sudo ln -s /opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
-  - gradle -v  
+  - gradle -v
 
-script: 
+script:
   - gradle --stacktrace clean assemble javadoc build test || break -1
   - cp build/libs/*.war docker/
   - cd docker/
-  - docker-compose up -d && ./waitForContainersReady.sh
-  - curl -vL http://localhost:8080/tap/availability
-  - curl -vL http://localhost:8080/tap/availability | grep "The TAP ObsCore service is accepting queries"
-  - curl -Ls -o /dev/null -w "%{http_code}" -d 'QUERY=SELECT+TOP+1+*+FROM+TAP_SCHEMA.schemas&LANG=ADQL' http://localhost:8080/tap/sync | grep 200 || echo "Bad response code from query.";
+  - docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh
