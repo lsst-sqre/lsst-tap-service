@@ -8,10 +8,16 @@ MAX_TRIES=20
 # Return true-like values if and only if logs
 # contain the expected "ready" line
 function dbIsReady() {
-  docker-compose logs tapdb | grep "Completed: ALTER DATABASE OPEN"
+  docker-compose logs tapdb | grep "DONE: Executing user defined scripts"
 }
 function tomcatIsReady() {
   docker-compose logs tap_obscore | grep "org.apache.catalina.startup.Catalina.start Server startup in"
+}
+function mockqservIsReady() {
+  docker-compose logs mock_qserv | grep "ready for connections"
+}
+function tapschemaIsReady() {
+  docker-compose logs tap_schema | grep "ready for connections"
 }
 
 function waitUntilServiceIsReady() {
@@ -33,3 +39,5 @@ function waitUntilServiceIsReady() {
 
 waitUntilServiceIsReady dbIsReady "Oracle"
 waitUntilServiceIsReady tomcatIsReady "Tomcat"
+waitUntilServiceIsReady mockqservIsReady "Mock QServ"
+waitUntilServiceIsReady tapschemaIsReady "TAP_SCHEMA"
