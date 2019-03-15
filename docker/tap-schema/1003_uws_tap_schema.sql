@@ -4,8 +4,8 @@ DELETE FROM tap_schema.tables11 where table_name like 'uws.Job';
 DELETE FROM tap_schema.schemas11 where schema_name like 'uws';
 
 -- Insert the tap_schema metadata about this table and its columns.
-INSERT INTO tap_schema.schemas11 (schema_name, description, utype)
-  VALUES ('uws', 'UWS Metadata', NULL);
+INSERT INTO tap_schema.schemas11 (schema_name, description, utype, schema_index)
+  VALUES ('uws', 'UWS Metadata', NULL, 100);
 
 INSERT INTO tap_schema.tables11 (schema_name, table_name, table_type, description, utype, table_index)
   VALUES ('uws', 'uws.Job', 'table', 'Job history table.', NULL, 1);

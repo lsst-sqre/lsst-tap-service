@@ -28,8 +28,8 @@ CREATE TABLE tap_schema.obscore
    PRIMARY KEY (obs_publisher_did)
 );
 
-INSERT INTO tap_schema.schemas11 (schema_name, description, utype)
-  VALUES ('SYS', 'An Oracle system schema', NULL);
+INSERT INTO tap_schema.schemas11 (schema_name, description, utype, schema_index)
+  VALUES ('SYS', 'An Oracle system schema', NULL, 100);
 
 INSERT INTO tap_schema.tables11 (schema_name, table_name, table_type, description, utype, table_index)
   VALUES ('tap_schema', 'tap_schema.obscore', 'table', 'description of schemas in this tableset', NULL, 1);
