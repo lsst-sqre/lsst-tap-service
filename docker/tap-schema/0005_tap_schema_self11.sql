@@ -33,8 +33,8 @@ delete from tap_schema.schemas11 where lower(schema_name) = 'tap_schema'
 ;
 
 
-insert into tap_schema.schemas11 (schema_name,description,utype) values
-( 'tap_schema', 'a special schema to describe TAP-1.1 tablesets', NULL )
+insert into tap_schema.schemas11 (schema_name,description,utype,schema_index) values
+( 'tap_schema', 'a special schema to describe TAP-1.1 tablesets', NULL, 10)
 ;
 
 insert into tap_schema.tables11 (schema_name,table_name,table_type,description,utype,table_index) values
