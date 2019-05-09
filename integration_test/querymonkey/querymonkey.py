@@ -20,7 +20,8 @@ def generate_parameters():
         'r1': random.uniform(0, 1),
         'r2': random.uniform(0, 1),
         'r3': random.uniform(0, 1),
-        'r4': random.uniform(0, 1)
+        'r4': random.uniform(0, 1),
+        'rsmall': random.uniform(0, .25)
     }
 
 def send_notification(error_count, query, error):
