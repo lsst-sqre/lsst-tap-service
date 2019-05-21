@@ -1,7 +1,7 @@
 #!/bin/bash -x
 # Destroy the lsst-lsp-int environment.
 # This assumes it is being run at NCSA.
-DAX_NAMESPACE=${DAX_NAMESPACE:-'dax-int'}
+DAX_NAMESPACE=${DAX_NAMESPACE:-'lsst-lsp-int-dax'}
 
 # Delete the Oracle backend.
 kubectl delete deployment/oracle-deployment --namespace $DAX_NAMESPACE
