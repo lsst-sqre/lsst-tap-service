@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 # Deploy to the lsst-lsp-int environment.
 # This assumes it is being run at NCSA.
-DAX_NAMESPACE=${DAX_NAMESPACE:-'dax-stable'}
+DAX_NAMESPACE=${DAX_NAMESPACE:-'lsst-lsp-stable-dax'}
 
 # Create the oracle backend for TAP data.
 kubectl create -f oracle-deployment.yaml --namespace $DAX_NAMESPACE
