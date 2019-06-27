@@ -7,8 +7,9 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
-    nginx.ingress.kubernetes.io/rewrite-target: "/tap"
-    nginx.ingress.kubernetes.io/proxy-redirect-from: "http://$host/tap/ https://$host/api/tap/"
+    nginx.ingress.kubernetes.io/rewrite-target: "/tap/$2"
+    nginx.ingress.kubernetes.io/proxy-redirect-from: "http://$host/tap/"
+    nginx.ingress.kubernetes.io/proxy-redirect-to: "https://$host/api/tap/"
     nginx.ingress.kubernetes.io/auth-response-headers: X-Auth-Request-Uid, X-Auth-Request-Token
     nginx.ingress.kubernetes.io/auth-url: https://lsst-lsp-int.ncsa.illinois.edu/auth?capability=read:tap&reissue_token=true
     nginx.ingress.kubernetes.io/configuration-snippet: |
@@ -24,4 +25,4 @@ spec:
       - backend:
           serviceName: tap-service
           servicePort: 8080
-        path: /api/tap
+        path: /api/tap(/|$)(.*)
