@@ -30,14 +30,6 @@ public class QServPolygon extends Function implements QServRegion
         return points;
     }
 
-    public Expression getAreaspec()
-    {
-        Function boxFunction = new Function();
-        boxFunction.setName("qserv_areaspec_poly");
-        boxFunction.setParameters(new ExpressionList(getPoints()));
-        return QServParsingHelpers.equalsOne(boxFunction);
-    }
-
     public Expression pointInRegion(QServPoint point)
     {
         List<Expression> params = new ArrayList<Expression>();
@@ -48,6 +40,6 @@ public class QServPolygon extends Function implements QServRegion
         Function ptInBox = new Function();
         ptInBox.setName("scisql_s2PtInCPoly");
         ptInBox.setParameters(new ExpressionList(params));
-        return new AndExpression(getAreaspec(), ptInBox);
+        return ptInBox;
     }
 }
