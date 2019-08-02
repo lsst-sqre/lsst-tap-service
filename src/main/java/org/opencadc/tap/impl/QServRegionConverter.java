@@ -80,7 +80,7 @@ public class QServRegionConverter extends RegionFinder
      * This method is called when a CIRCLE geometry value is found.
      *
      * From CIRCLE(coordinate_system, ra, dec, radius)
-     * To qserv_areaspec_circle(long [deg], lat [deg], radius [deg])
+     * To scisql_s2PtInCircle(long [deg], lat [deg], radius [deg])
      *
      */
     @Override

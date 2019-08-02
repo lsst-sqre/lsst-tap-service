@@ -47,7 +47,7 @@ public class QServAdqlTest
     public void testPointInCircle()
     {
         String a = "SELECT ra, dec FROM s.t WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', 1, 2, 3)) = 1";
-        String s = "SELECT ra, dec FROM s.t WHERE qserv_areaspec_circle(1, 2, 3) = 1 AND scisql_s2PtInCircle(ra, dec, 1, 2, 3) = 1";
+        String s = "SELECT ra, dec FROM s.t WHERE scisql_s2PtInCircle(ra, dec, 1, 2, 3) = 1";
         compareAdqlToSql(a, s);
     }
 
@@ -55,7 +55,7 @@ public class QServAdqlTest
     public void testPointInPolygon()
     {
         String a = "SELECT ra, dec FROM s.t WHERE CONTAINS(POINT('ICRS', ra, dec), POLYGON('ICRS', 1, 2, 3, 4, 5, 6)) = 1";
-        String s = "SELECT ra, dec FROM s.t WHERE qserv_areaspec_poly(1, 2, 3, 4, 5, 6) = 1 AND scisql_s2PtInCPoly(ra, dec, 1, 2, 3, 4, 5, 6) = 1";
+        String s = "SELECT ra, dec FROM s.t WHERE scisql_s2PtInCPoly(ra, dec, 1, 2, 3, 4, 5, 6) = 1";
         compareAdqlToSql(a, s);
     }
 

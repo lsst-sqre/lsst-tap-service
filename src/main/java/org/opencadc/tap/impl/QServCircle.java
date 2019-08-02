@@ -42,19 +42,6 @@ public class QServCircle extends Function implements QServRegion
         return radius;
     }
 
-    public Expression getAreaspec()
-    {
-        List<Expression> params = new ArrayList<Expression>();
-        params.add(ra);
-        params.add(dec);
-        params.add(radius);
-
-        Function circleFunction = new Function();
-        circleFunction.setName("qserv_areaspec_circle");
-        circleFunction.setParameters(new ExpressionList(params));
-        return QServParsingHelpers.equalsOne(circleFunction);
-    }
-
     public Expression pointInRegion(QServPoint point)
     {
         List<Expression> params = new ArrayList<Expression>();
@@ -67,6 +54,6 @@ public class QServCircle extends Function implements QServRegion
         Function ptInCircle = new Function();
         ptInCircle.setName("scisql_s2PtInCircle");
         ptInCircle.setParameters(new ExpressionList(params));
-        return new AndExpression(getAreaspec(), ptInCircle);
+        return ptInCircle;
     }
 }
