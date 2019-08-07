@@ -26,7 +26,7 @@ spec:
         env:
         - name: CATALINA_OPTS
           # Presto backend
-          value: "-Dqservuser.jdbc.username=qsmaster -Dqservuser.jdbc.password= -Dqservuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dqservuser.jdbc.url=jdbc:mysql://qserv-master01:4040/ -Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dtapuser.jdbc.url=jdbc:mysql://tap-schema-service:3306/ -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://postgresql-service/"
+          value: "-Dqservuser.jdbc.username=qsmaster -Dqservuser.jdbc.password= -Dqservuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dqservuser.jdbc.url=jdbc:mysql://qserv-master01:4040/ -Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dtapuser.jdbc.url=jdbc:mysql://tap-schema-service:3306/ -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://postgresql-service/ -Dca.nrc.cadc.auth.Authenticator=org.opencadc.tap.impl.AuthenticatorImpl"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: "/etc/creds/google_creds.json"
       volumes:
