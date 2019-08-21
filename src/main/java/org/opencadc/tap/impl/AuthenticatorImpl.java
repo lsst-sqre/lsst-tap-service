@@ -48,7 +48,7 @@ public class AuthenticatorImpl implements Authenticator
             for (Principal principal : subject.getPrincipals()) {
                 if (principal instanceof BearerTokenPrincipal) {
                     BearerTokenPrincipal tp = (BearerTokenPrincipal) principal;
-                    DecodedJWT jwt = JWT.decode(tp.getToken());
+                    DecodedJWT jwt = JWT.decode(tp.getName());
 
                     Map<String, Claim> claims = jwt.getClaims();
                     String uid = jwt.getClaim("uid").asString();
