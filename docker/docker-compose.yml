@@ -11,8 +11,9 @@ services:
     depends_on: 
       - 'tap_obscore'
   tap_obscore:
-    image: lsstdax/lsst-tap-demo:latest
-    #build: ./
+    build:
+      dockerfile: Dockerfile
+      context: ./
     depends_on:
       - 'tapdb'
     ports:
