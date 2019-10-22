@@ -93,7 +93,7 @@
         <servlet-class>ca.nrc.cadc.vosi.AvailabilityServlet</servlet-class>
         <init-param>
             <description>VOSI Availability</description>
-            <param-name>ca.nrc.cadc.vosi.WebService</param-name>
+            <param-name>ca.nrc.cadc.vosi.AvailabilityPlugin</param-name>
             <param-value>org.opencadc.tap.ws.TAPWebService</param-value>
         </init-param>
         <load-on-startup>3</load-on-startup>
