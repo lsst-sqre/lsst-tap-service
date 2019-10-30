@@ -1,4 +1,8 @@
 # LSST TAP Demo service
+
+This repository contains the LSST TAP service.  It is based on the CADC TAP service
+code and uses this as a dependency, and then adds special logic to work with QServ.
+
 ## Build
 
 Run ./build.sh
@@ -6,26 +10,29 @@ Run ./build.sh
 ## Deployment
 
 ### Docker
-This is a working prototype using a TAP implementation with an Oracle 11 _g_ database.
+After the [Build](#build) step above, a set of containers with the `dev` tag will exist
+on your local machine.  Then when you run:
 
-After the [Build](#build) step above, we can create a Docker deployment like so:
+`docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh`
 
-  - `cp build/libs/*.war docker/`
-  - `cd docker/`
-  - `docker-compose up -d && ./waitForContainersReady.sh`
+This should start a local group of containers, wait for them to be ready, and then
+check that the availability endpoint returns a 200 and a simple sync query works.
+This validates that your local TAP implementation is working.  You can now either
+use `curl`, TOPCAT, pyvo, or any other local TAP client pointed at
+`http://localhost:8080/tap` to test out your TAP service.
 
-The necessary Docker images will be downloaded, including the large Oracle one, then the service will be available on port `8080`.  You can then issue a request like:
-
-[http://localhost:8080/tap/availability](http://localhost:8080/tap/availability)
-
-Which will provide you with an XML document as to the health of the service.  If it reads with the message:
-
-`The TAP ObsCore service is accepting queries`
-
-Then the TAP service is running properly.  You can then issue a query to the sample ObsCore table:
+Here is an example of using `curl` to query the TAP service:
 
 `curl -L -d 'QUERY=SELECT+TOP+1+*+FROM+TAP_SCHEMA.obscore&LANG=ADQL' http://localhost:8080/tap/sync`
 
-### Dedicated web server
+### Pushing to hub.docker.com
 
-If you have a dedicated Servlet Container (i.e. [Tomcat](http://tomcat.apache.org)) running already, run the [Build](#build) step above, then copy the WAR artifact from `build/libs/` to your Servlet Container's webapp deployment directory.
+After building a set of images (with the `dev` tag), and testing them out, you
+can run the `./push.sh` script providing a docker tag to push to.  For example
+
+`./push.sh new_feature_test`
+
+will create a set of containers with the tag `new_feature_test`.  These can
+then be used in a k8s environment with the Helm chart located here:
+
+https://github.com/lsst-sqre/charts/tree/master/cadc-tap
