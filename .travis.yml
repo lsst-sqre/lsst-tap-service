@@ -33,7 +33,5 @@ before_script:
   - gradle -v
 
 script:
-  - gradle --stacktrace clean assemble javadoc build test || break -1
-  - cp build/libs/*.war docker/
-  - cd docker/
-  - docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh
+  - ./build.sh
+  - cd docker && docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh
