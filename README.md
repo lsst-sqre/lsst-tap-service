@@ -1,4 +1,4 @@
-# LSST TAP Demo service
+# LSST TAP Service
 
 This repository contains the LSST TAP service.  It is based on the CADC TAP service
 code and uses this as a dependency, and then adds special logic to work with QServ.
