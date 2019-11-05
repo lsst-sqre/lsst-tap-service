@@ -5,55 +5,44 @@ services:
     ports:
       - '80:80'
     networks:
-      - 'tap_obscore'
+      - tap-network
     volumes:
       - './proxy/default.conf:/etc/nginx/conf.d/default.conf'
-    depends_on: 
-      - 'tap_obscore'
-  tap_obscore:
-    build:
-      dockerfile: Dockerfile
-      context: ./
     depends_on:
-      - 'tapdb'
+      - lsst-tap-service
+  lsst-tap-service:
+    image: lsstdax/lsst-tap-service:dev
+    depends_on:
+      - mock-qserv
+      - tap-schema-db
+      - uws-db
     ports:
       - '8080:8080'
       - '5555:5555'
     networks:
-      - 'tap_obscore'
+      - tap-network
     environment:
-      CATALINA_OPTS: "-Dqservuser.jdbc.username=qsmaster -Dqservuser.jdbc.password= -Dqservuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dqservuser.jdbc.url=jdbc:mysql://mock_qserv:3306/ -Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dtapuser.jdbc.url=jdbc:mysql://tap_schema:3306/ -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://uwsdb/ -Dca.nrc.cadc.auth.Authenticator=org.opencadc.tap.impl.AuthenticatorImpl"
+      CATALINA_OPTS: "-Dqservuser.jdbc.username=qsmaster -Dqservuser.jdbc.password= -Dqservuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dqservuser.jdbc.url=jdbc:mysql://mock-qserv:3306/ -Dtapuser.jdbc.username=TAP_SCHEMA -Dtapuser.jdbc.password=TAP_SCHEMA -Dtapuser.jdbc.driverClassName=com.mysql.cj.jdbc.Driver -Dtapuser.jdbc.url=jdbc:mysql://tap-schema-db:3306/ -Dca.nrc.cadc.reg.client.RegistryClient.local=true -Duws.jdbc.username=postgres -Duws.jdbc.driverClassName=org.postgresql.Driver -Duws.jdbc.url=jdbc:postgresql://uws-db/ -Dca.nrc.cadc.auth.Authenticator=org.opencadc.tap.impl.AuthenticatorImpl"
       GOOGLE_APPLICATION_CREDENTIALS: "/etc/google_creds.json"
     volumes:
       - './google_creds.json:/etc/google_creds.json'
-  tapdb:
-    image: opencadc/tap-oracle:11-xe
-    shm_size: 1gb
+  uws-db:
+    image: lsstdax/uws-db:dev
     networks:
-      - 'tap_obscore'
-    volumes:
-      - './sql:/docker-entrypoint-initdb.d/startup'
-  uwsdb:
-    image: library/postgres:11-rc1-alpine
+      - tap-network
+  tap-schema-db:
+    image: lsstdax/tap-schema-db:dev
     networks:
-      - 'tap_obscore'
-    volumes:
-      - './uws-sql:/docker-entrypoint-initdb.d'
-  tap_schema:
-    image: mysql/mysql-server:8.0.13-1.1.8
-    networks:
-      - 'tap_obscore'
+      - tap-network
     environment:
       MYSQL_DATABASE: "TAP_SCHEMA"
       MYSQL_USER: "TAP_SCHEMA"
       MYSQL_PASSWORD: "TAP_SCHEMA"
       MYSQL_ROOT_HOST: "%"
-    volumes:
-      - './tap-schema:/docker-entrypoint-initdb.d/'
-  mock_qserv:
-    image: lsstdax/mock-qserv:latest
+  mock-qserv:
+    image: lsstdax/mock-qserv:dev
     networks:
-      - 'tap_obscore'
+      - tap-network
 
 networks:
-  tap_obscore:
+  tap-network:
