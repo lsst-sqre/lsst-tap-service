@@ -1,6 +1,8 @@
 env:
-  DOCKER_COMPOSE_VERSION: 1.21.2
-  GRADLE_VERSION: 4.7
+  global:
+  - DOCKER_COMPOSE_VERSION: 1.21.2
+  - GRADLE_VERSION: 4.7
+  - secure: EaE1NFhQ3OLTYmMEFRGL2UT2wYeD1MghPhtjVN/C8BW6xEsB25kYGk3ukMEyIaspTsCiNRCZRmjXxpiS+wGnv83xrd1YeMAP/jJ9nex91bQ0NqifRttIj09ItpK9HFV+JMX7BLTNHZOY+mQLAYwyLDG7VC96oBIEWQJukOeW+674ivBJaW/9GVQ2X1KRqHkZWT4TTozQQUAaZs4qUPWNCx9k+YQk4ZGzVCLZQrrV462epcTcnQtA8C7kmDYp4vuywTOSGpuLyagzrto/xuUw7Av6xRxTLiEkQ0eJkWA9ScbKJ32t27qCeBpYls+NgtN0nRmJfvV2mzpC93u+mQBAfrf+uCjBEIJIAPgClxgLVEhQfYQQ8Ljn5YcEt3q+uBc417C3WR8I8+7VLxl5mN5D6DmZL4HsOsi8qUg9zjStAwt4VIaQrlKXaC6sfIvzWNCSI3qXIyzUCBLpfIB3qQzEk60LxT6K0bqHJobYZkc5WNZaiThuh3dPs7STTcxaL8g01eTfc6u5BAyBgzMhtrg+rl9U9MGdEI3zTnIj4roYR5k/Ak700BcgTQ4Q/Y7dX1m/FaU5uNeyBc+Gzw8PPs7hvy3M4Ys6sybAueJW0T3QNxIYtyD/4CyPaENFQRhsFGT4UothdUhBQgsoKElsUAUaq6nvR9fJOV0b9s/PEafoLpI=
 
 language: java
 sudo: required
@@ -37,4 +39,5 @@ script:
   - cd docker && docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh
 
 after_success:
+  - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
   - ${TRAVIS_BUILD_DIR}/push.sh ${TRAVIS_TAG} ${TRAVIS_PULL_REQUEST_BRANCH} ${TRAVIS_BRANCH}
