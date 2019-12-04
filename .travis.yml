@@ -35,3 +35,6 @@ before_script:
 script:
   - ./build.sh
   - cd docker && docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh
+
+after_success:
+  - ./push.sh $TRAVIS_TAG $TRAVIS_PULL_REQUEST_BRANCH $TRAVIS_BRANCH
