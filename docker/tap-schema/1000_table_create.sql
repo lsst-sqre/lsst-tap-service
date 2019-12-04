@@ -29,13 +29,13 @@ CREATE TABLE tap_schema.obscore
 );
 
 INSERT INTO tap_schema.schemas11 (schema_name, description, utype, schema_index)
-  VALUES ('SYS', 'An Oracle system schema', NULL, 100);
+  VALUES ('SYS', 'An Oracle system schema', NULL, 130000);
 
 INSERT INTO tap_schema.tables11 (schema_name, table_name, table_type, description, utype, table_index)
-  VALUES ('tap_schema', 'tap_schema.obscore', 'table', 'description of schemas in this tableset', NULL, 1);
+  VALUES ('tap_schema', 'tap_schema.obscore', 'table', '(experimental) basic ObsCore table', NULL, 105000);
 
 INSERT INTO tap_schema.tables11 (schema_name, table_name, table_type, description, utype, table_index)
-  VALUES ('SYS', 'SYS.DUAL', 'table', 'Oracle system table.', NULL, 2);
+  VALUES ('SYS', 'SYS.DUAL', 'table', 'Oracle system table.', NULL, 130000);
 
 INSERT
   INTO tap_schema.columns11 (table_name,column_name,utype,ucd,unit,description,datatype,arraysize,xtype,principal,indexed,std,column_index,id)

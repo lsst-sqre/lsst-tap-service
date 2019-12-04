@@ -34,15 +34,15 @@ delete from tap_schema.schemas11 where lower(schema_name) = 'tap_schema'
 
 
 insert into tap_schema.schemas11 (schema_name,description,utype,schema_index) values
-( 'tap_schema', 'a special schema to describe TAP-1.1 tablesets', NULL, 10)
+( 'tap_schema', 'A TAP-standard-mandated schema to describe tablesets in a TAP 1.1 service', NULL, 100000)
 ;
 
 insert into tap_schema.tables11 (schema_name,table_name,table_type,description,utype,table_index) values
-( 'tap_schema', 'tap_schema.schemas', 'table', 'description of schemas in this tableset', NULL, 1),
-( 'tap_schema', 'tap_schema.tables', 'table', 'description of tables in this tableset', NULL, 2),
-( 'tap_schema', 'tap_schema.columns', 'table', 'description of columns in this tableset', NULL, 3),
-( 'tap_schema', 'tap_schema.keys', 'table', 'description of foreign keys in this tableset', NULL, 4),
-( 'tap_schema', 'tap_schema.key_columns', 'table', 'description of foreign key columns in this tableset', NULL, 5)
+( 'tap_schema', 'tap_schema.schemas', 'table', 'description of schemas in this tableset', NULL, 100000),
+( 'tap_schema', 'tap_schema.tables', 'table', 'description of tables in this tableset', NULL, 101000),
+( 'tap_schema', 'tap_schema.columns', 'table', 'description of columns in this tableset', NULL, 102000),
+( 'tap_schema', 'tap_schema.keys', 'table', 'description of foreign keys in this tableset', NULL, 103000),
+( 'tap_schema', 'tap_schema.key_columns', 'table', 'description of foreign key columns in this tableset', NULL, 104000)
 ;
 
 insert into tap_schema.columns11 (table_name,column_name,description,utype,ucd,unit,datatype,arraysize,xtype,principal,indexed,std, column_index) values
