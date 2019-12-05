@@ -6,6 +6,12 @@ if [ $TAG == "dev" ]; then
   exit 1
 fi
 
+# Replace /'s in branch names with underscores, since you can't
+# have a / in a docker tag.
+TAG=`echo "$TAG" | tr / _`
+
+echo "Pushing all images with tag $TAG"
+
 docker tag lsstdax/lsst-tap-service:dev lsstdax/lsst-tap-service:$TAG
 docker tag lsstdax/uws-db:dev lsstdax/uws-db:$TAG
 docker tag lsstdax/tap-schema-db:dev lsstdax/tap-schema-db:$TAG
