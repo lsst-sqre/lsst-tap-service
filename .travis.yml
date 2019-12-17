@@ -36,7 +36,7 @@ before_script:
 
 script:
   - ./build.sh
-  - cd docker && docker-compose up -d && ./waitForContainersReady.sh && ./checkAvailability.sh
+  - ./test.sh
 
 after_success:
   - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
