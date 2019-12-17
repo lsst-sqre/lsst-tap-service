@@ -86,13 +86,14 @@ import java.nio.channels.Channels;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.ResultSet;
+import java.util.Properties;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ResultStoreImpl implements ResultStore {
     private String filename;
-    private static final String bucket = "async-results.lsst.rocks";
-    private static final String bucketURL = "http://async-results.lsst.rocks";
+    private static final String bucket = System.getProperty("gcs_bucket");
+    private static final String bucketURL = System.getProperty("gcs_bucket_url");
 
 
     @Override
