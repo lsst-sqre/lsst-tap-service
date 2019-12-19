@@ -103,13 +103,39 @@ public class ALMATapSchemaDAO extends TapSchemaDAO {
         functionDescs.add(new FunctionDesc("qserv_areaspec_ellipse", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("qserv_areaspec_poly", TapDataType.INTEGER));
 
-        // SciSQL specific functions.
+        // SciSQL functions: https://lsst-web.ncsa.illinois.edu/schema/sciSQL/
+        // SciSQL Spherical Geometry functions.
         functionDescs.add(new FunctionDesc("scisql_angSep", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_s2CPolyHtmRanges", TapDataType.STRING));
+        functionDescs.add(new FunctionDesc("scisql_s2CPolyToBin", TapDataType.STRING));
+        functionDescs.add(new FunctionDesc("scisql_s2CircleHtmRanges", TapDataType.STRING));
+        functionDescs.add(new FunctionDesc("scisql_s2HtmId", TapDataType.LONG));
+        functionDescs.add(new FunctionDesc("scisql_s2HtmLevel", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("scisql_s2PtInBox", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("scisql_s2PtInCPoly", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("scisql_s2PtInCircle", TapDataType.INTEGER));
         functionDescs.add(new FunctionDesc("scisql_s2PtInEllipse", TapDataType.INTEGER));
 
+        // SciSQL Photometry functions
+        functionDescs.add(new FunctionDesc("scisql_abMagToDn", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_abMagToDnSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_abMagToFlux", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_abMagToFluxSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_dnToAbMag", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_dnToAbMagSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_dnToFlux", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_dnToFluxSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_fluxToAbMag", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_fluxToAbMagSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_fluxToDn", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_fluxToDnSigma", TapDataType.DOUBLE));
+
+        // SciSQL Statistics
+        functionDescs.add(new FunctionDesc("scisql_median", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_percentile", TapDataType.DOUBLE));
+
+        // SciSQL misc
+        functionDescs.add(new FunctionDesc("scisql_getVersion", TapDataType.CHAR));
         return functionDescs;
     }
 }
