@@ -25,13 +25,9 @@
             </param-value>
         </init-param>
         <init-param>
-            <param-name>logAccessGroup</param-name>
-            <param-value>CADC</param-value>
+            <param-name>logControlProperties</param-name>
+            <param-value>logcontrol.properties</param-value>
         </init-param>
-        <!--<init-param>-->
-        <!--<param-name>groupAuthorizer</param-name>-->
-        <!--<param-value>ca.nrc.cadc.auth.CADCGroupAuthorizer</param-value>-->
-        <!--</init-param>-->
         <load-on-startup>1</load-on-startup>
     </servlet>
 
