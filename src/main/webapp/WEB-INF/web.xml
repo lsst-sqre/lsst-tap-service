@@ -22,6 +22,7 @@
                 ca.nrc.cadc.log
                 ca.nrc.cadc.rest
                 ca.nrc.cadc.uws
+                ca.nrc.cadc.auth
             </param-value>
         </init-param>
         <init-param>
