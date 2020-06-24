@@ -10,7 +10,7 @@ group: edge
 dist: trusty
 
 jdk:
-  - openjdk7
+  - openjdk8
   - oraclejdk8
 
 services:
