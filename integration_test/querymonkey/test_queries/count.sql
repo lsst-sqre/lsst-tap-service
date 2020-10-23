@@ -1,1 +1,1 @@
-SELECT 'monkey', COUNT(*) FROM sdss_stripe82_01.RunDeepSource
+SELECT 'monkey', COUNT(*) FROM wise_01.allwise_p3as_mep
