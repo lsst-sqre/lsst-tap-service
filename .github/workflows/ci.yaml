@@ -32,4 +32,4 @@ jobs:
 
       - name: Push the images
         id: push
-        run: ./push.sh
+        run: ./push.sh `./docker-tag.sh $GITHUB_REF`
