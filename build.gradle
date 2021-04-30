@@ -53,11 +53,12 @@ dependencies {
     compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
     compile 'org.opencadc:cadc-vosi:[1.0,)'
     compile 'org.opencadc:cadc-adql:[1.1,)'
+    compile 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
 
     // Switch out this to use any supported database instead of PostgreSQL.
     // ## START CUSTOM DATABASE ##
-    compile 'com.oracle:ojdbc6:11.2.0.3'
     compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.13'
+    compile group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
     // ## END CUSTOM DATABASE ##
 
     testCompile 'junit:junit:[4.0,)'
