@@ -1,8 +1,10 @@
 plugins {
+    id 'java'
     id 'war'
 }
 
 repositories {
+    mavenCentral()
     mavenLocal()
     jcenter()
 
@@ -10,25 +12,22 @@ repositories {
     // - MAVEN_ORACLE_USERNAME
     // - MAVEN_ORACLE_PASSWORD
     //
-    // or, create a gradle.properties in your ~/.gradle directory with the following variables set:
-    // - mavenOracleUsername
-    // - mavenOraclePassword
     maven {
         name 'maven.oracle.com'
         url 'https://maven.oracle.com'
         credentials {
-            username = System.getenv("MAVEN_ORACLE_USERNAME") ?: mavenOracleUsername
-            password = System.getenv("MAVEN_ORACLE_PASSWORD") ?: mavenOraclePassword
+            username "${System.env.MAVEN_ORACLE_USERNAME}"
+            password "${System.env.MAVEN_ORACLE_PASSWORD}"
         }
     }
 
     maven {
-        url = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/m2repo'
+        url = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/m2repo'
     }
 }
 
 group = 'org.opencadc'
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
 version = '1000'
 
 war {
@@ -36,43 +35,39 @@ war {
 }
 
 configurations {
-    intTestCompile.extendsFrom testCompile
-    intTestRuntime.extendsFrom testRuntime
+    intTestCompile.extendsFrom testImplementation
+    intTestRuntime.extendsFrom testRuntimeOnly
 }
 
 dependencies {
-    compile 'log4j:log4j:1.2.+'
-    compile 'com.oracle:ojdbc6:11.2.0.3'
-    compile 'com.google.cloud:google-cloud-storage:1.48.0'
-    compile 'org.restlet.jee:org.restlet.ext.servlet:2.0.3'
-    compile 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
-    compile 'org.opencadc:cadc-tap-server:[1.1.5,)'
-    compile 'org.opencadc:cadc-adql:[1.1.4,)'
-    compile 'org.opencadc:cadc-vosi:[1.0.1,2.0)'
-    compile 'org.opencadc:cadc-util:[1.2.18,)'
+    implementation 'log4j:log4j:[1.2,2.0)'
+    implementation 'org.opencadc:cadc-log:[1.0,)'
+    implementation 'org.opencadc:cadc-util:[1.2,)'
+    implementation 'org.opencadc:cadc-dali:[1.1,)'
+    implementation 'org.opencadc:cadc-uws:[1.0,)'
+    implementation 'org.opencadc:cadc-uws-server:[1.2,)'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.5,)'
+    implementation 'org.opencadc:cadc-vosi:[1.0,)'
+    implementation 'org.opencadc:cadc-adql:[1.1,)'
+    implementation 'org.opencadc:cadc-tap-server-oracle:[1.0.0,)'
 
-    compile 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
+    // Switch out this to use any supported database instead of PostgreSQL.
+    // ## START CUSTOM DATABASE ##
+    implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.13'
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
+    // ## END CUSTOM DATABASE ##
 
-    // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    compile group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
+    testImplementation 'junit:junit:[4.0,)'
+    testImplementation 'xmlunit:xmlunit:[1.0,)'
 
-    // https://mvnrepository.com/artifact/mysql/mysql-connector-java
-    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.13'
-
-    // https://mvnrepository.com/artifact/com.facebook.presto/presto-jdbc
-    compile group: 'com.facebook.presto', name: 'presto-jdbc', version: '0.213'
+    implementation 'com.google.cloud:google-cloud-storage:1.48.0'
+    implementation 'org.restlet.jee:org.restlet.ext.servlet:2.0.3'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.5,)'
+    implementation 'org.opencadc:cadc-adql:[1.1.4,)'
+    implementation 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
 
     implementation 'com.auth0:java-jwt:3.8.1'
-    runtime 'org.opencadc:cadc-registry:[1.2.1,)'
-
-    testCompile 'junit:junit:4.+'
-    testCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
-    testCompile 'org.opencadc:cadc-test-vosi:[1.0.2,)'
-    testCompile 'org.opencadc:cadc-test-tap:[1.1,)'
-
-    intTestCompile 'org.opencadc:cadc-test-uws:[1.1.1,)'
-    intTestCompile 'org.opencadc:cadc-test-vosi:[1.0.2,)'
-    intTestCompile 'org.opencadc:cadc-test-tap:[1.1,)'
+    runtimeOnly 'org.opencadc:cadc-registry:[1.2.1,)'
 }
 
 sourceSets {
@@ -101,7 +96,7 @@ tasks.withType(Test) {
 
 task intTest(type: Test) {
     // set the configuration context
-    testClassesDir = sourceSets.intTest.output.classesDir
+    testClassesDirs = sourceSets.intTest.output.classesDirs
     classpath = sourceSets.intTest.runtimeClasspath
 
     // run the tests always
