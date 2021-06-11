@@ -6,6 +6,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.net.http.HttpRequest;
 import java.net.URI;
+import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,9 +48,9 @@ public class AuthenticatorImpl implements Authenticator
     {
     }
 
-    public Subject getSubject(Subject subject)
+    public Subject augment(Subject subject)
     {
-        log.debug("getSubject subject starts as: " + subject);
+        log.debug("Subject to augment starts as: " + subject);
 
         List<Principal> addedPrincipals = new ArrayList<Principal>();
 
@@ -95,7 +96,14 @@ public class AuthenticatorImpl implements Authenticator
         subject.getPrincipals().addAll(addedPrincipals);
         subject.getPublicCredentials().add(AuthMethod.TOKEN);
 
-        log.debug("getSubject's new subject is " + subject);
+        log.debug("Augmented subject is " + subject);
+        return subject;
+    }
+
+    // Here we could check the token again, but gafaelfawr should be
+    // doing that for us already by the time it gets to us.  So for
+    // this layer, we just let this go through.
+    public Subject validate(Subject subject) throws AccessControlException {
         return subject;
     }
 }
