@@ -1,0 +1,3 @@
+tag: dev
+imagePullPolicy: Never
+host: "minikube.lsst.codes"
