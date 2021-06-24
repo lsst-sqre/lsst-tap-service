@@ -7,5 +7,6 @@ else
 fi
 
 helm delete tap-dev -n tap-dev || true
+
 ./build.sh
 helm upgrade --install tap-dev $CHART --create-namespace --namespace tap-dev --values dev-values.yaml
