@@ -42,7 +42,9 @@ public class AuthenticatorImpl implements Authenticator
 
     private static final String gafaelfawr_url = System.getProperty("gafaelfawr_url");
 
-    private static final HttpClient client = HttpClient.newHttpClient();
+    private static final HttpClient client = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .build();
 
     public AuthenticatorImpl()
     {
