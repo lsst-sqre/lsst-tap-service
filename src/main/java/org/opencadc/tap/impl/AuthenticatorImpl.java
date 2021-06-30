@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.security.auth.Subject;
 import javax.security.auth.x500.X500Principal;
@@ -40,9 +41,27 @@ public class AuthenticatorImpl implements Authenticator
 {
     private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
 
+    // Size of the token cache is read from the maxTokenCache property, with
+    // a default of 1000 tokens cached.
+    private static final int maxTokenCache = Integer.getInteger("maxTokenCache", 1000);
+
     private static final String gafaelfawr_url = System.getProperty("gafaelfawr_url");
 
     private static final HttpClient client = HttpClient.newHttpClient();
+
+    private static final ConcurrentHashMap<String,TokenInfo> tokenCache = new ConcurrentHashMap<>();
+
+    private final class TokenInfo
+    {
+        public final String username;
+        public final int uid;
+
+        public TokenInfo(String username, int uid)
+        {
+            this.username = username;
+            this.uid = uid;
+        }
+    }
 
     public AuthenticatorImpl()
     {
@@ -52,48 +71,40 @@ public class AuthenticatorImpl implements Authenticator
     {
         log.debug("Subject to augment starts as: " + subject);
 
+        // Check if the cache is too big, and if so, clear it out.
+        if (tokenCache.size() > maxTokenCache) {
+            tokenCache.clear();
+        }
+
         List<Principal> addedPrincipals = new ArrayList<Principal>();
 
         for (Principal principal : subject.getPrincipals()) {
             if (principal instanceof BearerTokenPrincipal) {
                 BearerTokenPrincipal tp = (BearerTokenPrincipal) principal;
+                TokenInfo tokenInfo = null;
 
-                try {
-                    JsonObject authData = null;
-                    boolean success = false;
-                    for (int i = 1; i < 5; i++) {
-                        try {
-                            authData = getTokenInfo(tp.getName());
-                            success = true;
-                        } catch (IOException e) {
-                            log.warn(e);
-                            log.warn("IOException while getting info Gafaelfawr, retrying");
-                        }
+                for (int i = 1; i < 5 && tokenInfo == null; i++) {
+                    try {
+                        tokenInfo = getTokenInfo(tp.getName());
+                    } catch (IOException|InterruptedException e) {
+                        log.warn("Exception thrown while getting info from Gafaelfawr");
+                        log.warn(e);
                     }
+                }
 
-                    if (!success) {
-                        // Try one more time to throw an accurate exception.
-                        authData = getTokenInfo(tp.getName());
-                    }
-
-                    String username = authData.getAsJsonPrimitive("username").getAsString();
-                    int uid = authData.getAsJsonPrimitive("uid").getAsInt();
-
-                    X500Principal xp = new X500Principal("CN=" + username);
+                if (tokenInfo != null) {
+                    X500Principal xp = new X500Principal("CN=" + tokenInfo.username);
                     addedPrincipals.add(xp);
 
-                    HttpPrincipal hp = new HttpPrincipal(username);
+                    HttpPrincipal hp = new HttpPrincipal(tokenInfo.username);
                     addedPrincipals.add(hp);
 
-                    UUID uuid = new UUID(0L, (long) uid);
+                    UUID uuid = new UUID(0L, (long) tokenInfo.uid);
                     NumericPrincipal np = new NumericPrincipal(uuid);
                     addedPrincipals.add(np);
-                } catch (InterruptedException e) {
-                    log.warn("InterruptedException thrown while getting info from Gafaelfawr");
-                    log.warn(e);
-                } catch (IOException e) {
-                    log.warn("IOException while getting info from Gafaelfawr, failing");
-                    log.warn(e);
+                }
+                else {
+                    log.error("Gave up retrying user-info requests to Gafaelfawr");
                 }
             }
         }
@@ -112,16 +123,28 @@ public class AuthenticatorImpl implements Authenticator
         return subject;
     }
 
-    private JsonObject getTokenInfo(String token) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(gafaelfawr_url))
-            .header("Accept", "application/json")
-            .header("Authorization", "bearer " + token)
-            .build();
+    private TokenInfo getTokenInfo(String token) throws IOException, InterruptedException {
+        // If the request has gotten this far, the token has already
+        // been checked upstream, so we know it's valid, we just need
+        // to determine the uid and the username.
+        if (!tokenCache.containsKey(token)) {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(gafaelfawr_url))
+                .header("Accept", "application/json")
+                .header("Authorization", "bearer " + token)
+                .build();
 
-        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-        String body = response.body();
+            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+            String body = response.body();
 
-        Gson gson = new Gson();
-        return gson.fromJson(body, JsonObject.class);
+            Gson gson = new Gson();
+            JsonObject authData = gson.fromJson(body, JsonObject.class);
+            String username = authData.getAsJsonPrimitive("username").getAsString();
+            int uid = authData.getAsJsonPrimitive("uid").getAsInt();
+
+            // Insert the info into the cache here since we retrieved it.
+            tokenCache.put(token, new TokenInfo(username, uid));
+        }
+
+        return tokenCache.get(token);
     }
 }
