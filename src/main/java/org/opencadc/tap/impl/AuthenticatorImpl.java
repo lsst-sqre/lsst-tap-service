@@ -58,18 +58,23 @@ public class AuthenticatorImpl implements Authenticator
             if (principal instanceof BearerTokenPrincipal) {
                 BearerTokenPrincipal tp = (BearerTokenPrincipal) principal;
 
-                HttpRequest request = HttpRequest.newBuilder(
-                        URI.create(gafaelfawr_url))
-                    .header("Accept", "application/json")
-                    .header("Authorization", "bearer " + tp.getName())
-                    .build();
-
                 try {
-                    HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-                    String body = response.body();
+                    JsonObject authData = null;
+                    boolean success = false;
+                    for (int i = 1; i < 5; i++) {
+                        try {
+                            authData = getTokenInfo(tp.getName());
+                            success = true;
+                        } catch (IOException e) {
+                            log.warn(e);
+                            log.warn("IOException while getting info Gafaelfawr, retrying");
+                        }
+                    }
 
-                    Gson gson = new Gson();
-                    JsonObject authData = gson.fromJson(body, JsonObject.class);
+                    if (!success) {
+                        // Try one more time to throw an accurate exception.
+                        authData = getTokenInfo(tp.getName());
+                    }
 
                     String username = authData.getAsJsonPrimitive("username").getAsString();
                     int uid = authData.getAsJsonPrimitive("uid").getAsInt();
@@ -87,7 +92,7 @@ public class AuthenticatorImpl implements Authenticator
                     log.warn("InterruptedException thrown while getting info from Gafaelfawr");
                     log.warn(e);
                 } catch (IOException e) {
-                    log.warn("IOException while getting info from Gafaelfawr");
+                    log.warn("IOException while getting info from Gafaelfawr, failing");
                     log.warn(e);
                 }
             }
@@ -105,5 +110,18 @@ public class AuthenticatorImpl implements Authenticator
     // this layer, we just let this go through.
     public Subject validate(Subject subject) throws AccessControlException {
         return subject;
+    }
+
+    private JsonObject getTokenInfo(String token) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(gafaelfawr_url))
+            .header("Accept", "application/json")
+            .header("Authorization", "bearer " + token)
+            .build();
+
+        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+        String body = response.body();
+
+        Gson gson = new Gson();
+        return gson.fromJson(body, JsonObject.class);
     }
 }
