@@ -1,8 +1,6 @@
 name: Async reaper
 
-"on":
-  schedule:
-    - cron: '0 2 * * *' # 2 AM UTC Daily
+"on": [push]
 
 jobs:
   build:
@@ -15,7 +13,7 @@ jobs:
         run: pip install -r tools/requirements.txt
 
       - name: Write creds to file
-        run: echo "$GOOGLE_SERVICE_ACCOUNT" > service_account.json
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT }}' > service_account.json
 
       - name: Reap Async Results bucket
         run: GOOGLE_APPLICATION_CREDENTIALS="service_account.json" ./tools/async_reaper.py
