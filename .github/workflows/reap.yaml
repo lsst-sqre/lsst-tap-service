@@ -1,6 +1,8 @@
 name: Async reaper
 
-"on": [push]
+"on":
+  schedule:
+    - cron: '0 2 * * *' # 2 AM UTC Daily
 
 jobs:
   build:
