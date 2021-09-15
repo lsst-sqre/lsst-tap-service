@@ -1,0 +1,446 @@
+/*
+************************************************************************
+*******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+**************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+*
+*  (c) 2009.                            (c) 2009.
+*  Government of Canada                 Gouvernement du Canada
+*  National Research Council            Conseil national de recherches
+*  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+*  All rights reserved                  Tous droits réservés
+*                                       
+*  NRC disclaims any warranties,        Le CNRC dénie toute garantie
+*  expressed, implied, or               énoncée, implicite ou légale,
+*  statutory, of any kind with          de quelque nature que ce
+*  respect to the software,             soit, concernant le logiciel,
+*  including without limitation         y compris sans restriction
+*  any warranty of merchantability      toute garantie de valeur
+*  or fitness for a particular          marchande ou de pertinence
+*  purpose. NRC shall not be            pour un usage particulier.
+*  liable in any event for any          Le CNRC ne pourra en aucun cas
+*  damages, whether direct or           être tenu responsable de tout
+*  indirect, special or general,        dommage, direct ou indirect,
+*  consequential or incidental,         particulier ou général,
+*  arising from the use of the          accessoire ou fortuit, résultant
+*  software.  Neither the name          de l'utilisation du logiciel. Ni
+*  of the National Research             le nom du Conseil National de
+*  Council of Canada nor the            Recherches du Canada ni les noms
+*  names of its contributors may        de ses  participants ne peuvent
+*  be used to endorse or promote        être utilisés pour approuver ou
+*  products derived from this           promouvoir les produits dérivés
+*  software without specific prior      de ce logiciel sans autorisation
+*  written permission.                  préalable et particulière
+*                                       par écrit.
+*                                       
+*  This file is part of the             Ce fichier fait partie du projet
+*  OpenCADC project.                    OpenCADC.
+*                                       
+*  OpenCADC is free software:           OpenCADC est un logiciel libre ;
+*  you can redistribute it and/or       vous pouvez le redistribuer ou le
+*  modify it under the terms of         modifier suivant les termes de
+*  the GNU Affero General Public        la “GNU Affero General Public
+*  License as published by the          License” telle que publiée
+*  Free Software Foundation,            par la Free Software Foundation
+*  either version 3 of the              : soit la version 3 de cette
+*  License, or (at your option)         licence, soit (à votre gré)
+*  any later version.                   toute version ultérieure.
+*                                       
+*  OpenCADC is distributed in the       OpenCADC est distribué
+*  hope that it will be useful,         dans l’espoir qu’il vous
+*  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+*  without even the implied             GARANTIE : sans même la garantie
+*  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+*  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+*  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+*  General Public License for           Générale Publique GNU Affero
+*  more details.                        pour plus de détails.
+*                                       
+*  You should have received             Vous devriez avoir reçu une
+*  a copy of the GNU Affero             copie de la Licence Générale
+*  General Public License along         Publique GNU Affero avec
+*  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+*  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+*                                       <http://www.gnu.org/licenses/>.
+*
+*  $Revision: 4 $
+*
+************************************************************************
+*/
+
+package org.opencadc.tap.impl;
+
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
+import ca.nrc.cadc.dali.tables.votable.VOTableParam;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.TableWriter;
+import ca.nrc.cadc.tap.schema.TapDataType;
+import ca.nrc.cadc.tap.writer.ResultSetTableData;
+import ca.nrc.cadc.tap.writer.RssTableWriter;
+import ca.nrc.cadc.tap.writer.format.FormatFactory;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.ParameterUtil;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.sql.ResultSet;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import javax.security.auth.Subject;
+import org.apache.log4j.Logger;
+
+public class RubinTableWriter implements TableWriter
+{
+
+    private static final Logger log = Logger.getLogger(RubinTableWriter.class);
+
+    private static final String FORMAT = "RESPONSEFORMAT";
+    private static final String FORMAT_ALT = "FORMAT";
+
+    // shortcuts
+    public static final String CSV = "csv";
+    public static final String FITS = "fits";
+    public static final String HTML = "html";
+    public static final String TEXT = "text";
+    public static final String TSV = "tsv";
+    public static final String VOTABLE = "votable";
+    public static final String RSS = "rss";
+
+    // content-type
+//    private static final String APPLICATION_FITS = "application/fits";
+    private static final String APPLICATION_VOTABLE_XML = "application/x-votable+xml";
+    private static final String APPLICATION_RSS = "application/rss+xml";
+    private static final String TEXT_XML_VOTABLE = "text/xml;content=x-votable"; // the SIAv1 mimetype
+    private static final String TEXT_CSV = "text/csv";
+//    private static final String TEXT_HTML = "text/html";
+//    private static final String TEXT_PLAIN = "text/plain";
+    private static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
+    private static final String TEXT_XML = "text/xml";
+
+    private static final Map<String,String> knownFormats = new TreeMap<String,String>();
+
+    static
+    {
+        knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
+        knownFormats.put(TEXT_XML, VOTABLE);
+        knownFormats.put(TEXT_XML_VOTABLE, VOTABLE);
+        knownFormats.put(TEXT_CSV, CSV);
+        knownFormats.put(TEXT_TAB_SEPARATED_VALUES, TSV);
+        knownFormats.put(VOTABLE, VOTABLE);
+        knownFormats.put(CSV, CSV);
+        knownFormats.put(TSV, TSV);
+        knownFormats.put(RSS, RSS);
+        knownFormats.put(APPLICATION_RSS, RSS);
+    }
+
+    private Job job;
+    private String queryInfo;
+    private String contentType;
+    private String extension;
+
+    // RssTableWriter not yet ported to cadcDALI
+    private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> tableWriter;
+    private RssTableWriter rssTableWriter;
+    
+    private FormatFactory formatFactory;
+    private boolean errorWriter = false;
+    
+    private long rowcount = 0l;
+
+    // once the RssTableWriter is converted to use the DALI format
+    // of writing, this reference will not be needed
+    List<TapSelectItem> selectList;
+
+    public RubinTableWriter() { 
+        this(false); 
+    }
+
+    public RubinTableWriter(boolean errorWriter) {
+        this.errorWriter = errorWriter;
+    }
+    
+    @Override
+    public void setJob(Job job)
+    {
+        this.job = job;
+        initFormat();
+    }
+
+    @Override
+    public void setSelectList(List<TapSelectItem> selectList)
+    {
+        this.selectList = selectList;
+        if (rssTableWriter != null)
+            rssTableWriter.setSelectList(selectList);
+    }
+    
+    @Override
+    public void setQueryInfo(String queryInfo)
+    {
+        this.queryInfo = queryInfo;
+    }
+
+    @Override
+    public String getContentType()
+    {
+        return tableWriter.getContentType();
+    }
+
+    @Override
+    public String getErrorContentType()
+    {
+        return tableWriter.getErrorContentType();
+    }
+
+    /**
+     * Get the number of rows the output table
+     * @return number of result rows written in output table
+     */
+    @Override
+    public long getRowCount()
+    {
+        return rowcount;
+    }
+    
+    @Override
+    public String getExtension()
+    {
+        return extension;
+    }
+    
+    private void initFormat()
+    {
+        String format = ParameterUtil.findParameterValue(FORMAT, job.getParameterList());
+        if (format == null)
+            format = ParameterUtil.findParameterValue(FORMAT_ALT, job.getParameterList());
+        if (format == null)
+            format = VOTABLE;
+        
+        String type = knownFormats.get(format.toLowerCase());
+        if (type == null && errorWriter) {
+            type = VOTABLE;
+            format = VOTABLE;
+        } else if (type == null) {
+            throw new UnsupportedOperationException("unknown format: " + format);
+        }
+        
+        if (type.equals(VOTABLE) && format.equals(VOTABLE))
+            format = APPLICATION_VOTABLE_XML;
+        
+        // Create the table writer (handle RSS the old way for now)
+        // Note: This needs to be done before the write method is called so the contentType
+        // can be determined from the table writer.
+
+        if (type.equals(RSS))
+        {
+            rssTableWriter = new RssTableWriter();
+            rssTableWriter.setJob(job);
+            // for error handling
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+        }
+        else if (type.equals(VOTABLE)) {
+            tableWriter = new VOTableWriter(format);
+        } else if (type.equals(CSV)) {
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
+        } else if (type.equals(TSV)) {
+            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+        }
+    
+        if (tableWriter == null) {
+            throw new UnsupportedOperationException("unsupported format: " + type);
+        }
+        this.contentType = tableWriter.getContentType();
+        this.extension = tableWriter.getExtension();
+    }
+
+    public void setFormatFactory(FormatFactory formatFactory)
+    {
+        this.formatFactory = formatFactory;
+    }
+
+    @Override
+    public void setFormatFactory(ca.nrc.cadc.dali.util.FormatFactory formatFactory)
+    {
+        throw new UnsupportedOperationException("Use custom tap format factory implementation class");
+    }
+
+    public void write(Throwable t, OutputStream out) 
+        throws IOException
+    {
+        tableWriter.write(t, out);
+    }
+
+    
+    @Override
+    public void write(ResultSet rs, OutputStream out) throws IOException
+    {
+        this.write(rs, out, null);
+    }
+
+    @Override
+    public void write(ResultSet rs, OutputStream out, Long maxrec)
+            throws IOException
+    {
+        Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
+        this.write(rs, writer, maxrec);
+    }
+
+    @Override
+    public void write(ResultSet rs, Writer out) throws IOException
+    {
+        this.write(rs, out, null);
+    }
+
+    @Override
+    public void write(ResultSet rs, Writer out, Long maxrec) throws IOException
+    {
+        if (rs != null && log.isDebugEnabled())
+            try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
+            catch(Exception oops) { log.error("failed to check resultset column count", oops); }
+
+        if (rssTableWriter != null)
+        {
+            rssTableWriter.setJob(job);
+            rssTableWriter.setSelectList(selectList);
+            rssTableWriter.setFormatFactory(formatFactory);
+            rssTableWriter.setQueryInfo(queryInfo);
+            if (maxrec != null)
+                rssTableWriter.write(rs, out, maxrec);
+            else
+                rssTableWriter.write(rs, out);
+            return;
+        }
+
+        VOTableDocument votableDocument = new VOTableDocument();
+
+        VOTableResource resultsResource = new VOTableResource("results");
+        VOTableTable resultsTable = new VOTableTable();
+
+        // get the formats based on the selectList
+        List<Format<Object>> formats = formatFactory.getFormats(selectList);
+
+        List<String> serviceIDs = new ArrayList<String>();
+        int listIndex = 0;
+
+        // Add the metadata elements.
+        for (TapSelectItem resultCol : selectList)
+        {
+            VOTableField newField = createVOTableField(resultCol);
+
+            Format<Object> format = formats.get(listIndex);
+            log.debug("format: " + listIndex + " " + format.getClass().getName());
+            newField.setFormat(format);
+            log.debug("id: " + newField.id);
+            log.debug("selectItem: " + resultCol.getColumnName() + " " + resultCol.tableName);
+
+            resultsTable.getFields().add(newField);
+
+            if (newField.id != null)
+            {
+                if ( !serviceIDs.contains(newField.id) )
+                    serviceIDs.add(newField.id);
+                else
+                    newField.id = null; // avoid multiple ID with same value in output
+            }
+
+            listIndex++;
+        }
+
+        serviceIDs.add("datalink");
+        resultsResource.setTable(resultsTable);
+        votableDocument.getResources().add(resultsResource);
+
+        // Add the "meta" resources to describe services for each columnID in
+        // list columnIDs that we recognize
+        addMetaResources(votableDocument, serviceIDs);
+
+        VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
+        resultsResource.getInfos().add(info);
+        
+        DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+        Date now = new Date();
+        VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
+        resultsResource.getInfos().add(info2);
+
+        // for documentation, add the query to the table as an info element
+        if (queryInfo != null)
+        {
+            info = new VOTableInfo("QUERY", queryInfo);
+            resultsResource.getInfos().add(info);
+        }
+
+        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+        resultsTable.setTableData(tableData);
+        
+        if (maxrec != null)
+            tableWriter.write(votableDocument, out, maxrec);
+        else
+            tableWriter.write(votableDocument, out);
+        
+        this.rowcount = tableData.getRowCount();
+    }
+
+    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
+        throws IOException
+    {
+        for (String serviceID : serviceIDs)
+        {
+            String filename = serviceID + ".xml";
+            InputStream is = RubinTableWriter.class.getClassLoader().getResourceAsStream(filename);
+            if (is == null)
+            {
+                //throw new MissingResourceException(
+                //    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
+                log.debug("failed to find service resource " + filename + " to go with XML ID " + serviceID);
+            }
+            else
+            {
+                VOTableReader reader = new VOTableReader();
+                VOTableDocument serviceDocument = reader.read(is);
+                VOTableResource metaResource = serviceDocument.getResourceByType("meta");
+                votableDocument.getResources().add(metaResource);
+            }
+        }
+    }
+
+    protected VOTableField createVOTableField(TapSelectItem resultCol)
+    {
+        if (resultCol != null)
+        {
+            TapDataType tt = resultCol.getDatatype();
+            VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize);
+            newField.xtype = tt.xtype;
+            newField.description = resultCol.description;
+            newField.id = resultCol.id;
+            newField.utype = resultCol.utype;
+            newField.ucd = resultCol.ucd;
+            newField.unit = resultCol.unit;
+
+            return newField;
+        }
+
+        return null;
+    }
+}
