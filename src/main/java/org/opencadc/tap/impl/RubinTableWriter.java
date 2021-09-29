@@ -100,6 +100,7 @@ import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -109,7 +110,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
+import org.stringtemplate.v4.ST;
 import org.apache.log4j.Logger;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 
 public class RubinTableWriter implements TableWriter
 {
@@ -340,45 +347,36 @@ public class RubinTableWriter implements TableWriter
 
         // get the formats based on the selectList
         List<Format<Object>> formats = formatFactory.getFormats(selectList);
+        List<String> columnNames = new ArrayList<String>();
 
-        List<String> serviceIDs = new ArrayList<String>();
         int listIndex = 0;
 
         // Add the metadata elements.
         for (TapSelectItem resultCol : selectList)
         {
             VOTableField newField = createVOTableField(resultCol);
-
             Format<Object> format = formats.get(listIndex);
-            log.debug("format: " + listIndex + " " + format.getClass().getName());
             newField.setFormat(format);
-            log.debug("id: " + newField.id);
-            log.debug("selectItem: " + resultCol.getColumnName() + " " + resultCol.tableName);
-
+            newField.id = "col_" + listIndex;
             resultsTable.getFields().add(newField);
 
-            if (newField.id != null)
-            {
-                if ( !serviceIDs.contains(newField.id) )
-                    serviceIDs.add(newField.id);
-                else
-                    newField.id = null; // avoid multiple ID with same value in output
-            }
-
+            String fullColumnName = resultCol.tableName + "_" + resultCol.getColumnName();
+            columnNames.add(fullColumnName.replace(".", "_"));
             listIndex++;
         }
 
-        serviceIDs.add("datalink");
+        List<String> serviceIDs = determineDatalinks(columnNames);
+
         resultsResource.setTable(resultsTable);
         votableDocument.getResources().add(resultsResource);
 
         // Add the "meta" resources to describe services for each columnID in
         // list columnIDs that we recognize
-        addMetaResources(votableDocument, serviceIDs);
+        addMetaResources(votableDocument, serviceIDs, columnNames);
 
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
         resultsResource.getInfos().add(info);
-        
+
         DateFormat df = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
         Date now = new Date();
         VOTableInfo info2 = new VOTableInfo("QUERY_TIMESTAMP", df.format(now));
@@ -393,16 +391,16 @@ public class RubinTableWriter implements TableWriter
 
         ResultSetTableData tableData = new ResultSetTableData(rs, formats);
         resultsTable.setTableData(tableData);
-        
+
         if (maxrec != null)
             tableWriter.write(votableDocument, out, maxrec);
         else
             tableWriter.write(votableDocument, out);
-        
+
         this.rowcount = tableData.getRowCount();
     }
 
-    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs)
+    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs, List<String> columns)
         throws IOException
     {
         for (String serviceID : serviceIDs)
@@ -411,18 +409,59 @@ public class RubinTableWriter implements TableWriter
             InputStream is = RubinTableWriter.class.getClassLoader().getResourceAsStream(filename);
             if (is == null)
             {
-                //throw new MissingResourceException(
-                //    "Resource not found: " + serviceID + ".xml", DefaultTableWriter.class.getName(), filename);
-                log.debug("failed to find service resource " + filename + " to go with XML ID " + serviceID);
+                log.warn("failed to find service resource " + filename + " to go with XML ID " + serviceID);
             }
             else
             {
+                ST datalinkTemplate = new ST(new String(is.readAllBytes(), StandardCharsets.UTF_8), '$', '$');
+
+                int columnIndex = 0;
+                for (String col : columns)
+                {
+                    datalinkTemplate.add(col, "col_" + columnIndex);
+                    columnIndex++;
+                }
+
                 VOTableReader reader = new VOTableReader();
-                VOTableDocument serviceDocument = reader.read(is);
+                VOTableDocument serviceDocument = reader.read(datalinkTemplate.render());
                 VOTableResource metaResource = serviceDocument.getResourceByType("meta");
                 votableDocument.getResources().add(metaResource);
             }
         }
+    }
+
+    private List<String> determineDatalinks(List<String> columns)
+        throws IOException
+    {
+        List<String> datalinks = new ArrayList<String>();
+        log.info("columns are: " + datalinks);
+
+        InputStream is = RubinTableWriter.class.getClassLoader().getResourceAsStream("datalink-manifest.json");
+        if (is == null)
+        {
+            log.warn("failed to open datalink manifest");
+        }
+        else
+        {
+            String manifestJson = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            JsonObject manifest = JsonParser.parseString(manifestJson).getAsJsonObject();
+            for (Map.Entry<String,JsonElement> entry : manifest.entrySet())
+            {
+                JsonArray requiredColumnsArray = entry.getValue().getAsJsonArray();
+                List<String> requiredColumns = new ArrayList<String>();
+                for (JsonElement col: requiredColumnsArray)
+                {
+                    requiredColumns.add(col.getAsString());
+                }
+
+                if (columns.containsAll(requiredColumns))
+                {
+                    datalinks.add(entry.getKey());
+                }
+            }
+        }
+
+        return datalinks;
     }
 
     protected VOTableField createVOTableField(TapSelectItem resultCol)
