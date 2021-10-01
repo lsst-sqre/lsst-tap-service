@@ -14,6 +14,6 @@
           <DESCRIPTION>description of an object.</DESCRIPTION>
         </PARAM>
       </GROUP>
-      <PARAM name="accessURL" datatype="char" arraysize="*" value="https://data.lsst.codes"/>
+      <PARAM name="accessURL" datatype="char" arraysize="*" value="$baseUrl$"/>
     </RESOURCE>
 </VOTABLE>

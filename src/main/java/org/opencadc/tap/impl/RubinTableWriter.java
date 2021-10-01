@@ -148,6 +148,8 @@ public class RubinTableWriter implements TableWriter
 
     private static final Map<String,String> knownFormats = new TreeMap<String,String>();
 
+    private static final String baseUrl = System.getProperty("base_url");
+
     static
     {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
@@ -414,6 +416,7 @@ public class RubinTableWriter implements TableWriter
             else
             {
                 ST datalinkTemplate = new ST(new String(is.readAllBytes(), StandardCharsets.UTF_8), '$', '$');
+                datalinkTemplate.add("baseUrl", baseUrl);
 
                 int columnIndex = 0;
                 for (String col : columns)
