@@ -93,7 +93,6 @@ import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -101,6 +100,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -149,6 +150,7 @@ public class RubinTableWriter implements TableWriter
     private static final Map<String,String> knownFormats = new TreeMap<String,String>();
 
     private static final String baseUrl = System.getProperty("base_url");
+    private static final String datalinkConfig = "/tmp/datalink/";
 
     static
     {
@@ -407,60 +409,55 @@ public class RubinTableWriter implements TableWriter
     {
         for (String serviceID : serviceIDs)
         {
-            String filename = serviceID + ".xml";
-            InputStream is = RubinTableWriter.class.getClassLoader().getResourceAsStream(filename);
-            if (is == null)
-            {
-                log.warn("failed to find service resource " + filename + " to go with XML ID " + serviceID);
-            }
-            else
-            {
-                ST datalinkTemplate = new ST(new String(is.readAllBytes(), StandardCharsets.UTF_8), '$', '$');
-                datalinkTemplate.add("baseUrl", baseUrl);
+            Path snippetPath = Path.of(datalinkConfig + serviceID + ".xml");
+            String content = Files.readString(snippetPath, StandardCharsets.US_ASCII);
+            ST datalinkTemplate = new ST(content, '$', '$');
+            datalinkTemplate.add("baseUrl", baseUrl);
 
-                int columnIndex = 0;
-                for (String col : columns)
-                {
-                    datalinkTemplate.add(col, "col_" + columnIndex);
-                    columnIndex++;
-                }
-
-                VOTableReader reader = new VOTableReader();
-                VOTableDocument serviceDocument = reader.read(datalinkTemplate.render());
-                VOTableResource metaResource = serviceDocument.getResourceByType("meta");
-                votableDocument.getResources().add(metaResource);
+            int columnIndex = 0;
+            for (String col : columns)
+            {
+                datalinkTemplate.add(col, "col_" + columnIndex);
+                columnIndex++;
             }
+
+            VOTableReader reader = new VOTableReader();
+            VOTableDocument serviceDocument = reader.read(datalinkTemplate.render());
+            VOTableResource metaResource = serviceDocument.getResourceByType("meta");
+            votableDocument.getResources().add(metaResource);
         }
     }
 
     private List<String> determineDatalinks(List<String> columns)
         throws IOException
     {
-        List<String> datalinks = new ArrayList<String>();
-        log.info("columns are: " + datalinks);
+        String content;
 
-        InputStream is = RubinTableWriter.class.getClassLoader().getResourceAsStream("datalink-manifest.json");
-        if (is == null)
+        try
+        {
+            Path manifestPath = Path.of(datalinkConfig + "datalink-manifest.json");
+            content = Files.readString(manifestPath, StandardCharsets.US_ASCII);
+        }
+        catch (IOException e)
         {
             log.warn("failed to open datalink manifest");
+            return new ArrayList<String>();
         }
-        else
-        {
-            String manifestJson = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            JsonObject manifest = JsonParser.parseString(manifestJson).getAsJsonObject();
-            for (Map.Entry<String,JsonElement> entry : manifest.entrySet())
-            {
-                JsonArray requiredColumnsArray = entry.getValue().getAsJsonArray();
-                List<String> requiredColumns = new ArrayList<String>();
-                for (JsonElement col: requiredColumnsArray)
-                {
-                    requiredColumns.add(col.getAsString());
-                }
 
-                if (columns.containsAll(requiredColumns))
-                {
-                    datalinks.add(entry.getKey());
-                }
+        List<String> datalinks = new ArrayList<String>();
+        JsonObject manifest = JsonParser.parseString(content).getAsJsonObject();
+        for (Map.Entry<String,JsonElement> entry : manifest.entrySet())
+        {
+            JsonArray requiredColumnsArray = entry.getValue().getAsJsonArray();
+            List<String> requiredColumns = new ArrayList<String>();
+            for (JsonElement col: requiredColumnsArray)
+            {
+                requiredColumns.add(col.getAsString());
+            }
+
+            if (columns.containsAll(requiredColumns))
+            {
+                datalinks.add(entry.getKey());
             }
         }
 
