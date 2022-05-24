@@ -71,7 +71,7 @@ package org.opencadc.tap.ws;
 
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.AvailabilityPlugin;
-import ca.nrc.cadc.vosi.AvailabilityStatus;
+import ca.nrc.cadc.vosi.Availability;
 import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
 import org.apache.log4j.Logger;
@@ -116,7 +116,7 @@ public class TAPWebService implements AvailabilityPlugin {
     }
 
     @Override
-    public AvailabilityStatus getStatus() {
+    public Availability getStatus() {
         boolean isGood = true;
         String note = String.format("The%s service is accepting queries",
                                     StringUtil.hasText(applicationName) ? " " + applicationName : "");
@@ -133,7 +133,7 @@ public class TAPWebService implements AvailabilityPlugin {
             isGood = false;
             note = "test failed, reason: " + t;
         }
-        return new AvailabilityStatus(isGood, null, null, null, note);
+        return new Availability(isGood, note);
     }
 
     private void check(final String query) throws CheckException {
