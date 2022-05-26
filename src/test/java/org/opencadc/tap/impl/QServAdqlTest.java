@@ -63,7 +63,7 @@ public class QServAdqlTest
     public void testObscore()
     {
         String a = "SELECT ra, dec FROM s.t WHERE CONTAINS(POINT('ICRS', ra, dec), s_region) = 1";
-        String s = "SELECT ra, dec FROM s.t WHERE MBRWITHIN(POINT(ra, dec), s_region_bounds) AND scisql_s2PtInPolygon(<ra>, <dec>, s_region_scisql)";
+        String s = "SELECT ra, dec FROM s.t WHERE MBRWITHIN(POINT(ra, dec), s_region_bounds) AND scisql_s2PtInPolygon(ra, dec, s_region_scisql) AND 1 = 1";
         compareAdqlToSql(a, s);
     }
 
@@ -81,7 +81,7 @@ public class QServAdqlTest
             String sql = q.getSQL();
             log.debug("SQL: " + sql);
             log.debug("Expected SQL: " + expectedSql);
-            Assert.assertEquals(sql, expectedSql);
+            Assert.assertEquals(expectedSql, sql);
         }
         catch(Exception unexpected)
         {
