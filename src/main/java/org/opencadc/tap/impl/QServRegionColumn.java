@@ -19,7 +19,7 @@ public class QServRegionColumn
     public static Expression pointInRegion(QServPoint point)
     {
         Function scisql = new Function();
-        scisql.setName("scisql_s2PtInPolygon");
+        scisql.setName("scisql_s2PtInCPoly");
         List<Expression> scisqlParams = new ArrayList<Expression>();
         scisqlParams.add(point.getRA());
         scisqlParams.add(point.getDec());
