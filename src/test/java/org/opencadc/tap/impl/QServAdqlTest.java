@@ -59,6 +59,14 @@ public class QServAdqlTest
         compareAdqlToSql(a, s);
     }
 
+    @Test
+    public void testObscore()
+    {
+        String a = "SELECT ra, dec FROM s.t WHERE CONTAINS(POINT('ICRS', ra, dec), s_region) = 1";
+        String s = "SELECT ra, dec FROM s.t WHERE MBRWITHIN(POINT(ra, dec), s_region_bounds) AND scisql_s2PtInCPoly(ra, dec, s_region_scisql) AND 1 = 1";
+        compareAdqlToSql(a, s);
+    }
+
     public void compareAdqlToSql(String adql, String expectedSql)
     {
         try
@@ -73,7 +81,7 @@ public class QServAdqlTest
             String sql = q.getSQL();
             log.debug("SQL: " + sql);
             log.debug("Expected SQL: " + expectedSql);
-            Assert.assertEquals(sql, expectedSql);
+            Assert.assertEquals(expectedSql, sql);
         }
         catch(Exception unexpected)
         {
@@ -102,6 +110,7 @@ public class QServAdqlTest
         TableDesc table = new TableDesc("s", "s.t");
         table.getColumnDescs().add(new ColumnDesc("s.t", "ra", TapDataType.INTEGER));
         table.getColumnDescs().add(new ColumnDesc("s.t", "dec", TapDataType.INTEGER));
+        table.getColumnDescs().add(new ColumnDesc("s.t", "s_region", TapDataType.STRING));
 
         schema.getTableDescs().add(table);
         return ts;
