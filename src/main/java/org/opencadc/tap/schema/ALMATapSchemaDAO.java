@@ -121,6 +121,8 @@ public class ALMATapSchemaDAO extends TapSchemaDAO {
         functionDescs.add(new FunctionDesc("scisql_abMagToDnSigma", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_abMagToFlux", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_abMagToFluxSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_abMagToNanojansky", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_abMagToNanojanskySigma", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_dnToAbMag", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_dnToAbMagSigma", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_dnToFlux", TapDataType.DOUBLE));
@@ -129,6 +131,8 @@ public class ALMATapSchemaDAO extends TapSchemaDAO {
         functionDescs.add(new FunctionDesc("scisql_fluxToAbMagSigma", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_fluxToDn", TapDataType.DOUBLE));
         functionDescs.add(new FunctionDesc("scisql_fluxToDnSigma", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_nanojanskyToAbMag", TapDataType.DOUBLE));
+        functionDescs.add(new FunctionDesc("scisql_nanojanskyToAbMagSigma", TapDataType.DOUBLE));
 
         // SciSQL Statistics
         functionDescs.add(new FunctionDesc("scisql_median", TapDataType.DOUBLE));
