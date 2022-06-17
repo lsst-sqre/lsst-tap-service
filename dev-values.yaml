@@ -1,27 +1,9 @@
+global:
+  baseUrl: "https://minikube.lsst.codes"
+  host: "minikube.lsst.codes"
+  vaultSecretsPath: "secret/k8s_operator/minikube.lsst.codes"
+
 tag: dev
-use_mock_qserv: true
-
 imagePullPolicy: Never
-host: "minikube.lsst.codes"
-
-ingress:
-  authenticated_annotations:
-    nginx.ingress.kubernetes.io/auth-response-headers: X-Auth-Request-Uid, X-Auth-Request-Token
-    nginx.ingress.kubernetes.io/auth-url: "https://minikube.lsst.codes/auth?scope=read:tap&auth_type=basic&delegate_to=tap"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      auth_request_set $auth_token $upstream_http_x_auth_request_token;
-      proxy_set_header Authorization "Bearer $auth_token";
-
-secrets:
-  enabled: false
-
-vault_secrets:
-  enabled: true
-  path: 'secret/k8s_operator/minikube.lsst.codes/tap'
-
-tap_schema_address: "tap-schema-db.tap-schema.svc.cluster.local"
-
 gcs_bucket: 'async-results.lsst.codes'
 gcs_bucket_url: 'http://async-results.lsst.codes'
-
-datalink_payload_url: 'https://github.com/lsst/sdm_schemas/releases/download/1.1.1/datalink-snippets.zip'
