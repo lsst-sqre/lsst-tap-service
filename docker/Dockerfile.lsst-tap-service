@@ -2,6 +2,8 @@ FROM tomcat:9.0
 
 RUN rm -rf webapps/*
 
+RUN apt-get update && apt-get install -y zip
+
 ADD start.sh /usr/local/bin/
 ADD *.war webapps/
 
