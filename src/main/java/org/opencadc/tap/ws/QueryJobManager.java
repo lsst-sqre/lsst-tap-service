@@ -26,7 +26,7 @@ public class QueryJobManager extends SimpleJobManager {
 
         // max threads: 6 == number of simultaneously running async queries (per
         // web server), plus sync queries, plus VOSI-tables queries
-        final JobExecutor jobExec = new ThreadPoolExecutor(jobPersist, QServQueryRunner.class, 6);
+        final JobExecutor jobExec = new ThreadPoolExecutor(jobPersist, QServQueryRunner.class, 24);
 
         super.setJobPersistence(jobPersist);
         super.setJobExecutor(jobExec);
