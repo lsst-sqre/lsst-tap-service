@@ -97,6 +97,8 @@ public class ResultStoreImpl implements ResultStore {
     private String filename;
     private static final String bucket = System.getProperty("gcs_bucket");
     private static final String bucketURL = System.getProperty("gcs_bucket_url");
+    private static final String bucketType = System.getProperty("gcs_bucket_type");
+
 
     @Override
     public URL put(final ResultSet resultSet,
@@ -153,6 +155,13 @@ public class ResultStoreImpl implements ResultStore {
     }
 
     private OutputStream getOutputStream() throws URISyntaxException{
+        if(bucketType.equals(new String("S3"))) {
+            return getOutputStreamS3();
+        } else{
+            return getOutputStreamGCS();
+        } 
+    }
+    private OutputStream getOutputStreamS3() throws URISyntaxException{
     	S3Configuration config = S3Configuration.builder()
     			.pathStyleAccessEnabled(true)
     			.useArnRegionEnabled(true)
@@ -178,7 +187,11 @@ public class ResultStoreImpl implements ResultStore {
     }
 
     private URL getURL() throws MalformedURLException {
-    		return new URL(new URL(bucketURL), bucket+"/"+filename);
+            if(bucketType.equals(new String("S3"))) {
+                return new URL(new URL(bucketURL), bucket+"/"+filename);
+            } else {
+                return new URL(new URL(bucketURL), filename);
+            }
     }
 
     private URI getURI() throws URISyntaxException {
