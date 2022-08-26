@@ -1,5 +1,7 @@
 FROM tomcat:9.0
 
+RUN apt-get update
+RUN apt-get install unzip
 RUN rm -rf webapps/*
 
 RUN apt-get update && apt-get install -y zip
