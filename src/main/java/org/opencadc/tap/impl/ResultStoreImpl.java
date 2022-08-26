@@ -1,4 +1,3 @@
-
 /*
  ************************************************************************
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -105,15 +104,9 @@ public class ResultStoreImpl implements ResultStore {
                    final TableWriter<ResultSet> resultSetTableWriter)
         throws IOException {
         OutputStream os;
-		try {
-			os = getOutputStream();
-		
+        os = getOutputStream();
         resultSetTableWriter.write(resultSet, os);
         os.close();
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
         return getURL();
     }
 
@@ -121,14 +114,9 @@ public class ResultStoreImpl implements ResultStore {
     public URL put(Throwable throwable, TableWriter tableWriter)
         throws IOException {
         OutputStream os;
-        try {
         os = getOutputStream();
         tableWriter.write(throwable, os);
         os.close();
-    } catch (URISyntaxException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
         return getURL();
     }
 
@@ -137,7 +125,6 @@ public class ResultStoreImpl implements ResultStore {
                    final TableWriter<ResultSet> resultSetTableWriter,
                    final Integer integer) throws IOException {
         OutputStream os;
-        try {
         os = getOutputStream();
 
         if (integer == null) {
@@ -147,37 +134,32 @@ public class ResultStoreImpl implements ResultStore {
         }
 
         os.close();
-        } catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
         return getURL();
     }
 
-    private OutputStream getOutputStream() throws URISyntaxException{
-        if(bucketType.equals(new String("S3"))) {
+    private OutputStream getOutputStream() {
+        if (bucketType.equals(new String("S3"))) {
             return getOutputStreamS3();
         } else{
             return getOutputStreamGCS();
-        } 
+        }
     }
-    private OutputStream getOutputStreamS3() throws URISyntaxException{
-    	S3Configuration config = S3Configuration.builder()
-    			.pathStyleAccessEnabled(true)
-    			.useArnRegionEnabled(true)
-    			.build();
-    	
-    		S3Client s3Client = S3Client.builder()
-    			.endpointOverride(getURI())
-    			.serviceConfiguration(config)
-    			.region(Region.US_WEST_2)
-    			.build();
-    		
-    		return new S3OutputStream(s3Client, filename, bucket);
-    	//return null;
-    	
-    	
+
+    private OutputStream getOutputStreamS3() {
+        S3Configuration config = S3Configuration.builder()
+            .pathStyleAccessEnabled(true)
+            .useArnRegionEnabled(true)
+            .build();
+
+        S3Client s3Client = S3Client.builder()
+            .endpointOverride(getURI())
+            .serviceConfiguration(config)
+            .region(Region.US_WEST_2)
+            .build();
+
+        return new S3OutputStream(s3Client, filename, bucket);
     }
+
     private OutputStream getOutputStreamGCS() {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         BlobId blobId = BlobId.of(bucket, filename);
@@ -187,17 +169,24 @@ public class ResultStoreImpl implements ResultStore {
     }
 
     private URL getURL() throws MalformedURLException {
-            if(bucketType.equals(new String("S3"))) {
-                return new URL(new URL(bucketURL), bucket+"/"+filename);
-            } else {
-                return new URL(new URL(bucketURL), filename);
-            }
+        if (bucketType.equals(new String("S3"))) {
+            return new URL(new URL(bucketURL), bucket+"/"+filename);
+        } else {
+            return new URL(new URL(bucketURL), filename);
+        }
     }
 
-    private URI getURI() throws URISyntaxException {
-    	return new URI(bucketURL);
+    private URI getURI() {
+        try {
+            return new URI(bucketURL);
+        } catch (URISyntaxException e) {
+            // Raise an unchecked exception here to avoid having to change
+            // method definitions.  This reflects an error in the TAP server
+            // configuration and is realistically unrecoverable.
+            throw new IllegalArgumentException(e);
+        }
     }
-    
+
     @Override
     public void setContentType(String contentType) {
     }
