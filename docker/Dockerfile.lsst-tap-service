@@ -4,7 +4,7 @@ RUN rm -rf webapps/*
 
 RUN apt-get update && apt-get install -y zip unzip
 
-ADD start.sh /usr/local/bin/
-ADD *.war webapps/
+ADD docker/start.sh /usr/local/bin/
+ADD docker/*.war webapps/
 
 CMD ["start.sh"]
