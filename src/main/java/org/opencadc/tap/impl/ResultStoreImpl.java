@@ -69,9 +69,16 @@
 
 package org.opencadc.tap.impl;
 
-import ca.nrc.cadc.dali.tables.TableWriter;
-import ca.nrc.cadc.tap.ResultStore;
-import ca.nrc.cadc.uws.Job;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.sql.ResultSet;
+
+import org.apache.solr.s3.S3OutputStream;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -79,39 +86,49 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 
-import java.io.File;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.nio.channels.Channels;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.sql.ResultSet;
-import java.util.Properties;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.tap.ResultStore;
+import ca.nrc.cadc.uws.Job;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 
 public class ResultStoreImpl implements ResultStore {
     private String filename;
     private static final String bucket = System.getProperty("gcs_bucket");
     private static final String bucketURL = System.getProperty("gcs_bucket_url");
+    private static final String bucketType = System.getProperty("gcs_bucket_type");
 
 
     @Override
     public URL put(final ResultSet resultSet,
                    final TableWriter<ResultSet> resultSetTableWriter)
         throws IOException {
-        OutputStream os = getOutputStream();
+        OutputStream os;
+		try {
+			os = getOutputStream();
+		
         resultSetTableWriter.write(resultSet, os);
         os.close();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         return getURL();
     }
 
     @Override
     public URL put(Throwable throwable, TableWriter tableWriter)
         throws IOException {
-        OutputStream os = getOutputStream();
+        OutputStream os;
+        try {
+        os = getOutputStream();
         tableWriter.write(throwable, os);
         os.close();
+    } catch (URISyntaxException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
         return getURL();
     }
 
@@ -119,7 +136,9 @@ public class ResultStoreImpl implements ResultStore {
     public URL put(final ResultSet resultSet,
                    final TableWriter<ResultSet> resultSetTableWriter,
                    final Integer integer) throws IOException {
-        OutputStream os = getOutputStream();
+        OutputStream os;
+        try {
+        os = getOutputStream();
 
         if (integer == null) {
             resultSetTableWriter.write(resultSet, os);
@@ -128,11 +147,38 @@ public class ResultStoreImpl implements ResultStore {
         }
 
         os.close();
-
+        } catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         return getURL();
     }
 
-    private OutputStream getOutputStream() {
+    private OutputStream getOutputStream() throws URISyntaxException{
+        if(bucketType.equals(new String("S3"))) {
+            return getOutputStreamS3();
+        } else{
+            return getOutputStreamGCS();
+        } 
+    }
+    private OutputStream getOutputStreamS3() throws URISyntaxException{
+    	S3Configuration config = S3Configuration.builder()
+    			.pathStyleAccessEnabled(true)
+    			.useArnRegionEnabled(true)
+    			.build();
+    	
+    		S3Client s3Client = S3Client.builder()
+    			.endpointOverride(getURI())
+    			.serviceConfiguration(config)
+    			.region(Region.US_WEST_2)
+    			.build();
+    		
+    		return new S3OutputStream(s3Client, filename, bucket);
+    	//return null;
+    	
+    	
+    }
+    private OutputStream getOutputStreamGCS() {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         BlobId blobId = BlobId.of(bucket, filename);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("application/x-votable+xml").build();
@@ -141,10 +187,17 @@ public class ResultStoreImpl implements ResultStore {
     }
 
     private URL getURL() throws MalformedURLException {
-        URL bucket = new URL(bucketURL);
-        return new URL(bucket, filename);
+            if(bucketType.equals(new String("S3"))) {
+                return new URL(new URL(bucketURL), bucket+"/"+filename);
+            } else {
+                return new URL(new URL(bucketURL), filename);
+            }
     }
 
+    private URI getURI() throws URISyntaxException {
+    	return new URI(bucketURL);
+    }
+    
     @Override
     public void setContentType(String contentType) {
     }
