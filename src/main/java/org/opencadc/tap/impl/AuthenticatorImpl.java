@@ -19,9 +19,9 @@ import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.Authenticator;
 import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.BearerTokenPrincipal;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -76,16 +76,16 @@ public class AuthenticatorImpl implements Authenticator
         }
 
         List<Principal> addedPrincipals = new ArrayList<Principal>();
-        BearerTokenPrincipal tokenPrincipal = null;
+        AuthorizationTokenPrincipal tokenPrincipal = null;
 
         for (Principal principal : subject.getPrincipals()) {
-            if (principal instanceof BearerTokenPrincipal) {
-                tokenPrincipal = (BearerTokenPrincipal) principal;
+            if (principal instanceof AuthorizationTokenPrincipal) {
+                tokenPrincipal = (AuthorizationTokenPrincipal) principal;
                 TokenInfo tokenInfo = null;
 
                 for (int i = 1; i < 5 && tokenInfo == null; i++) {
                     try {
-                        tokenInfo = getTokenInfo(tokenPrincipal.getName());
+                        tokenInfo = getTokenInfo(tokenPrincipal.getHeaderValue());
                     } catch (IOException|InterruptedException e) {
                         log.warn("Exception thrown while getting info from Gafaelfawr");
                         log.warn(e);
@@ -134,7 +134,7 @@ public class AuthenticatorImpl implements Authenticator
         if (!tokenCache.containsKey(token)) {
             HttpRequest request = HttpRequest.newBuilder(URI.create(gafaelfawr_url))
                 .header("Accept", "application/json")
-                .header("Authorization", "bearer " + token)
+                .header("Authorization", token)
                 .build();
 
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
