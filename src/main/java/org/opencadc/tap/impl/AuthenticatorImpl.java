@@ -19,9 +19,9 @@ import javax.security.auth.x500.X500Principal;
 
 import ca.nrc.cadc.auth.Authenticator;
 import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthorizationTokenPrincipal;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.NumericPrincipal;
-import ca.nrc.cadc.auth.BearerTokenPrincipal;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -67,8 +67,7 @@ public class AuthenticatorImpl implements Authenticator
     {
     }
 
-    public Subject augment(Subject subject)
-    {
+    public Subject validate(Subject subject) throws AccessControlException {
         log.debug("Subject to augment starts as: " + subject);
 
         // Check if the cache is too big, and if so, clear it out.
@@ -77,15 +76,16 @@ public class AuthenticatorImpl implements Authenticator
         }
 
         List<Principal> addedPrincipals = new ArrayList<Principal>();
+        AuthorizationTokenPrincipal tokenPrincipal = null;
 
         for (Principal principal : subject.getPrincipals()) {
-            if (principal instanceof BearerTokenPrincipal) {
-                BearerTokenPrincipal tp = (BearerTokenPrincipal) principal;
+            if (principal instanceof AuthorizationTokenPrincipal) {
+                tokenPrincipal = (AuthorizationTokenPrincipal) principal;
                 TokenInfo tokenInfo = null;
 
                 for (int i = 1; i < 5 && tokenInfo == null; i++) {
                     try {
-                        tokenInfo = getTokenInfo(tp.getName());
+                        tokenInfo = getTokenInfo(tokenPrincipal.getHeaderValue());
                     } catch (IOException|InterruptedException e) {
                         log.warn("Exception thrown while getting info from Gafaelfawr");
                         log.warn(e);
@@ -109,6 +109,10 @@ public class AuthenticatorImpl implements Authenticator
             }
         }
 
+        if (tokenPrincipal != null) {
+            subject.getPrincipals().remove(tokenPrincipal);
+        }
+
         subject.getPrincipals().addAll(addedPrincipals);
         subject.getPublicCredentials().add(AuthMethod.TOKEN);
 
@@ -119,7 +123,7 @@ public class AuthenticatorImpl implements Authenticator
     // Here we could check the token again, but gafaelfawr should be
     // doing that for us already by the time it gets to us.  So for
     // this layer, we just let this go through.
-    public Subject validate(Subject subject) throws AccessControlException {
+    public Subject augment(Subject subject) {
         return subject;
     }
 
@@ -130,7 +134,7 @@ public class AuthenticatorImpl implements Authenticator
         if (!tokenCache.containsKey(token)) {
             HttpRequest request = HttpRequest.newBuilder(URI.create(gafaelfawr_url))
                 .header("Accept", "application/json")
-                .header("Authorization", "bearer " + token)
+                .header("Authorization", token)
                 .build();
 
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
