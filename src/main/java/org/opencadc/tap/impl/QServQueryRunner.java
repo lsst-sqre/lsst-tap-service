@@ -496,8 +496,8 @@ public class QServQueryRunner implements JobRunner
                 diagnostics.add(new Result("diag", URI.create("fail:"+dt)));
 
                 errorMessage = t.getClass().getSimpleName() + ":" + t.getMessage();
-                log.debug("BADNESS", t);
-                log.debug("Error message: " + errorMessage);
+                log.warn("BADNESS", t);
+                log.warn("Error message: " + errorMessage);
                 
                 log.debug("creating TableWriter for error...");
                 TableWriter ewriter = pfac.getErrorWriter();
