@@ -68,7 +68,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the TAP server image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: true
@@ -80,7 +80,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=tap
 
       - name: Build and push the UWS database image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: true
@@ -92,7 +92,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=uws-db
 
       - name: Build and push the mock qserv image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: true
