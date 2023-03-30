@@ -31,7 +31,7 @@ sourceCompatibility = 1.8
 version = '1000'
 
 war {
-    archiveName = 'tap##' + project.version + '.war'
+    archiveFileName = 'tap##' + project.version + '.war'
 }
 
 configurations {
