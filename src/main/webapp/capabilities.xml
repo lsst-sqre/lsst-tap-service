@@ -114,26 +114,9 @@
                 <form>POLYGON</form>
             </feature>
             <feature>
-                <form>REGION</form>
-            </feature>
-            <feature>
                 <form>CONTAINS</form>
             </feature>
-            <feature>
-                <form>INTERSECTS</form>
-            </feature>
-            <feature>
-                <form>AREA</form>
-            </feature>
-            <feature>
-                <form>CENTROID</form>
-            </feature>
-            <feature>
-                <form>COORD1</form>
-            </feature>
-            <feature>
-                <form>COORD2</form>
-            </feature>
+            <!-- REGION, INTERSECTS, AREA, CENTROID, COORD1, and COORD2 not supported by Qserv -->
         </languageFeatures>
     </language>
 
@@ -155,6 +138,8 @@
         <mime>text/tab-separated-values</mime>
         <alias>tsv</alias>
     </outputFormat>
+
+    <!-- uploadMethods are not yet supported by Qserv -->
 
     <retentionPeriod>
         <default>604800</default>
