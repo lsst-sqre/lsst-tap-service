@@ -103,8 +103,7 @@ public class ResultStoreImpl implements ResultStore {
     public URL put(final ResultSet resultSet,
                    final TableWriter<ResultSet> resultSetTableWriter)
         throws IOException {
-        OutputStream os;
-        os = getOutputStream();
+        OutputStream os = getOutputStream();
         resultSetTableWriter.write(resultSet, os);
         os.close();
         return getURL();
@@ -113,8 +112,7 @@ public class ResultStoreImpl implements ResultStore {
     @Override
     public URL put(Throwable throwable, TableWriter tableWriter)
         throws IOException {
-        OutputStream os;
-        os = getOutputStream();
+        OutputStream os = getOutputStream();
         tableWriter.write(throwable, os);
         os.close();
         return getURL();
@@ -124,8 +122,7 @@ public class ResultStoreImpl implements ResultStore {
     public URL put(final ResultSet resultSet,
                    final TableWriter<ResultSet> resultSetTableWriter,
                    final Integer integer) throws IOException {
-        OutputStream os;
-        os = getOutputStream();
+        OutputStream os = getOutputStream();
 
         if (integer == null) {
             resultSetTableWriter.write(resultSet, os);
