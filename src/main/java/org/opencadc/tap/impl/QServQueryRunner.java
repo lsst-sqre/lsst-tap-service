@@ -371,6 +371,7 @@ public class QServQueryRunner implements JobRunner
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
 
+		    connection.setAutoCommit(false);
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
