@@ -41,7 +41,7 @@
               type="javax.sql.DataSource"
               factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
               minEvictableIdleTimeMillis="30000"
-              maxActive="1" maxIdle="1" maxWait="20000" initialSize="1" minIdle="1"
+              maxActive="${uws.maxActive}" maxIdle="1" maxWait="20000" initialSize="5" minIdle="1"
               username="${uws.username}" password="${uws.password}"
               driverClassName="${uws.driverClassName}"
               url="${uws.url}"
@@ -49,6 +49,6 @@
               removeAbandonedTimeout="600"
               logAbandoned="true"
               testOnBorrow="true"
-              validationQuery="SELECT 1 FROM JobAvailability"
+              validationQuery="SELECT 1"
     />
 </Context>
