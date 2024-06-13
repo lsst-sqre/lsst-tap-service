@@ -29,14 +29,12 @@ import com.google.gson.JsonObject;
 import org.apache.log4j.Logger;
 
 /**
- * Implementes the Authenticator for processing Gafaelfawr auth,
- * and using it to authenticate against the TAP service.
- *
- * The token in the authorization header is used to make a call
- * to Gafaelfawr to retrieve details such as the uid and uidNumber.
- *
+ * @deprecated This class is deprecated and will be removed in future releases.
+ * The TAP Service now uses IdentityManager for authentication, available in the opencadc library
+ * 
  * @author cbanek
  */
+@Deprecated
 public class AuthenticatorImpl implements Authenticator
 {
     private static final Logger log = Logger.getLogger(AuthenticatorImpl.class);
