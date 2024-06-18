@@ -64,7 +64,8 @@ dependencies {
 
     // Switch out this to use any supported database instead of PostgreSQL.
     // ## START CUSTOM DATABASE ##
-    implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.13'
+
+    implementation group: 'com.mysql', name: 'mysql-connector-j', version: '8.4.0'
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
     // ## END CUSTOM DATABASE ##
 

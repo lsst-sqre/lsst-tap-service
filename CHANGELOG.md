@@ -6,6 +6,12 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+# 2024-06-18
+
+## Other Changes
+
+- Upgrade mysql-connector to 8.4.0
+
 # 2024-06-11
 
 ## New features
