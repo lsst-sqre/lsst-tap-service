@@ -97,7 +97,8 @@ public class ResultStoreImpl implements ResultStore {
     private static final String bucket = System.getProperty("gcs_bucket");
     private static final String bucketURL = System.getProperty("gcs_bucket_url");
     private static final String bucketType = System.getProperty("gcs_bucket_type");
-
+    private static final String baseURL = System.getProperty("base_url");
+    private static final String pathPrefix = System.getProperty("path_prefix");
 
     @Override
     public URL put(final ResultSet resultSet,
@@ -166,11 +167,13 @@ public class ResultStoreImpl implements ResultStore {
     }
 
     private URL getURL() throws MalformedURLException {
+        String filepath = ""; 
         if (bucketType.equals(new String("S3"))) {
-            return new URL(new URL(bucketURL), "/"+bucket+"/"+filename);
+            filepath = "/" + bucket + "/" + filename;
         } else {
-            return new URL(new URL(bucketURL), filename);
+            filepath = filename;
         }
+        return new URL(baseURL + pathPrefix + "/results/" + filepath);
     }
 
     private URI getURI() {

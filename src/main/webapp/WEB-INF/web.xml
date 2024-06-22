@@ -106,6 +106,16 @@
         <load-on-startup>3</load-on-startup>
     </servlet>
 
+    <servlet>
+        <servlet-name>ResultsServlet</servlet-name>
+        <servlet-class>org.opencadc.tap.impl.ResultsServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>ResultsServlet</servlet-name>
+        <url-pattern>/results/*</url-pattern>
+    </servlet-mapping>
+
     <!-- the TAP Endpoints -->
     <servlet-mapping>
         <servlet-name>AsyncServlet</servlet-name>
