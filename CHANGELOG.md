@@ -5,6 +5,15 @@ lsst-tap-service is versioned with [semver](https://semver.org/). Dependencies a
 Find changes for the upcoming release in the project's [changelog.d](https://github.com/lsst-sqre/lsst-tap-service/tree/main/changelog.d/).
 
 <!-- scriv-insert-here -->
+# 2024-06-28
+
+### Fixed
+
+- Fixed Capabilities handling. Use new CapGetAction & CapInitAction, modified by getting pathPrefix from ENV property
+
+## Other Changes
+
+- Change result handling, to use a redirect servlet. Addresses issue with async failing due to auth header propagation with clients like pyvo, topcat
 
 # 2024-06-18
 
