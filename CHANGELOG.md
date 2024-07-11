@@ -5,6 +5,14 @@ lsst-tap-service is versioned with [semver](https://semver.org/). Dependencies a
 Find changes for the upcoming release in the project's [changelog.d](https://github.com/lsst-sqre/lsst-tap-service/tree/main/changelog.d/).
 
 <!-- scriv-insert-here -->
+
+# 2024-07-11
+
+## Other changes
+
+- Remove unneeded cadc dependencies (issue with dali/stilts conflict)
+- Upgrade log4j (Log4j vulnerability)
+
 # 2024-06-28
 
 ### Fixed
