@@ -6,14 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
-# 2024-07-11
+<a id='changelog-2.4.1'></a>
+## 2.4.1 (2024-07-15)
 
-## Other changes
+### Changed
 
+- Changed scriv settings to match tap-postgres
 - Remove unneeded cadc dependencies (issue with dali/stilts conflict)
 - Upgrade log4j (Log4j vulnerability)
 
-# 2024-06-28
+<a id='changelog-2.4.0'></a>
+# 2.4.0 (2024-06-28)
 
 ### Fixed
 
@@ -23,13 +26,15 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 - Change result handling, to use a redirect servlet. Addresses issue with async failing due to auth header propagation with clients like pyvo, topcat
 
-# 2024-06-18
+<a id='changelog-2.3.1'></a>
+# 2.3.1 (2024-06-18)
 
 ## Other Changes
 
 - Upgrade mysql-connector to 8.4.0
 
-# 2024-06-11
+<a id='changelog-2.3.0'></a>
+# 2.3.0 (2024-06-11)
 
 ## New features
 
