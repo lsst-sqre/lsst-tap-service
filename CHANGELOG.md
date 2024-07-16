@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.4.2'></a>
+## 2.4.2 (2024-07-15)
+
+### Changed
+
+- Remove unneeded cadc-libs
+
+### Fixed
+
+- Conflict between stilts & dali packages
+
 <a id='changelog-2.4.1'></a>
 ## 2.4.1 (2024-07-15)
 
