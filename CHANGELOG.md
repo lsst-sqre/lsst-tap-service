@@ -6,6 +6,14 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.4.3'></a>
+## 2.4.3 (2024-07-18)
+
+### Fixed
+
+- Start script now runs as ENTRYPOINT and that triggers the cadc start script.
+- Fixes issue where Datalink manifest was not being fetched to /tmp
+
 <a id='changelog-2.4.2'></a>
 ## 2.4.2 (2024-07-15)
 

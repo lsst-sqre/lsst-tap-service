@@ -12,4 +12,4 @@ RUN chmod +x /usr/local/bin/start.sh
 ADD docker/*.war /usr/share/tomcat/webapps/
 
 # Run the start script to handle the datalink task
-RUN /usr/local/bin/start.sh
+ENTRYPOINT ["/usr/local/bin/start.sh"]
