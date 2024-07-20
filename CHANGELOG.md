@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.4.4'></a>
+## 2.4.4 (2024-07-23)
+
+### Changed
+
+- Changed /tables endpoint accessURL to base, this allows us to add the 'lsst-token' to /tables as the security method
+
 <a id='changelog-2.4.3'></a>
 ## 2.4.3 (2024-07-18)
 
