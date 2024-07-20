@@ -29,7 +29,7 @@
 
   <capability standardID="ivo://ivoa.net/std/VOSI#tables-1.1">
     <interface xsi:type="vs:ParamHTTP" role="std" version="1.1">
-      <accessURL use="full">https://replace.me.com/api/tap/tables</accessURL>
+      <accessURL use="base">https://replace.me.com/api/tap/tables</accessURL>
       <securityMethod standardID="ivo://ivoa.net/sso#BasicAA"/>
       <securityMethod standardID="ivo://ivoa.net/sso#cookie"/>
       <securityMethod standardID="ivo://ivoa.net/sso#OAuth"/>
