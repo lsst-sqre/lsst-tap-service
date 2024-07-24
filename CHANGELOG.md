@@ -6,6 +6,15 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.4.5'></a>
+## 2.4.5 (2024-07-24)
+
+### Changed
+
+- Changed QueryJobManager to use the IdentityManager available via the AuthenticationUtil class (OpenID in our case)
+- Added deprecated AuthenticatorImpl, this is only useful in case this version of TAP is used with the old Auth params/implementations (Unlikely)
+- Upgrade version of uws-server to 1.2.21
+
 <a id='changelog-2.4.4'></a>
 ## 2.4.4 (2024-07-23)
 
