@@ -1,10 +1,17 @@
-# Change log
+	# Change log
 
 lsst-tap-service is versioned with [semver](https://semver.org/). Dependencies are updated to the latest available version during each release. Those changes are not noted here explicitly.
 
 Find changes for the upcoming release in the project's [changelog.d](https://github.com/lsst-sqre/lsst-tap-service/tree/main/changelog.d/).
 
 <!-- scriv-insert-here -->
+
+<a id='changelog-2.4.6'></a>
+## 2.4.6 (2024-07-30)
+
+### Changed
+
+- Added some cadc packages to log control & add missing header to log4j
 
 <a id='changelog-2.4.5'></a>
 ## 2.4.5 (2024-07-24)

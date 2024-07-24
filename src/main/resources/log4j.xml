@@ -1,3 +1,4 @@
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
 <log4j:configuration debug="false">
     <!--Console appender -->
     <appender name="stdout" class="org.apache.log4j.ConsoleAppender">
