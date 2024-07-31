@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.4.7'></a>
+## 2.4.7 (2024-07-31)
+
+### Changed
+
+- Revert uws connection pool settings to release 2.3.0
+
 <a id='changelog-2.4.6'></a>
 ## 2.4.6 (2024-07-30)
 
