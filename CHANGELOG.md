@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.4.8'></a>
+## 2.4.8 (2024-08-01)
+
+### Changed
+
+- Remove deprecated AuthenticatorImpl
+
 <a id='changelog-2.4.7'></a>
 ## 2.4.7 (2024-07-31)
 
