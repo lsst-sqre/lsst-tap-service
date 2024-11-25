@@ -6,6 +6,28 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.5.0'></a>
+## 2.5.0 (2024-11-01)
+
+### Removed
+
+- Update jcenter repo (obsolete)
+- Remove  restlet jar
+
+- Removed deprecated AuthenticatorImpl class
+
+### Changed
+
+- Removed extra spaces from dockerfile to adhere to best practices
+
+- Updated version of gms to >=1.0.14
+
+### Fixed
+
+- docker-compose.yml to get updated CATALINA_OPTS required to run local TAP service instance
+
+- Label warning in Docker build
+
 <a id='changelog-2.4.7'></a>
 ## 2.4.7 (2024-07-31)
 
