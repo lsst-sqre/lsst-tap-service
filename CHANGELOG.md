@@ -1,4 +1,4 @@
-	# Change log
+# Change log
 
 lsst-tap-service is versioned with [semver](https://semver.org/). Dependencies are updated to the latest available version during each release. Those changes are not noted here explicitly.
 
