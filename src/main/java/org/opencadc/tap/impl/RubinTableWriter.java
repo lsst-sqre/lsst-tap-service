@@ -79,7 +79,7 @@ import ca.nrc.cadc.dali.tables.votable.VOTableParam;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
-import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import org.opencadc.tap.impl.VOTableWriter;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
@@ -272,7 +272,7 @@ public class RubinTableWriter implements TableWriter
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
         }
         else if (type.equals(VOTABLE)) {
-            tableWriter = new VOTableWriter(format);
+            tableWriter = new VOTableWriter(format, VOTableWriter.XMLLayout.COMPACT);
         } else if (type.equals(CSV)) {
             tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
         } else if (type.equals(TSV)) {
