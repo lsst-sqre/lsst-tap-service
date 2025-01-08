@@ -69,7 +69,6 @@
 
 package org.opencadc.tap.impl;
 
-import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
@@ -80,6 +79,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+
+import org.opencadc.tap.impl.ResultSetWriter;
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.date.DateUtil;
 import ca.nrc.cadc.reg.client.RegistryClient;
@@ -91,6 +92,10 @@ import ca.nrc.cadc.tap.writer.RssTableWriter;
 import ca.nrc.cadc.tap.writer.format.FormatFactory;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.ParameterUtil;
+import uk.ac.starlink.table.ColumnInfo;
+import uk.ac.starlink.table.DefaultValueInfo;
+import uk.ac.starlink.table.DescribedValue;
+import uk.ac.starlink.votable.VOStarTable;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -123,6 +128,7 @@ public class RubinTableWriter implements TableWriter
 {
 
     private static final Logger log = Logger.getLogger(RubinTableWriter.class);
+    public static final String TABLE_NAME_INFO = "TABLE_NAME";
 
     private static final String FORMAT = "RESPONSEFORMAT";
     private static final String FORMAT_ALT = "FORMAT";
@@ -134,11 +140,14 @@ public class RubinTableWriter implements TableWriter
     public static final String TEXT = "text";
     public static final String TSV = "tsv";
     public static final String VOTABLE = "votable";
+    public static final String VOTABLE_TD = "votable-td";
     public static final String RSS = "rss";
 
     // content-type
 //    private static final String APPLICATION_FITS = "application/fits";
     private static final String APPLICATION_VOTABLE_XML = "application/x-votable+xml";
+    private static final String APPLICATION_VOTABLE_B2 = "application/x-votable+xml;serialization=binary2";
+    private static final String APPLICATION_VOTABLE_TD_XML = "application/x-votable+xml;serialization=tabledata";
     private static final String APPLICATION_RSS = "application/rss+xml";
     private static final String TEXT_XML_VOTABLE = "text/xml;content=x-votable"; // the SIAv1 mimetype
     private static final String TEXT_CSV = "text/csv";
@@ -155,6 +164,8 @@ public class RubinTableWriter implements TableWriter
     static
     {
         knownFormats.put(APPLICATION_VOTABLE_XML, VOTABLE);
+        knownFormats.put(APPLICATION_VOTABLE_B2, VOTABLE);
+        knownFormats.put(APPLICATION_VOTABLE_TD_XML, VOTABLE_TD);
         knownFormats.put(TEXT_XML, VOTABLE);
         knownFormats.put(TEXT_XML_VOTABLE, VOTABLE);
         knownFormats.put(TEXT_CSV, CSV);
@@ -172,8 +183,9 @@ public class RubinTableWriter implements TableWriter
     private String extension;
 
     // RssTableWriter not yet ported to cadcDALI
-    private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> tableWriter;
     private RssTableWriter rssTableWriter;
+    private ca.nrc.cadc.dali.tables.TableWriter<ResultSet> resultSetWriter;
+    private ca.nrc.cadc.dali.tables.TableWriter<VOTableDocument> voDocumentWriter;
     
     private FormatFactory formatFactory;
     private boolean errorWriter = false;
@@ -191,7 +203,7 @@ public class RubinTableWriter implements TableWriter
     public RubinTableWriter(boolean errorWriter) {
         this.errorWriter = errorWriter;
     }
-    
+
     @Override
     public void setJob(Job job)
     {
@@ -216,17 +228,26 @@ public class RubinTableWriter implements TableWriter
     @Override
     public String getContentType()
     {
-        return tableWriter.getContentType();
+    	String contentType = null;
+    	
+    	if (resultSetWriter != null) {
+    		contentType = resultSetWriter.getContentType();
+    	} else if (resultSetWriter != null) {
+    		contentType = resultSetWriter.getContentType();
+    	}
+    	
+		return contentType;
     }
 
     @Override
     public String getErrorContentType()
     {
-        return tableWriter.getErrorContentType();
+        return resultSetWriter.getErrorContentType();
     }
 
     /**
      * Get the number of rows the output table
+     * 
      * @return number of result rows written in output table
      */
     @Override
@@ -264,26 +285,44 @@ public class RubinTableWriter implements TableWriter
         // Note: This needs to be done before the write method is called so the contentType
         // can be determined from the table writer.
 
-        if (type.equals(RSS))
-        {
+        switch (type) {
+        case RSS:
             rssTableWriter = new RssTableWriter();
             rssTableWriter.setJob(job);
-            // for error handling
-            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-        }
-        else if (type.equals(VOTABLE)) {
-            tableWriter = new VOTableWriter(format);
-        } else if (type.equals(CSV)) {
-            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
-        } else if (type.equals(TSV)) {
-            tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-        }
-    
-        if (tableWriter == null) {
+            // For error handling
+            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+            break;
+
+        case VOTABLE:
+            resultSetWriter = new ResultSetWriter();
+            this.contentType = resultSetWriter.getContentType();
+            this.extension = resultSetWriter.getExtension();
+            break;
+            
+        case VOTABLE_TD:
+            voDocumentWriter = new VOTableWriter();
+            this.contentType = voDocumentWriter.getContentType();
+            this.extension = voDocumentWriter.getExtension();
+            break;
+            
+        case CSV:
+            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
+            break;
+
+        case TSV:
+            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+            break;
+
+        default:
             throw new UnsupportedOperationException("unsupported format: " + type);
-        }
-        this.contentType = tableWriter.getContentType();
-        this.extension = tableWriter.getExtension();
+	}
+	
+	    if (voDocumentWriter != null) {
+	        this.contentType = voDocumentWriter.getContentType();
+	        this.extension = voDocumentWriter.getExtension();
+	    }
+
+
     }
 
     public void setFormatFactory(FormatFactory formatFactory)
@@ -300,22 +339,29 @@ public class RubinTableWriter implements TableWriter
     public void write(Throwable t, OutputStream out) 
         throws IOException
     {
-        tableWriter.write(t, out);
+    	if (this.resultSetWriter != null) {
+    		this.resultSetWriter.write(t, out);
+    	} else if (this.voDocumentWriter != null) {
+    		this.voDocumentWriter.write(t, out);	
+    	}
     }
 
     
     @Override
     public void write(ResultSet rs, OutputStream out) throws IOException
     {
-        this.write(rs, out, null);
+        try (Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"))) {
+            this.write(rs, writer, null);
+        }
     }
 
     @Override
     public void write(ResultSet rs, OutputStream out, Long maxrec)
             throws IOException
     {
-        Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"));
-        this.write(rs, writer, maxrec);
+        try (Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"))) {
+            write(rs, writer, maxrec);
+        }
     }
 
     @Override
@@ -354,6 +400,8 @@ public class RubinTableWriter implements TableWriter
         List<String> columnNames = new ArrayList<String>();
 
         int listIndex = 0;
+        
+        List<ColumnInfo> columnInfoList = new ArrayList<>();
 
         // Add the metadata elements.
         for (TapSelectItem resultCol : selectList)
@@ -367,7 +415,20 @@ public class RubinTableWriter implements TableWriter
             String fullColumnName = resultCol.tableName + "_" + resultCol.getColumnName();
             columnNames.add(fullColumnName.replace(".", "_"));
             listIndex++;
+            
+            // Generate a ColumnInfo list, to be used by ResultSetWriter for generating the field metadata
+            ColumnInfo colInfo = new ColumnInfo(resultCol.getColumnName(), getDatatypeClass(resultCol.getDatatype(), newField.getArraysize()), newField.description);
+    	    colInfo.setUCD(resultCol.ucd);
+    	    colInfo.setUtype(resultCol.utype);	
+    	    colInfo.setUnitString(resultCol.unit);
+    	    colInfo.setXtype(newField.xtype);
+    	    colInfo.setAuxDatum(new DescribedValue(VOStarTable.ID_INFO, newField.id));
+    	    colInfo.setAuxDatum(new DescribedValue(new DefaultValueInfo(TABLE_NAME_INFO, String.class),
+                    resultCol.tableName));
+            columnInfoList.add(colInfo);
+
         }
+        ColumnInfo[] columnInfoArray = columnInfoList.toArray(new ColumnInfo[0]);
 
         List<String> serviceIDs = determineDatalinks(columnNames);
 
@@ -376,7 +437,9 @@ public class RubinTableWriter implements TableWriter
 
         // Add the "meta" resources to describe services for each columnID in
         // list columnIDs that we recognize
-        addMetaResources(votableDocument, serviceIDs, columnNames);
+        
+        List<VOTableResource> metaResources = generateMetaResources(serviceIDs, columnNames);
+        votableDocument.getResources().addAll(metaResources);
 
         VOTableInfo info = new VOTableInfo("QUERY_STATUS", "OK");
         resultsResource.getInfos().add(info);
@@ -392,31 +455,95 @@ public class RubinTableWriter implements TableWriter
             info = new VOTableInfo("QUERY", queryInfo);
             resultsResource.getInfos().add(info);
         }
+ 
+        if (resultSetWriter != null) {
+            ((ResultSetWriter) resultSetWriter).setInfos(resultsResource.getInfos());
+            ((ResultSetWriter) resultSetWriter).setResources(metaResources);
+            ((ResultSetWriter) resultSetWriter).setColumns(columnInfoArray);
+            if (maxrec != null) {
+                resultSetWriter.write(rs, out, maxrec);
+            } else {
+                resultSetWriter.write(rs, out);
+            }
+            this.rowcount = ((ResultSetWriter) resultSetWriter).getRowCount();
 
-        ResultSetTableData tableData = new ResultSetTableData(rs, formats);
-        resultsTable.setTableData(tableData);
+        } else if (voDocumentWriter != null) {
+            ResultSetTableData tableData = new ResultSetTableData(rs, formats);
+            resultsTable.setTableData(tableData);
+            if (maxrec != null) {
+                voDocumentWriter.write(votableDocument, out, maxrec);
+            } else {
+                voDocumentWriter.write(votableDocument, out);
+            }
+            this.rowcount = tableData.getRowCount();
+        }
+        
+        log.debug("Final row count after processing: " + this.rowcount); 
 
-        if (maxrec != null)
-            tableWriter.write(votableDocument, out, maxrec);
-        else
-            tableWriter.write(votableDocument, out);
-
-        this.rowcount = tableData.getRowCount();
     }
+    
+    /**
+     * Determines the appropriate Java class type for a given TAP data type and array size specification.
+     *
+     * @param datatype  The TAP data type specification object containing the type information.
+     * @param arraysize The size specification for array types. 
+     *
+     * @return The corresponding Java Class object that represents the specified data type.
+     *
+     * @throws NullPointerException if datatype is null
+     */
+	protected static final Class<?> getDatatypeClass(final TapDataType datatype, final String arraysize) {
+		boolean isScalar = arraysize == null || (arraysize.length() == 1 && arraysize.equals("1"));
+		switch(datatype.getDatatype().toUpperCase()) {
+			case "BLOB":
+				return boolean[].class;
+			case "BOOLEAN":
+				return isScalar ? Boolean.class : boolean[].class;
+			case "DOUBLE":
+				return isScalar ? Double.class : double[].class;
+			case "DOUBLECOMPLEX":
+				return double[].class;
+			case "FLOAT":
+				return isScalar ? Float.class : float[].class;
+			case "FLOATCOMPLEX":
+				return float[].class;
+			case "INT":
+				return isScalar ? Integer.class : int[].class;
+			case "LONG":
+				return isScalar ? Long.class : long[].class;
+			case "SHORT":
+				return isScalar ? Short.class : short[].class;
+			case "UNSIGNEDBYTE":
+				return isScalar ? Short.class : short[].class;
+			case "CHAR":
+			case "UNICODECHAR":
+			default: /* If the type is not know (theoretically, never happens), return char[*] by default. */
+				return isScalar ? Character.class : String.class;
+		}
+	}
 
-    private void addMetaResources(VOTableDocument votableDocument, List<String> serviceIDs, List<String> columns)
-        throws IOException
-    {
-        for (String serviceID : serviceIDs)
-        {
+	/**
+	 * Generates a list of VOTable meta resources.
+	 * 
+	 * @param serviceIDs A list of service identifiers used to locate corresponding XML templates.
+	 * 
+	 * @param columns    A list of column names that will be mapped to template variables.
+	 *
+	 * @return A list of VOTableResource objects containing the processed meta information
+	 *
+	 * @throws IOException 
+	 * @throws IllegalStateException 
+	 */
+    private List<VOTableResource> generateMetaResources(List<String> serviceIDs, List<String> columns) throws IOException {
+        List<VOTableResource> metaResources = new ArrayList<>();
+        for (String serviceID : serviceIDs) {
             Path snippetPath = Path.of(datalinkConfig + serviceID + ".xml");
             String content = Files.readString(snippetPath, StandardCharsets.US_ASCII);
             ST datalinkTemplate = new ST(content, '$', '$');
             datalinkTemplate.add("baseUrl", baseUrl);
 
             int columnIndex = 0;
-            for (String col : columns)
-            {
+            for (String col : columns) {
                 datalinkTemplate.add(col, "col_" + columnIndex);
                 columnIndex++;
             }
@@ -424,8 +551,9 @@ public class RubinTableWriter implements TableWriter
             VOTableReader reader = new VOTableReader();
             VOTableDocument serviceDocument = reader.read(datalinkTemplate.render());
             VOTableResource metaResource = serviceDocument.getResourceByType("meta");
-            votableDocument.getResources().add(metaResource);
+            metaResources.add(metaResource);
         }
+        return metaResources;
     }
 
     private List<String> determineDatalinks(List<String> columns)
