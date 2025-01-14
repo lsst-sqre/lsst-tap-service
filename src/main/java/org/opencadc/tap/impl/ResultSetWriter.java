@@ -396,6 +396,7 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
             extends SequentialResultSetStarTable {
     	
         public static final String TABLE_NAME_INFO = "TABLE_NAME";
+        public static final String ACTUAL_COLUMN_NAME_INFO = "COLUMN_NAME";
         private final long maxrec_;
         private boolean overflow_;
         private long totalRows = 0;
@@ -468,10 +469,12 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
 	                    ColumnInfo info = columnInfos[i];
 	                    
 	                    DescribedValue tableNameValue = info.getAuxDatumByName(TABLE_NAME_INFO);
+	                    DescribedValue actualColumnValue =  info.getAuxDatumByName(ACTUAL_COLUMN_NAME_INFO);
 	                    if (tableNameValue != null) {
 	                        String tableName = tableNameValue.getValue().toString();
+	                        String actualColName = actualColumnValue.getValue().toString();
 	                        
-	                        if ("access_url".equals(info.getName())) {
+	                        if ("access_url".equals(actualColName)) {
 	                            boolean isObsCore = "ivoa.ObsCore".equals(tableName);
 	                            columns.put(i, isObsCore);
 	                            log.debug("Found access_url column at index " + i + 

@@ -129,6 +129,7 @@ public class RubinTableWriter implements TableWriter
 
     private static final Logger log = Logger.getLogger(RubinTableWriter.class);
     public static final String TABLE_NAME_INFO = "TABLE_NAME";
+    public static final String ACTUAL_COLUMN_NAME_INFO = "COLUMN_NAME";
 
     private static final String FORMAT = "RESPONSEFORMAT";
     private static final String FORMAT_ALT = "FORMAT";
@@ -415,9 +416,8 @@ public class RubinTableWriter implements TableWriter
             String fullColumnName = resultCol.tableName + "_" + resultCol.getColumnName();
             columnNames.add(fullColumnName.replace(".", "_"));
             listIndex++;
-            
             // Generate a ColumnInfo list, to be used by ResultSetWriter for generating the field metadata
-            ColumnInfo colInfo = new ColumnInfo(resultCol.getColumnName(), getDatatypeClass(resultCol.getDatatype(), newField.getArraysize()), newField.description);
+            ColumnInfo colInfo = new ColumnInfo(resultCol.getName(), getDatatypeClass(resultCol.getDatatype(), newField.getArraysize()), newField.description);
     	    colInfo.setUCD(resultCol.ucd);
     	    colInfo.setUtype(resultCol.utype);	
     	    colInfo.setUnitString(resultCol.unit);
@@ -425,9 +425,13 @@ public class RubinTableWriter implements TableWriter
     	    colInfo.setAuxDatum(new DescribedValue(VOStarTable.ID_INFO, newField.id));
     	    colInfo.setAuxDatum(new DescribedValue(new DefaultValueInfo(TABLE_NAME_INFO, String.class),
                     resultCol.tableName));
-            columnInfoList.add(colInfo);
+    	    colInfo.setAuxDatum(new DescribedValue(new DefaultValueInfo(ACTUAL_COLUMN_NAME_INFO, String.class),
+                    resultCol.getColumnName()));
+
+    	    columnInfoList.add(colInfo);
 
         }
+        
         ColumnInfo[] columnInfoArray = columnInfoList.toArray(new ColumnInfo[0]);
 
         List<String> serviceIDs = determineDatalinks(columnNames);
