@@ -57,7 +57,7 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
     public static final String CONTENT_TYPE_ALT = "text/xml";
 
     // VOTable Version number.
-    public static final String VOTABLE_VERSION = "1.4";
+    public static final String VOTABLE_VERSION = "1.3";
 
     // Uri to the XML schema.
     public static final String XSI_SCHEMA = "http://www.w3.org/2001/XMLSchema-instance";
@@ -91,7 +91,7 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
      * Default constructor.
      */
     public ResultSetWriter() {
-        this(null, uk.ac.starlink.votable.DataFormat.BINARY2, VOTableVersion.V14, -1);
+        this(null, uk.ac.starlink.votable.DataFormat.BINARY2, VOTableVersion.V13, -1);
     }
 
 
@@ -325,6 +325,12 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
                 ? (BufferedWriter) writer
                 : new BufferedWriter(writer)) {
 
+        	
+            if (maxrec != null && maxrec == 0 || resultSet == null) {
+                writeEmptyResult(out);
+                return;
+            }
+        	
             LimitedResultSetStarTable table;
             try {
                 table = new LimitedResultSetStarTable(this.getColumns(), resultSet, maxrec);
@@ -344,7 +350,7 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
 	                                                 version_.getXmlNamespace() )
 	                 + ">" );
 	        out.newLine();
-	        out.write( "<RESOURCE>" );
+	        out.write( "<RESOURCE type='results'>" );
 	        out.newLine();
 	        
             XMLOutputter outputter = new XMLOutputter();
@@ -384,6 +390,136 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
 	
 		}
     }
+    
+    /**
+     * Write out an empty result (Used when maxrec=0)
+     * 
+     * @param out
+     */
+    void writeEmptyResult(BufferedWriter out) {
+	    try {
+	        /* Write header. */
+	        out.write("<VOTABLE"
+	                + VOSerializer.formatAttribute("version", version_.getVersionNumber())
+	                + VOSerializer.formatAttribute("xmlns", version_.getXmlNamespace())
+	                + ">");
+	        out.newLine();
+	        out.write("<RESOURCE type='results'>");
+	        out.newLine();
+
+	        XMLOutputter outputter = new XMLOutputter();
+	        outputter.setFormat(org.jdom2.output.Format.getPrettyFormat());
+
+	        // Write all info elements
+	        for (VOTableInfo info : infos) {
+	            Element infoElement = new Element("INFO");
+	            infoElement.setAttribute("name", info.getName());
+	            infoElement.setAttribute("value", info.getValue());
+	            outputter.output(infoElement, out);
+	            out.newLine();
+	        }
+
+	        // Add TABLE element and column metadata
+	        out.write("<TABLE>\n");
+	        
+	        // Write all column metadata
+	        for (ColumnInfo colInfo : columns) {
+	            Element field = new Element("FIELD");
+	            field.setAttribute("name", colInfo.getName());
+	            
+	            // Set datatype
+	            if (colInfo.getContentClass() != null) {
+	                String datatype = getVOTableDatatype(colInfo.getContentClass());
+	                if (datatype != null) {
+	                    field.setAttribute("datatype", datatype);
+	                    
+	                    // Handle array types
+	                    if (colInfo.getContentClass().isArray()) {
+	                        if (colInfo.getContentClass().getComponentType() == String.class) {
+	                            field.setAttribute("arraysize", "*");
+	                        } else if (colInfo.getShape() != null && colInfo.getShape().length > 0) {
+	                            field.setAttribute("arraysize", String.valueOf(colInfo.getShape()[0]));
+	                        }
+	                    }
+	                }
+	            }
+	            
+	            // Add standard metadata
+	            if (colInfo.getUnitString() != null) {
+	                field.setAttribute("unit", colInfo.getUnitString());
+	            }
+	            if (colInfo.getUCD() != null) {
+	                field.setAttribute("ucd", colInfo.getUCD());
+	            }
+	            if (colInfo.getUtype() != null) {
+	                field.setAttribute("utype", colInfo.getUtype());
+	            }
+	            
+	            // Add ID if present
+	            DescribedValue idValue = colInfo.getAuxDatumByName("ID_INFO");
+	            if (idValue != null && idValue.getValue() != null) {
+	                field.setAttribute("ID", idValue.getValue().toString());
+	            }
+	            
+	            // Add description if present
+	            String description = colInfo.getDescription();
+	            if (description != null && !description.isEmpty()) {
+	                Element desc = new Element("DESCRIPTION");
+	                desc.setText(description);
+	                field.addContent(desc);
+	            }
+	            
+	            outputter.output(field, out);
+	            out.newLine();
+	        }
+
+	        // Write the empty data section
+	        out.write("<DATA>\n");
+	        out.write("<BINARY2>\n");
+	        out.write("<STREAM encoding='base64'>\n");
+	        out.write("</STREAM>\n");
+	        out.write("</BINARY2>\n");
+	        out.write("</DATA>\n");
+	        
+	        out.write("</TABLE>\n");  // Close the TABLE element
+
+	        /* Write footer. */
+	        out.write("</RESOURCE>");
+	        out.newLine();
+	        for (VOTableResource resource : resources) {
+	            Element r = createResource(resource, null);
+	            outputter.output(r, out);
+	            out.newLine();
+	        }
+	        out.write("</VOTABLE>");
+	        out.newLine();
+	        out.flush();
+
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+
+	    this.totalRows = 0;
+    }
+
+    /**
+     * Convert Java class to VOTable datatype
+     * 
+     * @param clazz
+     * @return
+     */
+	private String getVOTableDatatype(Class<?> clazz) {
+	    if (clazz == Boolean.class || clazz == boolean.class) return "boolean";
+	    if (clazz == Byte.class || clazz == byte.class) return "unsignedByte";
+	    if (clazz == Short.class || clazz == short.class) return "short";
+	    if (clazz == Integer.class || clazz == int.class) return "int";
+	    if (clazz == Long.class || clazz == long.class) return "long";
+	    if (clazz == Float.class || clazz == float.class) return "float";
+	    if (clazz == Double.class || clazz == double.class) return "double";
+	    if (clazz == Character.class || clazz == char.class) return "char";
+	    if (clazz == String.class) return "char";
+	    return null;
+	}
 
     /**
      * StarTable implementation which is based on a ResultSet, and which
@@ -452,10 +588,12 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
          */
         private static class ModifiedLimitRowSequence extends WrapperRowSequence {
             private final Map<Integer, Boolean> accessUrlColumns;
-
+    		private ColumnInfo[] columnInfos;
+    		
             ModifiedLimitRowSequence(RowSequence baseSeq, ColumnInfo[] columnInfos) {
                 super(baseSeq);
                 this.accessUrlColumns = findAccessUrlColumns(columnInfos);
+                this.columnInfos = columnInfos;
             }
             
             /**
@@ -477,9 +615,6 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
 	                        if ("access_url".equals(actualColName)) {
 	                            boolean isObsCore = "ivoa.ObsCore".equals(tableName);
 	                            columns.put(i, isObsCore);
-	                            log.debug("Found access_url column at index " + i + 
-	                                    " for table " + tableName + 
-	                                    (isObsCore ? " (will modify URLs)" : " (won't modify URLs)"));
 	                        }
 	                    }
 	                }
@@ -491,38 +626,83 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
             }
             
             /**
-             * Returns the value from a single cell, modifying it if it's a URL that needs to be rewritten.
+             * Return values from a row, applying necessary type conversions and URL modifications.
              *
-             * @param  icol  the column index
-             * @return  the cell contents
-             */
-            @Override
-            public Object getCell(int icol) throws IOException {
-                Object value = super.getCell(icol);
-                if (shouldModifyUrl(icol, value)) {
-                    return modifyAccessUrl((String) value);
-                }
-                return value;
-            }
-            
-            /**
-             * Returns values from an entire row, modifying any URLs that need to be rewritten.
+             * This method handles two types of transformations:
+             * 1. String to Character conversion for VOTable char datatype fields
+             * 2. URL rewriting for access_url columns in ObsCore tables
              *
-             * @return  array containing values for the current row
+             * For char datatype columns: 
+             * - If the input is a string and the column expects char, take the first character
+             * - Empty strings are converted to null
+             * - Non-string values are passed through unchanged
+             * 
+             * @return array containing values for the current row, with appropriate type conversions
+             * @throws IOException if there is an error reading from the underlying sequence
              */
             @Override
             public Object[] getRow() throws IOException {
                 Object[] row = super.getRow();
-                for (Map.Entry<Integer, Boolean> entry : accessUrlColumns.entrySet()) {
-                    int index = entry.getKey();
-                    if (index >= 0 && index < row.length && 
-                        shouldModifyUrl(index, row[index])) {
-                        row[index] = modifyAccessUrl((String) row[index]);
+                if (row == null) {
+                    return null;
+                }
+                
+                for (int i = 0; i < row.length; i++) {
+                    Object value = row[i];
+                    ColumnInfo info = columnInfos[i];
+                    
+                    if (value != null) {
+                        
+                        // Handle conversion from String to Character for char columns
+                        if (value instanceof String && info.getContentClass() == Character.class) {
+                            String strVal = (String)value;
+                            if (strVal.length() > 0) {
+                                row[i] = strVal.charAt(0);
+                            } else {
+                                row[i] = null;
+                            }
+                        }
+                    }
+                    
+                    if (shouldModifyUrl(i, row[i])) {
+                        row[i] = modifyAccessUrl((String)row[i]);
                     }
                 }
+                
                 return row;
             }
             
+            /**
+             * Returns the value from a single cell, applying necessary type conversions and URL modifications.
+             *
+             * @param  icol  the column index
+             * @return  the cell contents after any necessary conversions
+             * @throws IOException if there is an error reading from the underlying sequence
+             */
+            @Override
+            public Object getCell(int icol) throws IOException {
+                Object value = super.getCell(icol);
+                ColumnInfo info = columnInfos[icol];
+                
+                if (value != null) {
+                    // Handle conversion from String to Character for char columns
+                    if (value instanceof String && info.getContentClass() == Character.class) {
+                        String strVal = (String)value;
+                        if (strVal.length() > 0) {
+                            value = strVal.charAt(0);
+                        } else {
+                            value = null;
+                        }
+                    }
+                }
+                
+                if (shouldModifyUrl(icol, value)) {
+                    value = modifyAccessUrl((String)value);
+                }
+                
+                return value;
+            }
+                
             /**
              * Determines whether a value at a given index should have its URL modified.
              *
@@ -552,12 +732,11 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
 	            	    URL base_url = new URL(BASE_URL);
 	            	    URL rewritten = new URL(orig.getProtocol(), base_url.getHost(), orig.getFile());
 	            	    log.debug( "Rewritten URL: " + rewritten.toExternalForm());
-	
 	            	    return rewritten.toExternalForm();
 	            	} catch (MalformedURLException ex) {
-	                        throw new RuntimeException("BUG: Failed to rewrite URL: " + s, ex);
-	                    }
+	                    throw new RuntimeException("BUG: Failed to rewrite URL: " + s, ex);
 	                }
+	            }
                 return url;
             }
         }
@@ -679,7 +858,7 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
      */
     protected Document createDocument() {
         // the root VOTABLE element
-        Namespace vot = Namespace.getNamespace(VOTABLE_14_NS_URI);
+        Namespace vot = Namespace.getNamespace(VOTABLE_13_NS_URI);
         Namespace xsi = Namespace.getNamespace("xsi", XSI_SCHEMA);
         Element votable = new Element("VOTABLE", vot);
         votable.setAttribute("version", VOTABLE_VERSION);
@@ -713,7 +892,9 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
                 sb.append(thrown.getMessage());
             }
         }
-        return sb.toString();
+        String result = sb.toString().trim();
+        return result.isEmpty() ? "An unknown error occurred" : result;
+        
     }
 
 

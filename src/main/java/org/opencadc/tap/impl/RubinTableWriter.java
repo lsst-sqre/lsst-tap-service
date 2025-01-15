@@ -417,19 +417,26 @@ public class RubinTableWriter implements TableWriter
             columnNames.add(fullColumnName.replace(".", "_"));
             listIndex++;
             // Generate a ColumnInfo list, to be used by ResultSetWriter for generating the field metadata
-            ColumnInfo colInfo = new ColumnInfo(resultCol.getName(), getDatatypeClass(resultCol.getDatatype(), newField.getArraysize()), newField.description);
+            String colArraySize = newField.getArraysize();
+            if (colArraySize == null && "CHAR".equals(newField.getDatatype().toUpperCase())) {
+            	colArraySize = "1";
+            }
+            
+            ColumnInfo colInfo = new ColumnInfo(resultCol.getName(), getDatatypeClass(resultCol.getDatatype(), colArraySize), newField.description);
     	    colInfo.setUCD(resultCol.ucd);
     	    colInfo.setUtype(resultCol.utype);	
     	    colInfo.setUnitString(resultCol.unit);
     	    colInfo.setXtype(newField.xtype);
+            colInfo.setShape(getShape(colArraySize));
+
+    	     
     	    colInfo.setAuxDatum(new DescribedValue(VOStarTable.ID_INFO, newField.id));
     	    colInfo.setAuxDatum(new DescribedValue(new DefaultValueInfo(TABLE_NAME_INFO, String.class),
                     resultCol.tableName));
     	    colInfo.setAuxDatum(new DescribedValue(new DefaultValueInfo(ACTUAL_COLUMN_NAME_INFO, String.class),
                     resultCol.getColumnName()));
-
+    	    
     	    columnInfoList.add(colInfo);
-
         }
         
         ColumnInfo[] columnInfoArray = columnInfoList.toArray(new ColumnInfo[0]);
@@ -523,6 +530,27 @@ public class RubinTableWriter implements TableWriter
 			case "UNICODECHAR":
 			default: /* If the type is not know (theoretically, never happens), return char[*] by default. */
 				return isScalar ? Character.class : String.class;
+		}
+	}
+
+	/**
+	 * Convert the given VOTable arraysize into a {@link ColumnInfo} shape.
+	 *
+	 * @param arraysize	Value of the VOTable attribute "arraysize".
+	 *
+	 * @return	The corresponding {@link ColumnInfo} shape.
+	 */
+	protected static final int[] getShape(final String arraysize) {
+		if (arraysize == null)
+			return new int[0];
+		else if (arraysize.charAt(arraysize.length() - 1) == '*')
+			return new int[]{ -1 };
+		else {
+			try {
+				return new int[]{ Integer.parseInt(arraysize) };
+			} catch(NumberFormatException nfe) {
+				return new int[0];
+			}
 		}
 	}
 
