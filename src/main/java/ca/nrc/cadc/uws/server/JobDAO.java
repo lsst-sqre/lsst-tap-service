@@ -1277,7 +1277,7 @@ public class JobDAO
         {
             this.lastJobID = lastJobID;
             this.lastCreationTime = lastCreationTime;
-            this.requestPath = requestPath;
+            this.requestPath = null; // We want to ignore requestPath so that we get both sync and async queries;
             this.owner = owner;
             this.phases = phases;
             this.after = after;
@@ -1895,7 +1895,7 @@ public class JobDAO
         {
             this.jdbcTemplate = jdbc;
             this.owner = owner;
-            this.requestPath = requestPath;
+            this.requestPath = null; // We want to ignore requestPath so that we get both sync and async queries;
             this.phases = phases;
             this.after = after;
             this.last = last;
