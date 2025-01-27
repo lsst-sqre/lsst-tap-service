@@ -1,6 +1,6 @@
 FROM images.opencadc.org/library/cadc-tomcat:1
 
-LABEL org.opencontainers.image.source "https://github.com/lsst-sqre/lsst-tap-service"
+LABEL org.opencontainers.image.source="https://github.com/lsst-sqre/lsst-tap-service"
 
 RUN dnf update -y && dnf install -y zip unzip
 
