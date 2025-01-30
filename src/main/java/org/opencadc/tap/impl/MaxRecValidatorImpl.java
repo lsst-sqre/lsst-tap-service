@@ -93,7 +93,6 @@ public class MaxRecValidatorImpl extends MaxRecValidator {
 
     @Override
     public Integer validate() {
-        LOGGER.info("");
         if (super.sync) {
             try {
                 // no limits on sync

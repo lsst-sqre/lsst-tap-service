@@ -36,7 +36,7 @@ war {
 configurations {
     intTestCompile.extendsFrom testImplementation
     intTestRuntime.extendsFrom testRuntimeOnly
-    implementation.exclude group: 'uk.ac.starlink'
+    //implementation.exclude group: 'uk.ac.starlink'
 }
 
 dependencies {
@@ -56,6 +56,10 @@ dependencies {
     implementation 'org.opencadc:cadc-uws:1.0.5'
     implementation 'org.opencadc:cadc-uws-server:1.2.21'
     implementation 'org.opencadc:cadc-vosi:1.4.6'
+    implementation 'uk.ac.starlink:stil:[4.0,5.0)'
+
+    implementation 'uk.ac.starlink:jcdf:[1.2.3,2.0)'
+    implementation 'uk.ac.starlink:stil:[4.0,5.0)'
 
     // Switch out this to use any supported database instead of PostgreSQL.
     // ## START CUSTOM DATABASE ##
