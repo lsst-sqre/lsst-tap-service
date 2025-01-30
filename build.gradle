@@ -7,22 +7,22 @@ repositories {
     mavenCentral()
     mavenLocal()
 
-    maven {
-        url = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/m2repo'
-    }
+    //maven {
+    //    url = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/m2repo'
+    //}
 
     // To obtain access to the Oracle Maven repository, put your credentials into environment variables:
     // - MAVEN_ORACLE_USERNAME
     // - MAVEN_ORACLE_PASSWORD
     //
-    maven {
-        name 'maven.oracle.com'
-        url 'https://maven.oracle.com'
-        credentials {
-            username "${System.env.MAVEN_ORACLE_USERNAME}"
-            password "${System.env.MAVEN_ORACLE_PASSWORD}"
-        }
-    }
+    // maven {
+    //    name 'maven.oracle.com'
+    //    url 'https://maven.oracle.com'
+    //    credentials {
+    //        username "${System.env.MAVEN_ORACLE_USERNAME}"
+    //        password "${System.env.MAVEN_ORACLE_PASSWORD}"
+    //    }
+    // }
 }
 
 group = 'org.opencadc'
@@ -93,7 +93,7 @@ sourceSets {
     }
 }
 
-tasks.withType(Test) {
+	tasks.withType(Test) {
     // reset the report destinations so that intTests go to their
     // own page
     //reports.html.destination = file("${reporting.baseDir}/${name}")

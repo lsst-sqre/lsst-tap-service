@@ -7,11 +7,15 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 <!-- scriv-insert-here -->
 
 <a id='changelog-2.6.0'></a>
-## 2.5.0 (2025-01-30)
+## 2.6.0 (2025-01-30)
 
 ### Added
 
 - JobDAO class from opencadc adapted to fix issue with LAST param in joblist
+
+### Fixed
+
+- Fixed broken maven build, remove unneeded repository info
 
 <a id='changelog-2.5.0'></a>
 ## 2.5.0 (2024-11-01)
