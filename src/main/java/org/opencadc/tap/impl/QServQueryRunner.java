@@ -371,7 +371,7 @@ public class QServQueryRunner implements JobRunner
                     // and restrict to forward only so that client memory usage is minimal since
                     // we are only interested in reading the ResultSet once
 
-		    connection.setAutoCommit(false);
+                    connection.setAutoCommit(false);
                     pstmt = connection.prepareStatement(sql);
                     pstmt.setFetchSize(1000);
                     pstmt.setFetchDirection(ResultSet.FETCH_FORWARD);
@@ -397,7 +397,7 @@ public class QServQueryRunner implements JobRunner
                         tableWriter.write(resultSet, syncOutput.getOutputStream());
                     else
                         tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
-
+                    
                     t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
                     diagnostics.add(new Result("diag", URI.create("query:stream:"+dt)));
                 }
