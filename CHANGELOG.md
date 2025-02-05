@@ -6,6 +6,21 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.7.0'></a>
+## 2.7.0 (2025-02-05)
+
+### Added
+
+- ResultSetWriter class, used to write out Binary2 VOTable serialization
+
+### Changed
+
+- Added new Binary2 VOTable serialization, make default. Retain tabledata as an optional format
+
+### Fixed
+
+- Correctly print field metadata
+
 <a id='changelog-2.6.0'></a>
 ## 2.6.0 (2025-01-30)
 
