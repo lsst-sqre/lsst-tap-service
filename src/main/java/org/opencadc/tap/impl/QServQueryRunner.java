@@ -104,6 +104,12 @@ import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import io.sentry.ITransaction;
+import io.sentry.Sentry;
+import io.sentry.SpanStatus;
+import io.sentry.ISpan;
+import io.sentry.TransactionOptions;
+import org.opencadc.tap.impl.SentryHelper;
 
 /**
  * Implementation of the JobRunner interface from the cadcUWS framework. This is the
@@ -160,26 +166,32 @@ public class QServQueryRunner implements JobRunner
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
         logInfo = new JobLogInfo(job);
         log.info(logInfo.start());
         long start = System.currentTimeMillis();
-
-        try
-        {
-            doIt();
-        }
-        catch(Throwable ex)
-        {
+        
+        try {
+            ITransaction transaction = SentryHelper.startTransaction("/api/tap/{sync|async}", "task"); 
+            try {
+                doIt();
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.setThrowable(e);
+                    transaction.setStatus(SpanStatus.INTERNAL_ERROR);
+                }
+                throw e;
+            } finally {
+                SentryHelper.finishTransaction(transaction);
+                logInfo.setElapsedTime(System.currentTimeMillis() - start);
+                log.info(logInfo.end());
+            }
+        } catch (Throwable ex) {
             log.error("unexpected exception", ex);
+            throw ex;
         }
-
-        logInfo.setElapsedTime(System.currentTimeMillis() - start);
-        log.info(logInfo.end());
     }
 
-    
     protected PluginFactoryImpl getPluginFactory()
     {
         return new PluginFactoryImpl(job);
@@ -232,9 +244,17 @@ public class QServQueryRunner implements JobRunner
         Context envContext = (Context) initContext.lookup("java:comp/env");
         return (DataSource) envContext.lookup(uploadDataSourceName);
     }
-    
+
     private void doIt()
     {
+        ISpan span = null;
+        if (SentryHelper.isSentryEnabled()) {
+            span = SentryHelper.getSpan();
+            if (span == null) {
+                span = SentryHelper.startTransaction("/api/tap/{sync|async}/query", "task");
+            }
+        }        
+        
         List<Result> diagnostics = new ArrayList<>();
 
         long t1 = System.currentTimeMillis();
@@ -339,6 +359,11 @@ public class QServQueryRunner implements JobRunner
             List<TapSelectItem> selectList = query.getSelectList();
             String queryInfo = query.getInfo();
 
+            if (span != null) {
+                span.setData("query", sql);
+                span.setData("method", syncOutput == null ? "async" : "sync");
+            }
+            
             log.debug("creating TapTableWriter...");
             TableWriter tableWriter = pfac.getTableWriter();
             tableWriter.setSelectList(selectList);
@@ -351,6 +376,12 @@ public class QServQueryRunner implements JobRunner
             PreparedStatement pstmt = null;
             ResultSet resultSet = null;
             URL url = null;
+              
+            ISpan innerSpan = null;
+            if (span != null) {
+                innerSpan = span.startChild("task", "executeQuery");
+            }
+
             try
             {
                 if (maxRows == null || maxRows.intValue() > 0)
@@ -385,55 +416,74 @@ public class QServQueryRunner implements JobRunner
                 
                 String filename = "result_" + job.getID() + "." + tableWriter.getExtension();
                 String contentType = tableWriter.getContentType();
-                
-                if (syncOutput != null)
-                {
-                    
-                    log.debug("streaming output: " + contentType);
-                    syncOutput.setHeader("Content-Type", contentType);
-                    String disp = "inline; filename=\""+filename+"\"";
-                    syncOutput.setHeader("Content-Disposition", disp);
-                    if (maxRows == null)
-                        tableWriter.write(resultSet, syncOutput.getOutputStream());
-                    else
-                        tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
-                    
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("query:stream:"+dt)));
+                ISpan writeSpan = null;
+                if (span != null) {
+                    writeSpan = span.startChild("task", "write" + (syncOutput != null ? "ResultsSync" : "ResultsAsync"));
                 }
-                else if (rs != null)
-                {
-                    ep = jobUpdater.getPhase(job.getID());
-                    if (ExecutionPhase.ABORTED.equals(ep))
-                    {
-                        log.debug(job.getID() + ": found phase = ABORTED before writing results - DONE");
-                        return;
+                
+                try {
+                    if (syncOutput != null) {
+	                    
+	                    log.debug("streaming output: " + contentType);
+	                    syncOutput.setHeader("Content-Type", contentType);
+	                    String disp = "inline; filename=\""+filename+"\"";
+	                    syncOutput.setHeader("Content-Disposition", disp);
+
+	                    if (maxRows == null)
+	                        tableWriter.write(resultSet, syncOutput.getOutputStream());
+	                    else
+	                        tableWriter.write(resultSet, syncOutput.getOutputStream(), maxRows.longValue());
+	                    
+	                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
+	                    diagnostics.add(new Result("diag", URI.create("query:stream:"+dt)));
+	                }
+	                else if (rs != null)
+	                {
+	                    ep = jobUpdater.getPhase(job.getID());
+	                    if (ExecutionPhase.ABORTED.equals(ep))
+	                    {
+	                        log.debug(job.getID() + ": found phase = ABORTED before writing results - DONE");
+	                        return;
+	                    }
+
+	                    log.debug("result filename: " + filename);
+	                    rs.setJob(job);
+	                    rs.setFilename(filename);
+	                    rs.setContentType(contentType);
+	                    url = rs.put(resultSet, tableWriter, maxRows);
+	
+	                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
+	                    diagnostics.add(new Result("diag", URI.create("query:store:"+dt)));
+	                }
+	                else
+	                    throw new RuntimeException("BUG: both syncOutput and ResultStore are null");
+	                
+	                log.debug("executing query... " + tableWriter.getRowCount() + " rows [OK]");
+	                // note: final chosen here because we could in theory write intermediate rowcounts or state
+	                // as suggested by Dave Morris 
+	                diagnostics.add(new Result("rowcount", URI.create("final:"+tableWriter.getRowCount())));
+                } finally {
+                	
+                    if (writeSpan != null) {
+                        writeSpan.finish();
                     }
-
-                    log.debug("result filename: " + filename);
-                    rs.setJob(job);
-                    rs.setFilename(filename);
-                    rs.setContentType(contentType);
-                    url = rs.put(resultSet, tableWriter, maxRows);
-
-                    t2 = System.currentTimeMillis(); dt = t2 - t1; t1 = t2;
-                    diagnostics.add(new Result("diag", URI.create("query:store:"+dt)));
                 }
-                else
-                    throw new RuntimeException("BUG: both syncOutput and ResultStore are null");
                 
-                log.debug("executing query... " + tableWriter.getRowCount() + " rows [OK]");
-                // note: final chosen here because we could in theory write intermediate rowcounts or state
-                // as suggested by Dave Morris 
-                diagnostics.add(new Result("rowcount", URI.create("final:"+tableWriter.getRowCount())));
             }
             catch (SQLException ex)
             {
+                if (innerSpan != null) {
+                    innerSpan.setThrowable(ex);
+                    innerSpan.setStatus(SpanStatus.NOT_FOUND);
+                }
                 log.error("SQL Execution error.", ex);
                 throw ex;
             }
             finally
             {
+                if (innerSpan != null) {
+                    innerSpan.finish();
+                }
                 if (connection != null)
                 {
                     try
