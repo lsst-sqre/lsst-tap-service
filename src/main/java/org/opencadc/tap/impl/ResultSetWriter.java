@@ -197,8 +197,8 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
      */
     public String getErrorContentType() {
         return getContentType();
-    }
 
+    }
     /**
      * Get the extension for the VOTable.
      *
@@ -251,7 +251,6 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
      * @param writer Writer to write to.
      * @throws IOException if problem writing to the writer.
      */
-    @Override
     public void write(ResultSet resultSet, Writer writer)
             throws IOException {
         write(resultSet, writer, Long.MAX_VALUE);
@@ -267,7 +266,6 @@ public class ResultSetWriter implements TableWriter<ResultSet> {
      * @param maxrec maximum number of rows to write.
      * @throws IOException if problem writing to the writer.
      */
-    @Override
     public void write(ResultSet resultSet, Writer writer, Long maxrec)
             throws IOException {
         if (formatFactory == null) {
