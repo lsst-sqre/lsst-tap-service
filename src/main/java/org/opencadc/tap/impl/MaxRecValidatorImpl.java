@@ -83,7 +83,9 @@ public class MaxRecValidatorImpl extends MaxRecValidator {
     private static final Integer DEFAULT_LIMIT = 1000;
     private static final Integer MAX_LIMIT = 10000;
 
-
+    /**
+     * MaxRecValidatorImpl Constructor
+     */
     public MaxRecValidatorImpl() {
         super();
         setDefaultValue(DEFAULT_LIMIT);

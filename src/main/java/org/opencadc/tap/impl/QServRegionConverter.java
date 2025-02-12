@@ -33,6 +33,12 @@ public class QServRegionConverter extends RegionFinder
 {
   private static Logger log = Logger.getLogger(QServRegionConverter.class);
 
+  /**
+   * QServRegionConverter constructor
+   * @param en ExpressionNavigator
+   * @param rn ReferenceNavigator
+   * @param fn FromItemNavigator
+   */
   public QServRegionConverter(ExpressionNavigator en, ReferenceNavigator rn, FromItemNavigator fn)
   {
     super(en, rn, fn);

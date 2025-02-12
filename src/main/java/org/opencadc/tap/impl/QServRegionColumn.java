@@ -12,10 +12,17 @@ import net.sf.jsqlparser.schema.Table;
 
 import org.apache.log4j.Logger;
 
+/**
+ * QServRegionColumn class
+ */
 public class QServRegionColumn
 {
     private static final Logger log = Logger.getLogger(QServRegionColumn.class);
 
+    /**
+     * Get points in region
+     * @return Points as an expression object
+     */
     public static Expression pointInRegion(QServPoint point)
     {
         Function scisql = new Function();

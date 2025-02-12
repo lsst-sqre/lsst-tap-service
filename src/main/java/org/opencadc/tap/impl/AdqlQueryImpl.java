@@ -92,6 +92,10 @@ public class AdqlQueryImpl extends AdqlQuery
 {
     private static Logger log = Logger.getLogger(AdqlQueryImpl.class);
 
+    /**
+     * Default constructor for AdqlQueryImpl.
+     * 
+     */
     public AdqlQueryImpl()
     {
         super();

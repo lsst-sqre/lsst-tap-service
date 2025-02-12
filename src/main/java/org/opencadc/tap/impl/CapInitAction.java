@@ -89,7 +89,10 @@ import org.apache.log4j.Logger;
  */
 public class CapInitAction extends InitAction {
     private static final Logger log = Logger.getLogger(CapInitAction.class);
-
+    /**
+     * Default constructor for CapInitAction.
+     * 
+     */
     public CapInitAction() { 
         super();
     }

@@ -251,13 +251,11 @@ public class RubinTableWriter implements TableWriter
      * 
      * @return number of result rows written in output table
      */
-    @Override
     public long getRowCount()
     {
         return rowcount;
     }
     
-    @Override
     public String getExtension()
     {
         return extension;
@@ -287,37 +285,37 @@ public class RubinTableWriter implements TableWriter
         // can be determined from the table writer.
 
         switch (type) {
-        case RSS:
-            rssTableWriter = new RssTableWriter();
-            rssTableWriter.setJob(job);
-            // For error handling
-            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-            break;
-
-        case VOTABLE:
-            resultSetWriter = new ResultSetWriter();
-            this.contentType = resultSetWriter.getContentType();
-            this.extension = resultSetWriter.getExtension();
-            break;
-            
-        case VOTABLE_TD:
-            voDocumentWriter = new VOTableWriter();
-            this.contentType = voDocumentWriter.getContentType();
-            this.extension = voDocumentWriter.getExtension();
-            break;
-            
-        case CSV:
-            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
-            break;
-
-        case TSV:
-            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
-            break;
-
-        default:
-            throw new UnsupportedOperationException("unsupported format: " + type);
-	}
+	        case RSS:
+	            rssTableWriter = new RssTableWriter();
+	            rssTableWriter.setJob(job);
+	            // For error handling
+	            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+	            break;
 	
+	        case VOTABLE:
+	            resultSetWriter = new ResultSetWriter();
+	            this.contentType = resultSetWriter.getContentType();
+	            this.extension = resultSetWriter.getExtension();
+	            break;
+	            
+	        case VOTABLE_TD:
+	            voDocumentWriter = new VOTableWriter();
+	            this.contentType = voDocumentWriter.getContentType();
+	            this.extension = voDocumentWriter.getExtension();
+	            break;
+	            
+	        case CSV:
+	            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
+	            break;
+	
+	        case TSV:
+	            voDocumentWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.TSV);
+	            break;
+	
+	        default:
+	            throw new UnsupportedOperationException("unsupported format: " + type);
+		}
+		
 	    if (voDocumentWriter != null) {
 	        this.contentType = voDocumentWriter.getContentType();
 	        this.extension = voDocumentWriter.getExtension();
@@ -351,28 +349,10 @@ public class RubinTableWriter implements TableWriter
     @Override
     public void write(ResultSet rs, OutputStream out) throws IOException
     {
-        try (Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"))) {
-            this.write(rs, writer, null);
-        }
-    }
-
-    @Override
-    public void write(ResultSet rs, OutputStream out, Long maxrec)
-            throws IOException
-    {
-        try (Writer writer = new BufferedWriter(new OutputStreamWriter(out, "UTF-8"))) {
-            write(rs, writer, maxrec);
-        }
-    }
-
-    @Override
-    public void write(ResultSet rs, Writer out) throws IOException
-    {
         this.write(rs, out, null);
     }
 
-    @Override
-    public void write(ResultSet rs, Writer out, Long maxrec) throws IOException
+    public void write(ResultSet rs, OutputStream out, Long maxrec) throws IOException
     {
         if (rs != null && log.isDebugEnabled())
             try { log.debug("resultSet column count: " + rs.getMetaData().getColumnCount()); }
