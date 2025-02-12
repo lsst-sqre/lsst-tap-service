@@ -85,7 +85,11 @@ public class ALMATableServlet extends TableServlet {
     private static final Logger log = Logger.getLogger(ALMATableServlet.class);
 
     private final static String TAPDS_NAME = "jdbc/tapuser";
-
+    
+    /**
+     * Default constructor for ALMATableServlet.
+     * 
+     */
     public ALMATableServlet() { }
 
     @Override

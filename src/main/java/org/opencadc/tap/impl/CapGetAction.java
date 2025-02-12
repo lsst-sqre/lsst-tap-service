@@ -113,6 +113,10 @@ public class CapGetAction extends RestAction {
      */
     protected boolean doTransform = true;
     
+    /**
+     * Default constructor for CapGetAction.
+     * 
+     */
     public CapGetAction() {
         super();
     }

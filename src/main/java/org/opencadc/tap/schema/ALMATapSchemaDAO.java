@@ -74,6 +74,10 @@ import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import java.util.List;
 
+/**
+ * ALMATapSchemaDAO class
+ * 
+ */
 public class ALMATapSchemaDAO extends TapSchemaDAO {
     /**
      * Get white-list of supported functions. TAP implementors that want to allow
