@@ -70,6 +70,7 @@
 package org.opencadc.tap.impl;
 
 import ca.nrc.cadc.tap.AdqlQuery;
+import ca.nrc.cadc.tap.parser.PgsphereDeParser;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
 import ca.nrc.cadc.tap.parser.converter.TableNameReferenceConverter;
 import ca.nrc.cadc.tap.parser.converter.TopConverter;
@@ -99,6 +100,7 @@ public class AdqlQueryImpl extends AdqlQuery
     public AdqlQueryImpl()
     {
         super();
+        setDeparserImpl(PgsphereDeParser.class);
     }
 
     @Override
@@ -133,4 +135,5 @@ public class AdqlQueryImpl extends AdqlQuery
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
         super.navigatorList.add(new QServRegionConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
     }
+
 }
