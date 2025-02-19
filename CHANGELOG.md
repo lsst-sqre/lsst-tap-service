@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.8.0'></a>
+## 2.8.0 (2025-02-19)
+
+### Added
+
+- New /reg endpoint for service resource-caps. Removes dependency on external ws by cadc
+
+### Fixed
+
+- Fix Rubin Table writes to work with newer version of cadc-dali
+
 <a id='changelog-2.7.0'></a>
 ## 2.7.0 (2025-02-05)
 
