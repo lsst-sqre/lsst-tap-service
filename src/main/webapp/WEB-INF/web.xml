@@ -133,6 +133,16 @@
         <url-pattern>/results/*</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>RubinRegistryServlet</servlet-name>
+        <servlet-class>org.opencadc.tap.impl.RubinRegistryServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>RubinRegistryServlet</servlet-name>
+        <url-pattern>/reg/*</url-pattern>
+    </servlet-mapping>
+    
     <!-- the TAP Endpoints -->
     <servlet-mapping>
         <servlet-name>AsyncServlet</servlet-name>
