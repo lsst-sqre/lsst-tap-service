@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.9.0'></a>
+## 2.9.0 (2025-02-20)
+
+### Added
+
+- Enable Sentry error logging and tracing for the Query Runner
+
 <a id='changelog-2.8.0'></a>
 ## 2.8.0 (2025-02-19)
 
