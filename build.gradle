@@ -17,7 +17,7 @@ repositories {
 }
 
 group = 'org.opencadc'
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 version = '1000'
 
 war {
@@ -35,7 +35,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
 
     implementation 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
-    implementation 'org.opencadc:cadc-adql:[1.1.13,)'
+    implementation 'org.opencadc:cadc-adql:[1.1.14,)'
     implementation 'org.opencadc:cadc-dali-pg:0.3.1'
     implementation 'org.opencadc:cadc-log:[1.2.1,)'
     implementation 'org.opencadc:cadc-gms:[1.0.14,2.0)'
