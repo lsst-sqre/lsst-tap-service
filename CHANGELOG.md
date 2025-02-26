@@ -6,6 +6,14 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.10.0'></a>
+## 2.10.0 (2025-02-26)
+
+### Changed
+
+- Use cadc-adql version 1.1.4
+- Upgrade to jre 11
+
 <a id='changelog-2.9.0'></a>
 ## 2.9.0 (2025-02-20)
 
