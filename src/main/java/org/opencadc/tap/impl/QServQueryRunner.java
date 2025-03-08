@@ -254,7 +254,7 @@ public class QServQueryRunner implements JobRunner
                 span = SentryHelper.startTransaction("/api/tap/{sync|async}/query", "task");
             }
         }        
-        
+    
         List<Result> diagnostics = new ArrayList<>();
 
         long t1 = System.currentTimeMillis();
@@ -529,6 +529,9 @@ public class QServQueryRunner implements JobRunner
         {
             logInfo.setMessage(t.getMessage());
             int errorCode;
+            
+            Sentry.captureException(t);
+
             if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
             {
                 logInfo.setSuccess(true);
