@@ -318,7 +318,6 @@ public class CachingFile {
                 throw new IOException(download.getThrowable());
             }
         } finally {
-            log.warn("failed to load Remote Content");
         }
 
     }
