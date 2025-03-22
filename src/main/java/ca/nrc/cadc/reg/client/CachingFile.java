@@ -317,7 +317,10 @@ public class CachingFile {
                 log.warn("Could not get source from " + remoteSource + ": " + download.getThrowable());
                 throw new IOException(download.getThrowable());
             }
-        } 
+        } finally {
+            log.warn("failed to load Remote Content");
+        }
+
     }
 
     private boolean hasExpired() {
