@@ -530,7 +530,6 @@ public class QServQueryRunner implements JobRunner
             logInfo.setMessage(t.getMessage());
             int errorCode;
             
-            Sentry.captureException(t);
 
             if (t instanceof IllegalArgumentException || t instanceof UnsupportedOperationException)
             {
@@ -539,6 +538,7 @@ public class QServQueryRunner implements JobRunner
             }
             else
             {
+                Sentry.captureException(t);
                 logInfo.setSuccess(false);
                 errorCode = responseCodeOnSystemFail;
             }
