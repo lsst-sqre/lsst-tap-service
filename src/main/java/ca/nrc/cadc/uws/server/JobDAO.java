@@ -383,7 +383,6 @@ public class JobDAO
             JobSelectStatementCreator sc = new JobSelectStatementCreator();
             sc.setJobID(jobID);
             Job ret = (Job) jdbc.query(sc, new JobExtractor(jobSchema));
-            prof.checkpoint("JobSelectStatementCreator");
             if (ret != null)
             {
                 // call IdentityManager outside the resource lock to avoid deadlock
@@ -393,7 +392,6 @@ public class JobDAO
                     ret.setOwnerID(identManager.toDisplayString(s));
                     ret.ownerSubject = s; // for later authorization checks
                     ret.appData = null;
-                    prof.checkpoint("IdentityManager.toSubject");
                 }
                 return ret;
             }
@@ -426,7 +424,6 @@ public class JobDAO
             JobDetailSelectStatementCreator sc = new JobDetailSelectStatementCreator();
             sc.setJobID(job.getID());
             jdbc.query(sc, new DetailExtractor(jobSchema, job)); // ignore unnecessary return value
-            prof.checkpoint("JobDetailSelectStatementCreator");
         }
         catch(Throwable t)
         {
@@ -454,7 +451,6 @@ public class JobDAO
             JobPhaseSelectStatementCreator sc = new JobPhaseSelectStatementCreator();
             sc.setJobID(jobID);
             ExecutionPhase ret = (ExecutionPhase) jdbc.query(sc, new PhaseExtractor());
-            prof.checkpoint("JobPhaseSelectStatementCreator");
             if (ret != null)
                 return ret;
         }
@@ -580,7 +576,6 @@ public class JobDAO
             JobPhaseUpdateStatementCreator sc = new JobPhaseUpdateStatementCreator();
             sc.setValues(jobID, start, end, error, date);
             int n = jdbc.update(sc);
-            prof.checkpoint("JobPhaseUpdateStatementCreator");
             if (n == 1)
             {
                 if (results != null && results.size() > 0)
@@ -590,14 +585,12 @@ public class JobDAO
                     {
                         disc.setValues(jobID, r);
                         jdbc.update(disc);
-                        prof.checkpoint("DetailInsertStatementCreator");
                     }
                 }
             }
             if (txn)
             {
                 commitTransaction();
-                prof.checkpoint("commit.JobPhaseUpdateStatementCreator");
             }
             if (n == 1)
                 return end;
@@ -611,7 +604,6 @@ public class JobDAO
                 if (txn)
                 {
                     rollbackTransaction();
-                    prof.checkpoint("rollback.JobPhaseUpdateStatementCreator");
                 }
             }
             catch(Throwable oops) { log.error("failed to rollback transaction", oops); }
@@ -671,7 +663,6 @@ public class JobDAO
         try
         {
             JobListIterator jobListIterator = new JobListIterator(jdbc, owner, requestPath, phases, after, last);
-            prof.checkpoint("JobListStatementCreator");
             return jobListIterator;
         }
         catch(Throwable t)
@@ -709,11 +700,9 @@ public class JobDAO
             if (owner != null)
             {
                 job.appData = identManager.toOwner(owner);
-                prof.checkpoint("IdentityManager.toOwner");
             }
 
             startTransaction();
-            prof.checkpoint("start.JobPutStatementCreator");
 
             JobPutStatementCreator npsc = new JobPutStatementCreator(update);
             npsc.setValues(job);
@@ -730,7 +719,6 @@ public class JobDAO
                     try
                     {
                         rollbackTransaction();
-                        prof.checkpoint("rollback.JobPutStatementCreator");
                     }
                     catch(Throwable oops)
                     {
@@ -744,7 +732,6 @@ public class JobDAO
                 }
             }
 
-            prof.checkpoint("JobPutStatementCreator");
 
             int numP = 0;
             if (job.getParameterList() != null)
@@ -758,7 +745,6 @@ public class JobDAO
                 DetailDeleteStatementCreator dd = new DetailDeleteStatementCreator();
                 dd.setJobID(job.getID());
                 jdbc.update(dd);
-                prof.checkpoint("DetailDeleteStatementCreator");
             }
 
             DetailInsertStatementCreator disc = new DetailInsertStatementCreator();
@@ -770,7 +756,6 @@ public class JobDAO
                     Parameter param = pi.next();
                     disc.setValues(job.getID(), param);
                     jdbc.update(disc);
-                    prof.checkpoint("DetailInsertStatementCreator");
                 }
             }
             if (numR > 0)
@@ -781,17 +766,14 @@ public class JobDAO
                     Result res = ri.next();
                     disc.setValues(job.getID(), res);
                     jdbc.update(disc);
-                    prof.checkpoint("DetailInsertStatementCreator");
                 }
             }
 
             commitTransaction();
-            prof.checkpoint("commit.JobPutStatementCreator");
 
             // OK to modify the job now
             job.ownerSubject = owner;
             job.setOwnerID( identManager.toDisplayString(owner) );
-            prof.checkpoint("IdentityManager.toOwnerString");
             return job;
         }
         catch(Throwable t)
@@ -800,7 +782,6 @@ public class JobDAO
             try
             {
                 rollbackTransaction();
-                prof.checkpoint("rollback.JobPutStatementCreator");
             }
             catch(Throwable oops) { log.error("failed to rollback transaction", oops); }
             if (DBUtil.isTransientDBException(t))
@@ -834,10 +815,8 @@ public class JobDAO
                 {
                     disc.setValues(jobID, p);
                     jdbc.update(disc);
-                    prof.checkpoint("DetailInsertStatementCreator");
                 }
                 commitTransaction();
-                prof.checkpoint("commit.DetailInsertStatementCreator");
             }
         }
         catch(DataIntegrityViolationException notFound)
@@ -850,7 +829,6 @@ public class JobDAO
             try
             {
                 rollbackTransaction();
-                prof.checkpoint("rollback.DetailInsertStatementCreator");
             }
             catch(Throwable oops) { log.error("failed to rollback transaction", oops); }
             if (DBUtil.isTransientDBException(t))
@@ -887,7 +865,6 @@ public class JobDAO
             JobDeleteStatementCreator jdl = new JobDeleteStatementCreator();
             jdl.setJobID(jobID);
             jdbc.update(jdl);
-            prof.checkpoint("JobDeleteStatementCreator");
             //commitTransaction();
         }
         catch(Throwable t)
@@ -897,7 +874,6 @@ public class JobDAO
                 try
                 {
                     rollbackTransaction();
-                    prof.checkpoint("rollback.DetailInsertStatementCreator");
                 }
                 catch(Throwable oops) { log.error("failed to rollback transaction", oops); }
             if (DBUtil.isTransientDBException(t))
