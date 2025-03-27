@@ -6,6 +6,20 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.11.0'></a>
+## 2.11.0 (2025-02-27)
+
+
+### Added
+
+- log4j xml config required by cadc-log package
+
+### Changed
+
+- Configure logging for both log4j (cadc-log) and log4j2 needed for Sentry
+
+- Don't log user errors in Sentry
+
 <a id='changelog-2.10.0'></a>
 ## 2.10.0 (2025-02-26)
 
