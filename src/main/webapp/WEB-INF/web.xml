@@ -59,6 +59,12 @@
         </init-param>
     </servlet>
 
+    <servlet>
+        <servlet-name>TableServlet</servlet-name>
+        <servlet-class>ca.nrc.cadc.vosi.TableServlet</servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
     <!-- synchronous access to JobManager service -->
     <servlet>
         <load-on-startup>2</load-on-startup>
@@ -118,12 +124,6 @@
 
     <!-- VOSI-tables provides an XML document describing the schema/tables/columns;
          This implementation uses the TAP_SCHEMA to find the required metadata -->
-    <servlet>
-        <servlet-name>TableServlet</servlet-name>
-        <servlet-class>org.opencadc.tap.impl.ALMATableServlet</servlet-class>
-        <load-on-startup>3</load-on-startup>
-    </servlet>
-
     <servlet>
         <servlet-name>ResultsServlet</servlet-name>
         <servlet-class>org.opencadc.tap.impl.ResultsServlet</servlet-class>
