@@ -133,6 +133,33 @@
         <servlet-name>ResultsServlet</servlet-name>
         <url-pattern>/results/*</url-pattern>
     </servlet-mapping>
+    
+    <context-param>
+        <param-name>kafka.query.topic</param-name>
+        <param-value>lsst.tap.job-run</param-value>
+    </context-param>
+    
+    <context-param>
+        <param-name>kafka.status.topic</param-name>
+        <param-value>lsst.tap.job-status</param-value>
+    </context-param>
+    
+    <!-- Kafka Context Listener to initialize services -->
+    <listener>
+        <listener-class>org.opencadc.tap.kafka.KafkaContextListener</listener-class>
+    </listener>
+    
+    <!-- Simple Query Servlet -->
+    <servlet>
+        <servlet-name>QueryServlet</servlet-name>
+        <servlet-class>org.opencadc.tap.ws.JobUpdateService</servlet-class>
+    </servlet>
+    
+    <servlet-mapping>
+        <servlet-name>QueryServlet</servlet-name>
+        <url-pattern>/kafka/query/*</url-pattern>
+    </servlet-mapping>
+
 
     <servlet>
         <servlet-name>RubinRegistryServlet</servlet-name>

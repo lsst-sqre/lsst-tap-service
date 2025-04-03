@@ -71,8 +71,15 @@ package ca.nrc.cadc.tap;
 
 import ca.nrc.cadc.log.WebServiceLogInfo;
 import ca.nrc.cadc.rest.SyncOutput;
+import ca.nrc.cadc.tap.PluginFactoryImpl;
+import ca.nrc.cadc.tap.ResultStore;
+import ca.nrc.cadc.tap.TapQuery;
+import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.TapValidator;
+import ca.nrc.cadc.tap.UploadManager;
 import ca.nrc.cadc.tap.schema.SchemaDesc;
 import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.schema.TapDataType;
 import ca.nrc.cadc.tap.schema.TapSchema;
 import ca.nrc.cadc.tap.schema.TapSchemaDAO;
 import ca.nrc.cadc.uws.ErrorSummary;
@@ -88,6 +95,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -95,6 +103,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -102,7 +111,11 @@ import java.util.Map;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
+import javax.servlet.ServletContext;
 import javax.sql.DataSource;
+import java.util.concurrent.ExecutionException;
+import javax.servlet.ServletContext;
+import java.util.concurrent.ExecutionException;
 import org.apache.log4j.Logger;
 import io.sentry.ITransaction;
 import io.sentry.Sentry;
@@ -110,6 +123,14 @@ import io.sentry.SpanStatus;
 import io.sentry.ISpan;
 import io.sentry.TransactionOptions;
 import org.opencadc.tap.impl.SentryHelper;
+import org.opencadc.tap.impl.context.WebAppContext;
+import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
+import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
+import org.opencadc.tap.kafka.services.CreateJobEvent;
+import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
+import org.opencadc.tap.kafka.models.JobRun.ResultFormat.Format;
+import org.opencadc.tap.kafka.models.JobRun.ResultFormat.Envelope;
+import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
 
 /**
  * Implementation of the JobRunner interface from the cadcUWS framework. This is the
@@ -144,8 +165,416 @@ public class QServQueryRunner implements JobRunner
     private JobUpdater jobUpdater;
     private SyncOutput syncOutput;
     private WebServiceLogInfo logInfo;
+    private CreateJobEvent createJobEventService;
+    private ServletContext servletContext;
 
-    public QServQueryRunner() { }
+    private static final String bucket = System.getProperty("gcs_bucket");
+    private static final String bucketURL = System.getProperty("gcs_bucket_url");
+    private static final String bucketType = System.getProperty("gcs_bucket_type");
+    private static final String baseURL = System.getProperty("base_url");
+    private static final String pathPrefix = System.getProperty("path_prefix");
+
+    public QServQueryRunner() { 
+        initializeKafkaServices();
+    }
+
+    private void initializeKafkaServices() {
+        try {
+            log.info("Retrieving Kafka services from WebAppContext...");
+            
+            // Get the job producer service from the WebAppContext
+            Object service = WebAppContext.getContextAttribute("jobProducer");
+            
+            if (service != null && service instanceof CreateJobEvent) {
+                createJobEventService = (CreateJobEvent) service;
+                log.info("Successfully retrieved job producer service from WebAppContext");
+            } else {
+                log.warn("Job producer service not found in WebAppContext or is of wrong type");
+            }
+        } catch (Exception e) {
+            log.error("Error retrieving Kafka services from WebAppContext", e);
+        }
+    }
+
+     /**
+     * Send a query event to Kafka
+     * 
+     * @param jobId Job ID for the query
+     * @param sql SQL query being executed
+     */
+    private void sendQueryEvent(Job job, String sql, List<TapSelectItem> selectList, String queryInfo) {
+        if (createJobEventService == null) {
+            initializeKafkaServices();
+            
+            if (createJobEventService == null) {
+                log.warn("Kafka job producer not available, skipping event publishing");
+                return;
+            }
+        }
+        
+        try {
+            String jobId = job.getID();
+            String ownerId = job.getOwnerID();
+            log.info("Preparing query event for job: " + jobId);
+
+            List<ColumnType> columnTypes = convertSelectListToColumnTypes(selectList);
+            ResultFormat resultFormat = createResultFormat(selectList, jobId, queryInfo);
+            resultFormat.setColumnTypes(columnTypes);
+
+
+            String resultDestination = generateResultDestination(jobId);
+            String ownerID = determineOwnerID();
+            String database = determineDatabaseName();
+            Integer timeout = determineTimeout();
+            String eventJobId = createJobEventService.submitQuery(
+                sql,
+                jobId,
+                resultDestination, 
+                resultFormat,
+                ownerID,
+                database
+            );
+            
+            log.info("Query event sent successfully with Kafka job ID: " + eventJobId);
+        } catch (ExecutionException | InterruptedException e) {
+            log.error("Failed to send query event to Kafka", e);
+        } catch (Exception e) {
+            log.error("Unexpected error sending query event to Kafka", e);
+        }
+    }
+
+    /**
+     * Generate a result destination URL for the job results
+     * 
+     * @param jobId Job identifier
+     * @return Signed GCS URL for result storage
+     */
+    public String getResultUrl(String bucketURL, String bucket, String jobId) throws MalformedURLException {
+        return new URL(new URL(bucketURL), bucket + "/result_" + jobId + ".xml").toString();
+    }
+    
+    /**
+     * Determine the owner ID for the query
+     * 
+     * @return User identifier
+     */
+    private String determineOwnerID() {
+        return "user";
+    }
+
+    /**
+     * Determine the database name for the query
+     * 
+     * @return Database name or null if not applicable
+     */
+    private String determineDatabaseName() {
+        return "dp02";
+    }
+
+    /**
+     * Determine query timeout
+     * 
+     * @return Timeout in seconds or null if not set
+     */
+    private Integer determineTimeout() {
+        return 3600;
+    }
+
+    /**
+     * Convert TapSelectItem list to ColumnType list for ResultFormat
+     * 
+     * @param selectList List of TapSelectItem from the query
+     * @return List of ColumnType for ResultFormat
+     */
+    private List<ColumnType> convertSelectListToColumnTypes(List<TapSelectItem> selectList) {
+        if (selectList == null || selectList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<ColumnType> columnTypes = new ArrayList<>();
+
+        for (TapSelectItem item : selectList) {
+            ColumnType columnType = new ColumnType(
+                item.getName(),
+                convertTapDataTypeToVOTableType(item.getDatatype())
+            );
+
+            if (item.getDatatype() != null && item.getDatatype().arraysize != null) {
+                columnType.setArraysize(item.getDatatype().arraysize);
+            }
+            columnTypes.add(columnType);
+        }
+
+        return columnTypes;
+    }
+
+    /**
+     * Convert TapDataType to VOTable datatype string
+     * 
+     * @param tapDataType TapDataType to convert
+     * @return VOTable datatype string
+     */
+    private String convertTapDataTypeToVOTableType(TapDataType tapDataType) {
+        if (tapDataType == null) {
+            return "char";
+        }
+        switch (tapDataType.getDatatype().toUpperCase()) {
+            case "BOOLEAN":
+                return "boolean";
+            case "SHORT":
+                return "short";
+            case "INT":
+                return "int";
+            case "LONG":
+                return "long";
+            case "FLOAT":
+                return "float";
+            case "DOUBLE":
+                return "double";
+            case "CHAR":
+            case "VARCHAR":
+            case "STRING":
+                return "char";
+            case "TIMESTAMP":
+            case "DATE":
+                return "char";
+            default:
+                return "char";
+        }
+    }
+
+
+    /**
+     * Generate a comprehensive VOTable header with field metadata
+     * 
+     * @param selectList List of TapSelectItem from the query
+     * @param jobId Job identifier
+     * @param queryInfo Additional query information
+     * @return VOTable header as a string
+     */
+    private String generateVOTableHeader(List<TapSelectItem> selectList, String jobId, String queryInfo) {
+        StringBuilder headerBuilder = new StringBuilder();
+        
+        // XML Declaration and VOTABLE root with standard namespaces
+        headerBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+            .append("<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\" ")
+            .append("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
+            .append("xsi:schemaLocation=\"http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/v1.3\">\n");
+        
+        // Create a single resource
+        headerBuilder.append("  <RESOURCE type=\"results\">\n");
+        
+        // Add query metadata as INFO elements
+        addQueryMetadata(headerBuilder, jobId, queryInfo);
+        
+        // Start the table definition
+        headerBuilder.append("    <TABLE>\n");
+        
+        // Generate FIELD definitions with full metadata
+        for (int i = 0; i < selectList.size(); i++) {
+            TapSelectItem item = selectList.get(i);
+            headerBuilder.append(generateFieldDefinition(item, i));
+        }
+        
+        // Close table definition
+        headerBuilder.append("    </TABLE>\n");
+        
+        // Close resource
+        headerBuilder.append("  </RESOURCE>\n");
+        
+        // Do not close VOTABLE tag - this will be done in the footer
+        
+        return headerBuilder.toString();
+    }
+
+    /**
+     * Generate a detailed FIELD definition for a TapSelectItem
+     * 
+     * @param item TapSelectItem representing the column
+     * @param index Column index
+     * @return FIELD definition as a string
+     */
+    private String generateFieldDefinition(TapSelectItem item, int index) {
+        StringBuilder fieldBuilder = new StringBuilder();
+        
+        // Start FIELD definition
+        fieldBuilder.append("      <FIELD ");
+        
+        // Name (required)
+        fieldBuilder.append("name=\"").append(escapeXml(item.getName())).append("\" ");
+        
+        // ID (optional but recommended)
+        fieldBuilder.append("ID=\"col_").append(index).append("\" ");
+        
+        // Datatype (required)
+        TapDataType dataType = item.getDatatype();
+        String votableType = convertTapDataTypeToVOTableType(dataType);
+        fieldBuilder.append("datatype=\"").append(votableType).append("\" ");
+        
+        // Arraysize (optional)
+        if (dataType != null && dataType.arraysize != null) {
+            fieldBuilder.append("arraysize=\"").append(dataType.arraysize).append("\" ");
+        }
+        
+        // Optional metadata
+        fieldBuilder.append(">\n");
+        
+        // Add optional descriptive elements
+        addOptionalFieldMetadata(fieldBuilder, item);
+        
+        // Close FIELD definition
+        fieldBuilder.append("      </FIELD>\n");
+        
+        return fieldBuilder.toString();
+    }
+
+    /**
+     * Add optional field metadata to the FIELD definition
+     * 
+     * @param fieldBuilder StringBuilder to append metadata
+     * @param item TapSelectItem with metadata
+     */
+    private void addOptionalFieldMetadata(StringBuilder fieldBuilder, TapSelectItem item) {
+        // Description
+        if (item.description != null) {
+            fieldBuilder.append("        <DESCRIPTION>")
+                .append(escapeXml(item.description))
+                .append("</DESCRIPTION>\n");
+        }
+        
+        // UCD (Unified Content Descriptor)
+        if (item.ucd != null) {
+            fieldBuilder.append("        <UCD>")
+                .append(escapeXml(item.ucd))
+                .append("</UCD>\n");
+        }
+        
+        // Unit
+        if (item.unit != null) {
+            fieldBuilder.append("        <UNIT>")
+                .append(escapeXml(item.unit))
+                .append("</UNIT>\n");
+        }
+        
+        // Utype
+        if (item.utype != null) {
+            fieldBuilder.append("        <UTYPE>")
+                .append(escapeXml(item.utype))
+                .append("</UTYPE>\n");
+        }
+        
+        // Flags/Annotations
+        if (item.principal || item.indexed || item.std) {
+            fieldBuilder.append("        <ANNOTATION>\n");
+            if (item.principal) {
+                fieldBuilder.append("          <FLAG name=\"principal\">true</FLAG>\n");
+            }
+            if (item.indexed) {
+                fieldBuilder.append("          <FLAG name=\"indexed\">true</FLAG>\n");
+            }
+            if (item.std) {
+                fieldBuilder.append("          <FLAG name=\"std\">true</FLAG>\n");
+            }
+            fieldBuilder.append("        </ANNOTATION>\n");
+        }
+    }
+
+    /**
+     * Add query metadata as INFO elements
+     * 
+     * @param headerBuilder StringBuilder to append metadata
+     * @param jobId Job identifier
+     * @param queryInfo Query information
+     */
+    private void addQueryMetadata(StringBuilder headerBuilder, String jobId, String queryInfo) {
+        // Job ID
+        if (jobId != null) {
+            headerBuilder.append("    <INFO name=\"JOB_ID\" value=\"")
+                .append(escapeXml(jobId))
+                .append("\"/>\n");
+        }
+        
+        // Query timestamp
+        headerBuilder.append("    <INFO name=\"QUERY_TIMESTAMP\" value=\"")
+            .append(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()))
+            .append("\"/>\n");
+        
+        // Original query
+        if (queryInfo != null) {
+            headerBuilder.append("    <INFO name=\"QUERY\" value=\"")
+                .append(escapeXml(queryInfo))
+                .append("\"/>\n");
+        }
+    }
+
+    /**
+     * Generate a comprehensive VOTable header and column types
+     * 
+     * @param selectList List of TapSelectItem from the query
+     * @param jobId Job identifier
+     * @param queryInfo Additional query information
+     * @return ResultFormat with generated header and column types
+     */
+    private ResultFormat createResultFormat(List<TapSelectItem> selectList, String jobId, String queryInfo) {
+        // Create a default VOTable format with tabledata serialization
+        Format format = new Format("votable", "tabledata");
+        
+        // Convert select list to column types using existing logic
+        List<ColumnType> columnTypes = convertSelectListToColumnTypes(selectList);
+        
+        // Generate VOTable header
+        String header = generateVOTableHeader(selectList, jobId, queryInfo);
+        
+        Envelope envelope = new Envelope(
+            header,
+            "</VOTABLE>"  // Simple footer
+        );
+        
+        return new ResultFormat(format, envelope, columnTypes);
+    }
+
+    /**
+     * Simple XML escaping method
+     * 
+     * @param input String to escape
+     * @return XML-escaped string
+     */
+    private String escapeXml(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&apos;");
+    }
+    /**
+     * Generate a result destination URL for the job results
+     * 
+     * @param jobId
+     * @return
+     */
+    private String generateResultDestination(String jobId) {
+        String resultDestination = null;
+        try {
+            resultDestination = getResultUrl(bucketURL, bucket, jobId);
+        } catch (MalformedURLException e) {
+            log.error("Error generating result destination URL", e);
+        }
+        return resultDestination;
+    }
+
+    /**
+     * Set the servlet context to access application-wide resources
+     * 
+     * @param context The servlet context
+     */
+    public void setServletContext(ServletContext context) {
+        this.servletContext = context;
+        if (context != null) {
+            initializeKafkaServices();
+        }
+    }
+    
 
     @Override
     public void setJob(Job job)
@@ -275,7 +704,7 @@ public class QServQueryRunner implements JobRunner
         }
         int responseCodeOnUserFail = 400;   // default for TAP-1.1+
         int responseCodeOnSystemFail = 500;
-        try
+        try 
         {
             log.debug("try: QUEUED -> EXECUTING...");
             ExecutionPhase ep = jobUpdater.setPhase(job.getID(), ExecutionPhase.QUEUED, ExecutionPhase.EXECUTING, new Date());
@@ -363,7 +792,9 @@ public class QServQueryRunner implements JobRunner
                 span.setData("query", sql);
                 span.setData("method", syncOutput == null ? "async" : "sync");
             }
-            
+
+            sendQueryEvent(job, sql, selectList, queryInfo);
+
             log.debug("creating TapTableWriter...");
             TableWriter tableWriter = pfac.getTableWriter();
             tableWriter.setSelectList(selectList);

@@ -25,5 +25,7 @@
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Sentry" level="ERROR"/>
         </Root>
+        <Logger name="org.apache.kafka" level="INFO"/>
+
     </Loggers>
 </Configuration>
