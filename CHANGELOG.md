@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.12.0'></a>
+## 2.12.0 (2025-04-04)
+
+### Changed
+
+- Upgrade cadc packaged
+
+### Removed
+
+- Removed ALMATableServlet and MaxRecValidatorImpl implementations
+
 <a id='changelog-2.11.0'></a>
 ## 2.11.0 (2025-02-27)
 
