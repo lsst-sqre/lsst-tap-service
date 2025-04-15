@@ -6,6 +6,16 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.13.0'></a>
+## 2.13.0 (2025-04-14)
+
+### Changed
+
+- Remove unneeded implementations (Registry implementation, now fixed in cadc-reg 1.4.3). (To address bug where we send out requests to the cadc reg)
+- Remove JobDAO and CachingFile implementations (JobDAO bug has been fixed, and these were retained here because of the log4j checkpoint bug, i.e. getting checkpoint logs due to log4j conflicts)
+- Fix log4j / log4j2 issues (cadc-util imports the log4j2 apis so we don't need to add the dependency). We just include the log4j2 configuration here
+
+
 <a id='changelog-2.12.0'></a>
 ## 2.12.0 (2025-04-04)
 
