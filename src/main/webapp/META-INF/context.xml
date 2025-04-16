@@ -2,6 +2,23 @@
 <Context>
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
 
+    <Resource name="jdbc/tapadm"
+              auth="Container"
+              type="javax.sql.DataSource"
+              factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+              minEvictableIdleTimeMillis="30000"
+              maxActive="${tapschemauser.maxActive}" maxIdle="10" maxWait="20000" initialSize="5"
+              username="${tapschemauser.username}" password="${tapschemauser.password}"
+              driverClassName="${tapschemauser.driverClassName}"
+              url="${tapschemauser.url}"
+              removeAbandoned="false"
+              logAbandoned="true"
+              testOnBorrow="true"
+              testWhileIdle="true"
+              validationQuery="SELECT 1"
+              defaultAutoCommit="true"
+    />
+
     <Resource name="jdbc/tapuser"
               auth="Container"
               type="javax.sql.DataSource"
