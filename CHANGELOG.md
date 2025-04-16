@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.13.1'></a>
+## 2.13.1 (2025-04-16)
+
+### Changed
+
+- TableServlet now uses RestServlet
+
+## Added
+
+- Added tapadm resource in context
+
 <a id='changelog-2.13.0'></a>
 ## 2.13.0 (2025-04-14)
 
