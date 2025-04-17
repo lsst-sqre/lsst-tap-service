@@ -46,6 +46,7 @@ public class KafkaJobService {
             String bucket,
             JobUpdater jobUpdater)
             throws JobNotFoundException, JobPersistenceException {
+                
         String jobId = job.getID();
         log.debug("Preparing to send job to Kafka: " + jobId);
 
@@ -149,7 +150,7 @@ public class KafkaJobService {
                 }
             }
 
-            String deletedExecutionId = createDeleteEventService.submitDeletion(executionId, ownerId);
+            String deletedExecutionId = createDeleteEventService.submitDeletion(jobId, ownerId);
             log.debug("Job deletion request sent to Kafka successfully for executionId: " + deletedExecutionId);
 
             // Update job phase if jobId and jobUpdater are provided

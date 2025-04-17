@@ -16,6 +16,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.net.URI;
+import java.net.URL;
+
 import org.json.JSONException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -36,6 +38,10 @@ import ca.nrc.cadc.uws.server.impl.PostgresJobPersistence;
  * @author stvoutsin
  */
 public class ReadJobStatus implements AutoCloseable {
+
+    private static final String baseURL = System.getProperty("base_url");
+    private static final String pathPrefix = System.getProperty("path_prefix");
+
     private static final Logger log = Logger.getLogger(ReadJobStatus.class);
 
     private final KafkaConfig kafkaConfig;
@@ -181,11 +187,6 @@ public class ReadJobStatus implements AutoCloseable {
                         ExecutionPhase previousPhase = jobUpdater.getPhase(status.getJobID());
                         ExecutionPhase newPhase = JobStatus.ExecutionStatus.toExecutionPhase(status.getStatus());
 
-                        Date timestamp = parseIsoTimestamp(status.getTimestamp());
-                        if (timestamp == null) {
-                            timestamp = new Date();
-                        }
-
                         List<Result> diagnostics = getJobMetadata(status);
 
                         ErrorSummary errorSummary = getErrorInfo(status);
@@ -280,39 +281,22 @@ public class ReadJobStatus implements AutoCloseable {
                 if (status.getResultInfo().getTotalRows() != null) {
                     metadata.add(new Result("rowcount", URI.create("final:" + status.getResultInfo().getTotalRows())));
                 }
-                Result res = new Result("result", new URI(status.getResultInfo().getResultLocation()));
-                metadata.add(res);
+                
+                if (status.getResultInfo().getResultLocation() != null) {
+                    URL url = new URL(status.getResultInfo().getResultLocation());
+                    String filePath = url.getPath(); 
+                    URI resultURI =  new URI(baseURL + pathPrefix + "/results/" + filePath);
+                    Result res = new Result("result",resultURI);
+                    metadata.add(res);
+                }
             }
 
-            if (status.getExecutionID() != null) {
-                // What do we do with the executionID?
-                // status.getExecutionID());
-                metadata.add(new Result("executionID", URI.create(status.getExecutionID())));
+            if (status.getQueryInfo() != null) {
+                if (status.getQueryInfo().getCompletedChunks() != null && status.getQueryInfo().getTotalChunks() != null) {
+                    Result chunkProgress = new Result("chunkProgress", URI.create(status.getQueryInfo().getCompletedChunks() + "/" + status.getQueryInfo().getTotalChunks()));
+                    metadata.add(chunkProgress);
+                }
             }
-
-            /*
-             * if (status.getQueryInfo() != null) {
-             * JSONObject queryInfo = new JSONObject();
-             * 
-             * if (status.getQueryInfo().getDuration() != null) {
-             * queryInfo.put("duration", status.getQueryInfo().getDuration());
-             * }
-             * if (status.getQueryInfo().getTotalChunks() != null) {
-             * queryInfo.put("totalChunks", status.getQueryInfo().getTotalChunks());
-             * }
-             * if (status.getQueryInfo().getCompletedChunks() != null) {
-             * queryInfo.put("completedChunks", status.getQueryInfo().getCompletedChunks());
-             * }
-             * if (status.getQueryInfo().getEstimatedTimeRemaining() != null) {
-             * queryInfo.put("estimatedTimeRemaining",
-             * status.getQueryInfo().getEstimatedTimeRemaining());
-             * }
-             * 
-             * if (!queryInfo.isEmpty()) {
-             * metadata.put("queryInfo", queryInfo);
-             * }
-             * }
-             */
 
             return metadata;
         } catch (Exception e) {

@@ -69,7 +69,7 @@ public class JobStatus {
 
     private String jobID;
     private String executionID;
-    private String timestamp;
+    private Long timestamp;
     private ExecutionStatus status;
     private QueryInfo queryInfo;
     private ResultInfo resultInfo;
@@ -85,7 +85,7 @@ public class JobStatus {
     /**
      * Constructor with required fields
      */
-    public JobStatus(String jobID, ExecutionStatus status, String timestamp) {
+    public JobStatus(String jobID, ExecutionStatus status, Long timestamp) {
         this.jobID = jobID;
         this.status = status;
         this.timestamp = timestamp;
@@ -102,12 +102,12 @@ public class JobStatus {
             jobStatus.setJobID(json.getString("jobID"));
         }
 
-        if (json.has("executionID")) {
+        if (json.has("executionID") && !json.isNull("executionID")) {
             jobStatus.setExecutionID(json.getString("executionID"));
         }
 
-        if (json.has("timestamp")) {
-            jobStatus.setTimestamp(json.getString("timestamp"));
+        if (json.has("timestamp") && !json.isNull("timestamp")) {
+            jobStatus.setTimestamp(json.getLong("timestamp"));
         }
 
         if (json.has("status")) {
@@ -119,19 +119,19 @@ public class JobStatus {
             }
         }
 
-        if (json.has("queryInfo")) {
+        if (json.has("queryInfo") && !json.isNull("queryInfo")) {
             jobStatus.setQueryInfo(QueryInfo.fromJson(json.getJSONObject("queryInfo")));
         }
 
-        if (json.has("resultInfo")) {
+        if (json.has("resultInfo") && !json.isNull("resultInfo")) {
             jobStatus.setResultInfo(ResultInfo.fromJson(json.getJSONObject("resultInfo")));
         }
-
-        if (json.has("errorInfo")) {
+    
+        if (json.has("errorInfo") && !json.isNull("errorInfo")) {
             jobStatus.setErrorInfo(ErrorInfo.fromJson(json.getJSONObject("errorInfo")));
         }
-
-        if (json.has("metadata")) {
+    
+        if (json.has("metadata") && !json.isNull("metadata")) {
             jobStatus.setMetadata(Metadata.fromJson(json.getJSONObject("metadata")));
         }
 
@@ -196,21 +196,21 @@ public class JobStatus {
         this.executionID = executionID;
     }
 
-    public String getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(String timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 
     /**
-     * Get current timestamp with millisecond precision
+     * Get current timestamp with millisecond precision as Long
      * 
-     * @return Current time as a formatted string
+     * @return Current time as milliseconds since epoch
      */
-    public static String getCurrentTimestamp() {
-        return formatTimestampWithMillis(Instant.now());
+    public static Long getCurrentTimestamp() {
+        return Instant.now().toEpochMilli();
     }
 
     /**
@@ -221,6 +221,19 @@ public class JobStatus {
      */
     public static String formatTimestampWithMillis(Instant instant) {
         return DateTimeFormatter.ISO_INSTANT.format(instant.truncatedTo(ChronoUnit.MILLIS));
+    }
+
+    /**
+     * Convert millisecond timestamp to formatted string
+     * 
+     * @param timestamp The timestamp in milliseconds
+     * @return Formatted string with millisecond precision
+     */
+    public static String formatTimestamp(Long timestamp) {
+        if (timestamp == null) {
+            return null;
+        }
+        return formatTimestampWithMillis(Instant.ofEpochMilli(timestamp));
     }
 
     public ExecutionStatus getStatus() {
@@ -276,7 +289,7 @@ public class JobStatus {
     public static class Builder {
         private String jobID;
         private String executionID;
-        private String timestamp;
+        private Long timestamp;
         private ExecutionStatus status;
         private QueryInfo queryInfo;
         private ResultInfo resultInfo;
@@ -284,7 +297,7 @@ public class JobStatus {
         private Metadata metadata;
 
         private Builder() {
-            this.timestamp = Instant.now().toString();
+            this.timestamp = getCurrentTimestamp();
         }
 
         public Builder setJobID(String jobID) {
@@ -297,7 +310,7 @@ public class JobStatus {
             return this;
         }
 
-        public Builder setTimestamp(String timestamp) {
+        public Builder setTimestamp(Long timestamp) {
             this.timestamp = timestamp;
             return this;
         }
@@ -348,7 +361,7 @@ public class JobStatus {
         return "JobStatus{" +
                 "jobID='" + jobID + '\'' +
                 ", executionID='" + executionID + '\'' +
-                ", timestamp='" + timestamp + '\'' +
+                ", timestamp=" + timestamp +
                 ", status=" + status +
                 ", queryInfo=" + queryInfo +
                 ", resultInfo=" + resultInfo +
@@ -361,8 +374,8 @@ public class JobStatus {
      * QueryInfo inner class
      */
     public static class QueryInfo {
-        private String startTime;
-        private String endTime;
+        private Long startTime;
+        private Long endTime;
         private Integer duration;
         private Integer totalChunks;
         private Integer completedChunks;
@@ -374,27 +387,27 @@ public class JobStatus {
         public static QueryInfo fromJson(JSONObject json) {
             QueryInfo queryInfo = new QueryInfo();
 
-            if (json.has("startTime")) {
-                queryInfo.setStartTime(json.getString("startTime"));
+            if (json.has("startTime") && !json.isNull("startTime")) {
+                queryInfo.setStartTime(json.getLong("startTime"));
             }
 
-            if (json.has("endTime")) {
-                queryInfo.setEndTime(json.getString("endTime"));
+            if (json.has("endTime") && !json.isNull("endTime")) {
+                queryInfo.setEndTime(json.getLong("endTime"));
             }
 
-            if (json.has("duration")) {
+            if (json.has("duration") && !json.isNull("duration")) {
                 queryInfo.setDuration(json.getInt("duration"));
             }
 
-            if (json.has("totalChunks")) {
+            if (json.has("totalChunks") && !json.isNull("totalChunks")) {
                 queryInfo.setTotalChunks(json.getInt("totalChunks"));
             }
 
-            if (json.has("completedChunks")) {
+            if (json.has("completedChunks") && !json.isNull("completedChunks")) {
                 queryInfo.setCompletedChunks(json.getInt("completedChunks"));
             }
 
-            if (json.has("estimatedTimeRemaining")) {
+            if (json.has("estimatedTimeRemaining") && !json.isNull("estimatedTimeRemaining")) {
                 queryInfo.setEstimatedTimeRemaining(json.getInt("estimatedTimeRemaining"));
             }
 
@@ -431,19 +444,19 @@ public class JobStatus {
             return json;
         }
 
-        public String getStartTime() {
+        public Long getStartTime() {
             return startTime;
         }
 
-        public void setStartTime(String startTime) {
+        public void setStartTime(Long startTime) {
             this.startTime = startTime;
         }
 
-        public String getEndTime() {
+        public Long getEndTime() {
             return endTime;
         }
 
-        public void setEndTime(String endTime) {
+        public void setEndTime(Long endTime) {
             this.endTime = endTime;
         }
 

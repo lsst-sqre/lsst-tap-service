@@ -74,37 +74,37 @@ public class CreateDeleteEvent implements AutoCloseable {
     /**
      * Submit a job deletion request with owner information
      * 
-     * @param executionID Job execution ID to delete
+     * @param jobID Job execution ID to delete
      * @param ownerID     Owner identifier
      * @return Execution ID for the submitted deletion request
      * @throws ExecutionException   if sending to Kafka fails
      * @throws InterruptedException if the operation is interrupted
      */
-    public String submitDeletion(String executionID, String ownerID)
+    public String submitDeletion(String jobID, String ownerID)
             throws ExecutionException, InterruptedException {
 
         if (closed.get()) {
             throw new IllegalStateException("CreateDeleteEvent has been closed");
         }
 
-        if (executionID == null || executionID.trim().isEmpty()) {
-            throw new IllegalArgumentException("ExecutionID cannot be null or empty");
+        if (jobID == null || jobID.isEmpty()) {
+            throw new IllegalArgumentException("jobID cannot be null or empty");
         }
 
         try {
-            log.info("Creating job delete event for executionID: " + executionID);
+            log.info("Creating job delete event for executionID: " + jobID);
 
             JobDelete jobDelete = JobDelete.newBuilder()
-                    .setExecutionID(executionID)
+                    .setJobID(jobID)
                     .setOwnerID(ownerID)
                     .build();
 
             String jsonString = jobDelete.toJsonString();
             log.debug("JSON message: " + jsonString);
 
-            log.info("Sending job delete event to topic: " + deleteTopic + " with executionID: " + executionID);
+            log.info("Sending job delete event to topic: " + deleteTopic + " with jobID: " + jobID);
 
-            ProducerRecord<String, String> record = new ProducerRecord<>(deleteTopic, executionID, jsonString);
+            ProducerRecord<String, String> record = new ProducerRecord<>(deleteTopic, jobID, jsonString);
 
             Future<RecordMetadata> future = producer.send(record);
             RecordMetadata metadata = future.get(timeoutSeconds, TimeUnit.SECONDS);
@@ -113,7 +113,7 @@ public class CreateDeleteEvent implements AutoCloseable {
                     " [partition=" + metadata.partition() +
                     ", offset=" + metadata.offset() + "]");
 
-            return executionID;
+            return jobID;
 
         } catch (TimeoutException e) {
             log.error("Timeout sending job delete request", e);

@@ -9,7 +9,7 @@ import org.json.JSONObject;
  */
 public class JobDelete {
 
-    private String executionID;
+    private String jobID;
     private String ownerID;
 
     /**
@@ -21,15 +21,15 @@ public class JobDelete {
     /**
      * Constructor with required fields
      */
-    public JobDelete(String executionID) {
-        this.executionID = executionID;
+    public JobDelete(String jobID) {
+        this.jobID = jobID;
     }
 
     /**
      * Constructor with all fields
      */
-    public JobDelete(String executionID, String ownerID) {
-        this.executionID = executionID;
+    public JobDelete(String jobID, String ownerID) {
+        this.jobID = jobID;
         this.ownerID = ownerID;
     }
 
@@ -40,8 +40,8 @@ public class JobDelete {
         JSONObject json = new JSONObject(jsonString);
         JobDelete jobDelete = new JobDelete();
 
-        if (json.has("executionID")) {
-            jobDelete.setExecutionID(json.getString("executionID"));
+        if (json.has("jobID")) {
+            jobDelete.setJobID(json.getString("jobID"));
         }
 
         if (json.has("ownerID")) {
@@ -57,7 +57,7 @@ public class JobDelete {
     public JSONObject toJson() {
         JSONObject json = new JSONObject();
 
-        json.put("executionID", executionID);
+        json.put("jobID", jobID);
 
         if (ownerID != null) {
             json.put("ownerID", ownerID);
@@ -73,12 +73,12 @@ public class JobDelete {
         return toJson().toString();
     }
 
-    public String getExecutionID() {
-        return executionID;
+    public String getJobID() {
+        return jobID;
     }
 
-    public void setExecutionID(String executionID) {
-        this.executionID = executionID;
+    public void setJobID(String jobID) {
+        this.jobID = jobID;
     }
 
     public String getOwnerID() {
@@ -100,14 +100,14 @@ public class JobDelete {
      * Builder pattern for creating JobDelete instances
      */
     public static class Builder {
-        private String executionID;
+        private String jobID;
         private String ownerID;
 
         private Builder() {
         }
 
-        public Builder setExecutionID(String executionID) {
-            this.executionID = executionID;
+        public Builder setJobID(String jobID) {
+            this.jobID = jobID;
             return this;
         }
 
@@ -117,7 +117,7 @@ public class JobDelete {
         }
 
         public JobDelete build() {
-            JobDelete jobDelete = new JobDelete(executionID);
+            JobDelete jobDelete = new JobDelete(jobID);
             jobDelete.setOwnerID(ownerID);
             return jobDelete;
         }
@@ -126,7 +126,7 @@ public class JobDelete {
     @Override
     public String toString() {
         return "JobDelete{" +
-                "executionID='" + executionID + '\'' +
+                "jobID='" + jobID + '\'' +
                 ", ownerID='" + ownerID + '\'' +
                 '}';
     }

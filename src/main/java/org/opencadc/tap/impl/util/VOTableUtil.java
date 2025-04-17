@@ -15,12 +15,14 @@ import java.util.List;
 
 /**
  * Utility class for VOTable operations.
- * Handles operations such as VOTable generation, column type conversions and format handling.
+ * Handles operations such as VOTable generation, column type conversions and
+ * format handling.
  * 
  * @author stvoutsin
  */
 public class VOTableUtil {
     private static final Logger log = Logger.getLogger(VOTableUtil.class);
+    private static final String BASE_URL = System.getProperty("base_url");
 
     /**
      * Create a ResultFormat configuration for the job.
@@ -30,7 +32,7 @@ public class VOTableUtil {
      * @return ResultFormat with proper configuration
      */
     public static ResultFormat createResultFormat(String jobId, QueryRunner jobRunner) {
-        JobRun.ResultFormat.Format format = new JobRun.ResultFormat.Format("votable", "binary2");
+        JobRun.ResultFormat.Format format = new JobRun.ResultFormat.Format("VOTable", "BINARY2");
 
         String[] headerFooter = extractHeaderFooter(jobRunner);
         String header = headerFooter[0];
@@ -40,7 +42,7 @@ public class VOTableUtil {
 
         List<ColumnType> columnTypes = convertSelectListToColumnTypes(jobRunner.selectList);
 
-        return new ResultFormat(format, envelope, columnTypes);
+        return new ResultFormat(format, envelope, columnTypes, BASE_URL);
     }
 
     /**
@@ -67,20 +69,23 @@ public class VOTableUtil {
                 throw new IllegalArgumentException("Cannot find data placeholder in XML input");
             }
 
+            // Create a clean header with simple indentation
             header = xmlInput.substring(0, splitPoint);
+            header += "<DATA>\n      <BINARY2>\n        <STREAM encoding='base64'>\n";
 
-            header += "<DATA>\n<BINARY2>\n<STREAM encoding='base64'>\n";
-
+            // Get the raw footer
             footer = xmlInput.substring(splitPoint + commentMarker.length());
 
+            // Clean up the footer
             int tableCloseIndex = footer.indexOf("</TABLE>");
             if (tableCloseIndex != -1) {
                 String footerStart = footer.substring(0, tableCloseIndex);
                 String footerEnd = footer.substring(tableCloseIndex);
 
-                footer = footerStart + "\n</STREAM>\n</BINARY2>\n</DATA>\n" + footerEnd;
+                // Use simple, consistent indentation
+                footer = "        </STREAM>\n      </BINARY2>\n    </DATA>\n" + footerEnd;
             } else {
-                footer = "\n</STREAM>\n</BINARY2>\n</DATA>\n" + footer;
+                footer = "        </STREAM>\n      </BINARY2>\n    </DATA>\n" + footer;
             }
 
         } catch (Exception e) {
@@ -91,6 +96,7 @@ public class VOTableUtil {
         return new String[] { header, footer };
     }
 
+ 
     /**
      * Convert TapSelectItem list to ColumnType list.
      * 
@@ -112,6 +118,17 @@ public class VOTableUtil {
             if (item.getDatatype() != null && item.getDatatype().arraysize != null) {
                 columnType.setArraysize(item.getDatatype().arraysize);
             }
+
+            // Handle columns that need rewriting
+            // Currently only the access_url column in ivoa.ObsCore
+            if (item != null) {
+                if ("ivoa.ObsCore".equalsIgnoreCase(item.tableName)) {
+                    if ("access_url".equalsIgnoreCase(item.getColumnName())) {
+                        columnType.setRequiresUrlRewrite(true);
+                    }
+                }
+            }
+
             columnTypes.add(columnType);
         }
 

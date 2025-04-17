@@ -162,12 +162,18 @@ public class JobUpdateService extends HttpServlet {
      */
     private JobStatus buildJobStatusFromParams(HttpServletRequest request, String jobID, ExecutionStatus status) {
         JobStatus.Builder builder = JobStatus.newBuilder()
-                .setJobID(jobID)
-                .setStatus(status);
-        
-        String timestamp = request.getParameter("timestamp");
-        if (timestamp != null && !timestamp.trim().isEmpty()) {
-            builder.setTimestamp(timestamp);
+        .setJobID(jobID)
+        .setStatus(status);
+
+        String timestampParam = request.getParameter("timestamp");
+        if (timestampParam != null && !timestampParam.trim().isEmpty()) {
+            try {
+                Long timestamp = Long.parseLong(timestampParam);
+                builder.setTimestamp(timestamp);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid timestamp format: " + timestampParam + ". Using current time instead.", e);
+                builder.setTimestampNow();
+            }
         } else {
             builder.setTimestampNow();
         }
@@ -208,15 +214,24 @@ public class JobUpdateService extends HttpServlet {
         boolean hasData = false;
         
         String startTime = request.getParameter("queryInfo.startTime");
-        if (startTime != null && !startTime.trim().isEmpty()) {
-            queryInfo.setStartTime(startTime);
-            hasData = true;
-        }
-        
         String endTime = request.getParameter("queryInfo.endTime");
+
+        if (startTime != null && !startTime.trim().isEmpty()) {
+            try {
+                queryInfo.setStartTime(Long.parseLong(startTime));
+                hasData = true;
+            } catch (NumberFormatException e) {
+                log.warn("Invalid startTime format: " + startTime, e);
+            }
+        }
+
         if (endTime != null && !endTime.trim().isEmpty()) {
-            queryInfo.setEndTime(endTime);
-            hasData = true;
+            try {
+                queryInfo.setEndTime(Long.parseLong(endTime));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid endTime format: " + endTime, e);
+            }
+
         }
         
         String durationStr = request.getParameter("queryInfo.duration");

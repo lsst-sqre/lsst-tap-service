@@ -301,12 +301,17 @@ public class JobRun {
         public ResultFormat() {
         }
 
-        public ResultFormat(Format format, Envelope envelope, List<ColumnType> columnTypes) {
+        public ResultFormat(Format format, Envelope envelope, List<ColumnType> columnTypes, String baseUrl) {
             this.format = format;
             this.envelope = envelope;
             this.columnTypes = columnTypes;
+            this.baseUrl = baseUrl;
+            
         }
-
+        public ResultFormat(Format format, Envelope envelope, List<ColumnType> columnTypes) {
+            this(format, envelope, columnTypes, null);
+        }
+        
         public static ResultFormat fromJson(JSONObject json) {
             ResultFormat resultFormat = new ResultFormat();
 

@@ -129,7 +129,7 @@ public class CreateJobStatus implements AutoCloseable {
             throw new IllegalArgumentException("jobStatus.status cannot be null");
         }
 
-        if (jobStatus.getTimestamp() == null || jobStatus.getTimestamp().trim().isEmpty()) {
+        if (jobStatus.getTimestamp() == null) {
             jobStatus = JobStatus.newBuilder()
                     .setJobID(jobStatus.getJobID())
                     .setStatus(jobStatus.getStatus())
