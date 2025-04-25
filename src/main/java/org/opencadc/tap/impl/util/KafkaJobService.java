@@ -118,11 +118,10 @@ public class KafkaJobService {
     /**
      * Submits a job deletion request to Kafka.
      * 
-     * @param jobId                    The ID of the job to delete
-     * @param executionId              The execution ID (qservID) of the job to
-     *                                 delete
+     * @param job                    The job to delete
      * @param createDeleteEventService Kafka delete event service
      * @param jobUpdater               JobUpdater implementation
+     * @param jobPersistence          JobPersistence implementation
      * @return true if deletion request was successful, false otherwise
      * @throws JobNotFoundException    If the job is not found
      * @throws JobPersistenceException If there's an error accessing job data

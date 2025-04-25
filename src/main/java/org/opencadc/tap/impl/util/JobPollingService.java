@@ -58,6 +58,8 @@ public class JobPollingService {
      * @throws JobNotFoundException    If the job is not found
      * @throws JobPersistenceException If there's an error accessing job data
      * @throws IOException
+     * @throws JobServiceUnavailableException If the job service is unavailable
+     * @throws IOException
      */
     public boolean pollAndHandleResults(String jobId, SyncOutput syncOutput)
             throws TransientException, JobNotFoundException, JobPersistenceException, IOException,
@@ -241,6 +243,8 @@ public class JobPollingService {
      * @return The final phase or null if timed out
      * @throws JobNotFoundException If the job is not found
      * @throws InterruptedException If polling is interrupted
+     * @throws JobPersistenceException If there's an error accessing job data
+     * @throws JobServiceUnavailableException If the job service is unavailable
      */
     public static ExecutionPhase pollUntilTerminal(String jobId, JobUpdater jobUpdater,
             int maxAttempts, int pollIntervalMs)
@@ -279,8 +283,6 @@ public class JobPollingService {
     /**
      * Custom exception for service unavailable errors.
      * 
-     * @param message      The error message
-     * @param retryAfterMs The time to wait before retrying
      */
     public static class JobServiceUnavailableException extends Exception {
         private final int retryAfterMs;
