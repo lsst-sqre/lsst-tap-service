@@ -34,6 +34,8 @@ import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import ca.nrc.cadc.vosi.TAPRegExtParser;
+
 public class CreateJobEventTest {
     private static final Logger log = Logger.getLogger(CreateJobEventTest.class);
 
@@ -48,6 +50,9 @@ public class CreateJobEventTest {
     private static final String TEST_QUERY_TOPIC = "test-query-topic";
     private static final String TEST_STATUS_TOPIC = "test-status-topic";
     private static final String TEST_DELETE_TOPIC = "test-delete-topic";
+    private static final String TEST_UPLOAD_NAME = "test-upload-name";
+    private static final String TEST_UPLOAD_SOURCE = "https://tap-files.lsst.codes/upload_k51tn910ak8wuc2z.xml";
+    private static final Integer TEST_MAXREC = 1000;
 
     // Start a Kafka container
     @ClassRule
@@ -133,7 +138,10 @@ public class CreateJobEventTest {
                 TEST_RESULT_LOCATION,
                 resultFormat,
                 TEST_OWNER_ID,
-                TEST_DATABASE);
+                TEST_DATABASE,
+                TEST_MAXREC,
+                TEST_UPLOAD_NAME,
+                TEST_UPLOAD_SOURCE);
 
         assertEquals(TEST_JOB_ID, result);
 
@@ -235,7 +243,10 @@ public class CreateJobEventTest {
                 TEST_RESULT_LOCATION,
                 resultFormat,
                 TEST_OWNER_ID,
-                TEST_DATABASE);
+                TEST_DATABASE,
+                TEST_MAXREC,
+                TEST_UPLOAD_NAME,
+                TEST_UPLOAD_SOURCE);
 
         assertEquals(TEST_JOB_ID + "-close", result);
 
@@ -249,7 +260,10 @@ public class CreateJobEventTest {
                     TEST_RESULT_LOCATION,
                     resultFormat,
                     TEST_OWNER_ID,
-                    TEST_DATABASE);
+                    TEST_DATABASE,
+                    TEST_MAXREC,
+                    TEST_UPLOAD_NAME,
+                    TEST_UPLOAD_SOURCE);
             fail("Expected IllegalStateException was not thrown");
         } catch (IllegalStateException e) {
         }

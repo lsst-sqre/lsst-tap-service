@@ -3,15 +3,21 @@ package org.opencadc.tap.impl.util;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.Result;
 import ca.nrc.cadc.uws.server.JobNotFoundException;
 import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
+
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.opencadc.tap.impl.QServQueryRunner;
 import ca.nrc.cadc.tap.QueryRunner;
+import ca.nrc.cadc.tap.UploadManager;
+
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
@@ -73,7 +79,10 @@ public class KafkaJobService {
                     jobInfo.resultLocation,
                     jobInfo.resultFormat,
                     jobInfo.ownerID,
-                    databaseString);
+                    databaseString,
+                    jobInfo.maxrec,
+                    jobInfo.uploadName,
+                    jobInfo.uploadSource);
 
             log.debug("Job sent to Kafka successfully with event ID: " + eventJobId);
 
@@ -213,12 +222,29 @@ public class KafkaJobService {
         if (jobRunner instanceof QServQueryRunner) {
             QServQueryRunner qRunner = (QServQueryRunner) jobRunner;
             QueryRunner queryRunner = (QueryRunner) jobRunner;
-
+            List<Parameter> paramList = queryRunner.paramList;
             info.sql = qRunner.internalSQL;
             info.resultDestination = GCSStorageUtil.generateSignedUrl(
                     bucket, job.getID(), "application/x-votable+xml", 120);
             info.resultLocation = GCSStorageUtil.generateResultLocation(bucketURL, job.getID());
             info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner);
+            info.maxrec = queryRunner.maxRows;
+            try {
+                for (Parameter param : paramList) {
+                    if (param.getName().equals(UploadManager.UPLOAD)) {
+                        String paramAsString = param.getValue();
+                        // Example <uws:parameter id="UPLOAD">ut1,https://tap-files.lsst.codes/ut1-oxz0xczususdgg5z</uws:parameter>
+                        String[] paramParts = paramAsString.split(",");
+                        if (paramParts.length > 1) {
+                            info.uploadName = paramParts[0];
+                            info.uploadSource = paramParts[1];
+                        }
+                    }
+                    
+                }
+            } catch (Exception e) {
+                log.error("Error parsing upload parameter: " + e.getMessage(), e);
+            }
         }
 
         return info;
@@ -233,5 +259,8 @@ public class KafkaJobService {
         String resultLocation = "";
         JobRun.ResultFormat resultFormat = null;
         String ownerID = "";
+        Integer maxrec = null;
+        String uploadName = "";
+        String uploadSource = "";
     }
 }

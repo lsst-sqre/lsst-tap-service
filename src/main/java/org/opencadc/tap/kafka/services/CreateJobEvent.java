@@ -7,6 +7,8 @@ import org.apache.log4j.Logger;
 import org.opencadc.tap.kafka.KafkaConfig;
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
+import org.opencadc.tap.kafka.models.JobRun.UploadTable;
+
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -72,7 +74,7 @@ public class CreateJobEvent implements AutoCloseable {
     public String submitQuery(String query, String jobID, String resultDestination, ResultFormat resultFormat)
             throws ExecutionException, InterruptedException {
 
-        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null);
+        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null, null, null, null);
     }
 
     /**
@@ -85,14 +87,20 @@ public class CreateJobEvent implements AutoCloseable {
      * @param resultFormat      Optional custom result format
      * @param ownerID           Owner identifier
      * @param database          Optional database to query
+     * @param maxrec            Optional maximum number of records
      * @return Job ID for the submitted query
      * @throws ExecutionException   if sending to Kafka fails
      * @throws InterruptedException if the operation is interrupted
      */
     public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
-            ResultFormat resultFormat,
-            String ownerID, String database)
+            ResultFormat resultFormat, String ownerID, String database, Integer maxrec, 
+            String uploadName, String uploadSource)
             throws ExecutionException, InterruptedException {
+
+        UploadTable uploadTable = null;
+        if (uploadName != null && uploadSource != null) {
+            uploadTable = new UploadTable(uploadName, uploadSource);
+        }
 
         if (closed.get()) {
             throw new IllegalStateException("CreateJobEvent has been closed");
@@ -120,11 +128,13 @@ public class CreateJobEvent implements AutoCloseable {
             JobRun jobRun = JobRun.newBuilder()
                     .setJobID(jobID)
                     .setQuery(query)
+                    .setMaxrec(maxrec)
                     .setOwnerID(ownerID)
                     .setResultDestination(resultDestination)
                     .setResultLocation(resultLocation)
                     .setResultFormat(resultFormat)
                     .setDatabase(database)
+                    .setUploadTable(uploadTable)
                     .build();
 
             String jsonString = jobRun.toJsonString();

@@ -146,6 +146,9 @@ public class QueryRunner implements JobRunner {
     public transient VOTableDocument resultTemplate;
     public transient String internalSQL;
     public transient TapQuery query;
+    public transient Integer maxRows;
+    public transient List<Parameter> paramList;
+
     protected final boolean returnHELD;
 
     private final int responseCodeOnUserFail = 400;
@@ -241,7 +244,7 @@ public class QueryRunner implements JobRunner {
         long dt;
 
         log.debug("run: " + job.getID());
-        List<Parameter> paramList = job.getParameterList();
+        paramList = job.getParameterList();
         log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
         PluginFactoryImpl pfac = getPluginFactory();
         log.debug("loaded: " + pfac);
@@ -317,7 +320,7 @@ public class QueryRunner implements JobRunner {
             maxRecValidator.setTapSchema(tapSchema);
             maxRecValidator.setJob(job);
             maxRecValidator.setSynchronousMode(syncOutput != null);
-            final Integer maxRows = maxRecValidator.validate();
+            maxRows = maxRecValidator.validate();
 
             log.debug("creating TapQuery implementation...");
             this.query = pfac.getTapQuery();
@@ -329,6 +332,7 @@ public class QueryRunner implements JobRunner {
                             "Invalid MAXREC: " + maxRows + " (max " + (Integer.MAX_VALUE - 1) + ")");
                 }
                 query.setMaxRowCount(maxRows + 1); // +1 so the TableWriter can detect overflow
+                maxRows += 1;
             }
 
             log.debug("invoking TapQuery implementation: " + query.getClass().getCanonicalName());

@@ -2,6 +2,8 @@ package org.opencadc.tap.kafka.models;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.stringtemplate.v4.compiler.CodeGenerator.primary_return;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,7 @@ public class JobRun {
 
     private String jobID;
     private String query;
+    private Integer maxrec;
     private String database;
     private String ownerID;
     private String resultDestination;
@@ -52,6 +55,10 @@ public class JobRun {
 
         if (json.has("query")) {
             jobRun.setQuery(json.getString("query"));
+        }
+
+        if (json.has("maxrec")) {
+            jobRun.setMaxrec(json.getInt("maxrec"));
         }
 
         if (json.has("database")) {
@@ -93,6 +100,7 @@ public class JobRun {
 
         json.put("jobID", jobID);
         json.put("query", query);
+        json.put("maxrec", maxrec);
         json.put("ownerID", ownerID);
         json.put("resultDestination", resultDestination);
         json.put("resultFormat", resultFormat.toJson());
@@ -137,6 +145,14 @@ public class JobRun {
 
     public void setQuery(String query) {
         this.query = query;
+    }
+
+    public Integer getMaxrec() {
+        return maxrec;
+    }
+
+    public void setMaxrec(Integer maxrec) {
+        this.maxrec = maxrec;
     }
 
     public String getDatabase() {
@@ -208,6 +224,7 @@ public class JobRun {
     public static class Builder {
         private String jobID;
         private String query;
+        private Integer maxrec;
         private String database;
         private String ownerID;
         private String resultDestination;
@@ -226,6 +243,11 @@ public class JobRun {
 
         public Builder setQuery(String query) {
             this.query = query;
+            return this;
+        }
+
+        public Builder setMaxrec(Integer maxrec) {
+            this.maxrec = maxrec;
             return this;
         }
 
@@ -268,6 +290,7 @@ public class JobRun {
             JobRun jobRun = new JobRun(jobID, query, ownerID, resultDestination, resultFormat);
             jobRun.setDatabase(database);
             jobRun.setResultLocation(resultLocation);
+            jobRun.setMaxrec(maxrec);
             jobRun.setUploadTable(uploadTable);
             jobRun.setTimeout(timeout);
             return jobRun;
@@ -279,6 +302,7 @@ public class JobRun {
         return "JobRun{" +
                 "jobID='" + jobID + '\'' +
                 ", query='" + query + '\'' +
+                ", maxrec='" + maxrec + '\'' +
                 ", database='" + database + '\'' +
                 ", ownerID='" + ownerID + '\'' +
                 ", resultDestination='" + resultDestination + '\'' +
