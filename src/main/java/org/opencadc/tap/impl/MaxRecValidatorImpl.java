@@ -80,8 +80,8 @@
   */
  public class MaxRecValidatorImpl extends MaxRecValidator {
      private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000;
-     private static final Integer MAX_LIMIT = 100000;
+     private static final Integer DEFAULT_LIMIT = 100000000;
+     private static final Integer MAX_LIMIT = 100000000;
  
  
      public MaxRecValidatorImpl() {
