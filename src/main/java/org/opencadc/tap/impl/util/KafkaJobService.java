@@ -11,7 +11,10 @@ import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 
+import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.opencadc.tap.impl.QServQueryRunner;
@@ -82,7 +85,8 @@ public class KafkaJobService {
                     databaseString,
                     jobInfo.maxrec,
                     jobInfo.uploadName,
-                    jobInfo.uploadSource);
+                    jobInfo.uploadSource,
+                    jobInfo.uploadSchema);
 
             log.debug("Job sent to Kafka successfully with event ID: " + eventJobId);
 
@@ -118,10 +122,10 @@ public class KafkaJobService {
     /**
      * Submits a job deletion request to Kafka.
      * 
-     * @param job                    The job to delete
+     * @param job                      The job to delete
      * @param createDeleteEventService Kafka delete event service
      * @param jobUpdater               JobUpdater implementation
-     * @param jobPersistence          JobPersistence implementation
+     * @param jobPersistence           JobPersistence implementation
      * @return true if deletion request was successful, false otherwise
      * @throws JobNotFoundException    If the job is not found
      * @throws JobPersistenceException If there's an error accessing job data
@@ -141,7 +145,7 @@ public class KafkaJobService {
         jobPersistence.getDetails(job);
         String executionId = null;
         String jobId = job.getID();
-        
+
         if (job.getResultsList() != null) {
             for (Result result : job.getResultsList()) {
                 if (result.getName().equals("executionId")) {
@@ -215,6 +219,8 @@ public class KafkaJobService {
      * @return JobSubmissionInfo containing extracted job information
      */
     private static JobSubmissionInfo extractJobInfo(Job job, JobRunner jobRunner, String bucketURL, String bucket) {
+
+
         JobSubmissionInfo info = new JobSubmissionInfo();
         info.ownerID = job.getOwnerID();
 
@@ -232,14 +238,25 @@ public class KafkaJobService {
                 for (Parameter param : paramList) {
                     if (param.getName().equals(UploadManager.UPLOAD)) {
                         String paramAsString = param.getValue();
-                        // Example <uws:parameter id="UPLOAD">ut1,https://tap-files.lsst.codes/ut1-oxz0xczususdgg5z</uws:parameter>
+                        // Example <uws:parameter
+                        // id="UPLOAD">ut1,https://tap-files.lsst.codes/ut1-oxz0xczususdgg5z</uws:parameter>
                         String[] paramParts = paramAsString.split(",");
                         if (paramParts.length > 1) {
                             info.uploadName = paramParts[0];
                             info.uploadSource = paramParts[1];
+                            info.uploadSchema = replaceFileExtension(info.uploadSource); // Perhaps there is a better way to do this
                         }
                     }
-                    
+
+                }
+
+                if (!queryRunner.uploadTableLocations.isEmpty()) {
+                    log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
+                    info.uploadTableLocations = new HashMap<>();
+                    for (Map.Entry<String, URI> entry : queryRunner.uploadTableLocations.entrySet()) {
+                        info.uploadTableLocations.put(entry.getKey(), entry.getValue().toString());
+                        log.debug("  Upload table: " + entry.getKey() + " -> " + entry.getValue());
+                    }
                 }
             } catch (Exception e) {
                 log.error("Error parsing upload parameter: " + e.getMessage(), e);
@@ -247,6 +264,20 @@ public class KafkaJobService {
         }
 
         return info;
+    }
+
+    /**
+     * Replaces the file extension of a given filename with ".schema.json".
+     * @param filename
+     * @return
+     */
+    private static String replaceFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex != -1) {
+            return filename.substring(0, lastDotIndex) + ".schema.json";
+        } else {
+            return filename + ".schema.json";
+        }
     }
 
     /**
@@ -261,5 +292,7 @@ public class KafkaJobService {
         Integer maxrec = null;
         String uploadName = "";
         String uploadSource = "";
+        String uploadSchema = "";
+        HashMap<String, String> uploadTableLocations = null;
     }
 }

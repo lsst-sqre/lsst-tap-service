@@ -74,7 +74,7 @@ public class CreateJobEvent implements AutoCloseable {
     public String submitQuery(String query, String jobID, String resultDestination, ResultFormat resultFormat)
             throws ExecutionException, InterruptedException {
 
-        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null, null, null, null);
+        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null, null, null, null, null);
     }
 
     /**
@@ -94,12 +94,12 @@ public class CreateJobEvent implements AutoCloseable {
      */
     public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
             ResultFormat resultFormat, String ownerID, String database, Integer maxrec, 
-            String uploadName, String uploadSource)
+            String uploadName, String uploadSource, String uploadSchema)
             throws ExecutionException, InterruptedException {
 
         UploadTable uploadTable = null;
         if (uploadName != null && uploadSource != null) {
-            uploadTable = new UploadTable(uploadName, uploadSource);
+            uploadTable = new UploadTable(uploadName, uploadSource, uploadSchema);
         }
 
         if (closed.get()) {

@@ -52,6 +52,7 @@ public class CreateJobEventTest {
     private static final String TEST_DELETE_TOPIC = "test-delete-topic";
     private static final String TEST_UPLOAD_NAME = "test-upload-name";
     private static final String TEST_UPLOAD_SOURCE = "https://tap-files.lsst.codes/upload_k51tn910ak8wuc2z.xml";
+    private static final String TEST_UPLOAD_SCHEMA = "https://tap-files.lsst.codes/upload_k51tn910ak8wuc2z.schema.json";
     private static final Integer TEST_MAXREC = 1000;
 
     // Start a Kafka container
@@ -141,7 +142,8 @@ public class CreateJobEventTest {
                 TEST_DATABASE,
                 TEST_MAXREC,
                 TEST_UPLOAD_NAME,
-                TEST_UPLOAD_SOURCE);
+                TEST_UPLOAD_SOURCE,
+                TEST_UPLOAD_SCHEMA);
 
         assertEquals(TEST_JOB_ID, result);
 
@@ -246,7 +248,9 @@ public class CreateJobEventTest {
                 TEST_DATABASE,
                 TEST_MAXREC,
                 TEST_UPLOAD_NAME,
-                TEST_UPLOAD_SOURCE);
+                TEST_UPLOAD_SOURCE,
+                TEST_UPLOAD_SCHEMA);
+
 
         assertEquals(TEST_JOB_ID + "-close", result);
 
@@ -263,7 +267,9 @@ public class CreateJobEventTest {
                     TEST_DATABASE,
                     TEST_MAXREC,
                     TEST_UPLOAD_NAME,
-                    TEST_UPLOAD_SOURCE);
+                    TEST_UPLOAD_SOURCE,
+                    TEST_UPLOAD_SCHEMA);
+
             fail("Expected IllegalStateException was not thrown");
         } catch (IllegalStateException e) {
         }

@@ -197,9 +197,13 @@ public class KafkaJobExecutor implements JobExecutor {
             }
 
             // We may have a job that is already executing here if this is a retry
+            // Check if continuation or terminal state, if so run the polling service
 
+            Boolean queryInProgress = false; // Check if we are in a state that requires polling
+            
             ExecutionPhase currentPhase = jobUpdater.getPhase(job.getID());
 
+                    
             if (currentPhase == ExecutionPhase.PENDING) {
                 JobPhaseManager.transitionJobPhase(
                         job.getID(), ExecutionPhase.PENDING, ExecutionPhase.QUEUED, jobUpdater);
@@ -213,11 +217,14 @@ public class KafkaJobExecutor implements JobExecutor {
 
                 currentPhase = jobUpdater.getPhase(job.getID());
                 log.debug("Current job phase after preparation: " + currentPhase);
+            } else {
+                queryInProgress = true;
             }
 
-            QueryRunner queryRunner = (QueryRunner) jobRunner;
-            if (queryRunner.query.isTapSchemaQuery()) {
-                log.debug("Job " + job.getID() + " is a TAP schema query, skipping Kafka submission and returning");
+            if (!queryInProgress && (ExecutionPhase.EXECUTING.equals(currentPhase) ||
+            ExecutionPhase.COMPLETED.equals(currentPhase) ||
+            ExecutionPhase.ERROR.equals(currentPhase)) ) {
+                log.debug("Job " + job.getID() + " was most likely a TAP_SCHEMA query, and is already in terminal state: " + currentPhase);
                 return;
             }
 

@@ -3,15 +3,21 @@ package org.opencadc.tap.impl;
 import ca.nrc.cadc.tap.DefaultTableWriter;
 import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableInfo;
 import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.date.DateUtil;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +75,7 @@ public class RubinTableWriter extends DefaultTableWriter {
 
         try {
             List<String> datalinks = determineDatalinks(columnNames);
-            log.debug("Found " + datalinks.size() + " applicable datalinks for columns");
+            log.info("Found " + datalinks.size() + " applicable datalinks for columns");
 
             List<VOTableResource> metaResources = generateMetaResources(datalinks, columnNames);
             for (VOTableResource metaResource : metaResources) {
@@ -134,6 +140,7 @@ public class RubinTableWriter extends DefaultTableWriter {
     private List<VOTableResource> generateMetaResources(List<String> serviceIDs, List<String> columns)
             throws IOException {
         List<VOTableResource> metaResources = new ArrayList<>();
+        log.info("Generating meta resources for " + serviceIDs.size() + " datalink services");
 
         for (String serviceID : serviceIDs) {
             try {
@@ -167,4 +174,29 @@ public class RubinTableWriter extends DefaultTableWriter {
 
         return metaResources;
     }
+
+    @Override
+    public VOTableDocument generateOutputTable() throws IOException {
+        VOTableDocument votableDocument = super.generateOutputTable();
+
+        if (votableDocument == null) {
+            return null;
+        }
+
+        VOTableResource resultsResource = votableDocument.getResourceByType("results");
+        if (resultsResource == null || resultsResource.getTable() == null) {
+            return votableDocument; // No modification needed if structure is unexpected
+        }
+
+        VOTableTable resultsTable = resultsResource.getTable();
+        List<VOTableField> fields = resultsTable.getFields();
+
+        for (int i = 0; i < fields.size(); i++) {
+            VOTableField field = fields.get(i);
+            field.ref = "col_" + i;
+        }
+
+        return votableDocument;
+    }
+
 }

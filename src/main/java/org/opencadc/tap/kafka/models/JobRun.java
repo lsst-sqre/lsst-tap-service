@@ -634,13 +634,15 @@ public class JobRun {
     public static class UploadTable {
         private String tableName;
         private String sourceUrl;
+        private String schemaUrl;
 
         public UploadTable() {
         }
 
-        public UploadTable(String tableName, String sourceUrl) {
+        public UploadTable(String tableName, String sourceUrl, String schemaUrl) {
             this.tableName = tableName;
             this.sourceUrl = sourceUrl;
+            this.schemaUrl = schemaUrl;
         }
 
         public static UploadTable fromJson(JSONObject json) {
@@ -653,7 +655,11 @@ public class JobRun {
             if (json.has("sourceUrl")) {
                 uploadTable.setSourceUrl(json.getString("sourceUrl"));
             }
-
+            
+            if (json.has("schemaUrl")) {
+                uploadTable.setSourceUrl(json.getString("schemaUrl"));
+            }
+            
             return uploadTable;
         }
 
@@ -666,6 +672,10 @@ public class JobRun {
 
             if (sourceUrl != null) {
                 json.put("sourceUrl", sourceUrl);
+            }
+
+            if (schemaUrl != null) {
+                json.put("schemaUrl", schemaUrl);
             }
 
             return json;
@@ -687,11 +697,19 @@ public class JobRun {
             this.sourceUrl = sourceUrl;
         }
 
+        public String getSchemaUrl() {
+            return schemaUrl;
+        }
+
+        public void setSchemaUrl(String schemaUrl) {
+            this.schemaUrl = schemaUrl;
+        }
+
         @Override
         public String toString() {
             return "UploadTable{" +
                     "tableName='" + tableName + '\'' +
-                    ", sourceUrl='" + sourceUrl + '\'' +
+                    ", schemaUrl='" + schemaUrl + '\'' +
                     '}';
         }
     }

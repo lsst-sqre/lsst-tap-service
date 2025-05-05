@@ -69,7 +69,20 @@
 
 package org.opencadc.tap.impl;
 
+import ca.nrc.cadc.dali.tables.TableData;
+import ca.nrc.cadc.dali.tables.TableWriter;
+import ca.nrc.cadc.dali.tables.ascii.AsciiTableWriter;
+import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
+import ca.nrc.cadc.dali.tables.votable.VOTableField;
+import ca.nrc.cadc.dali.tables.votable.VOTableReader;
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
+import ca.nrc.cadc.dali.util.DefaultFormat;
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.dali.util.FormatFactory;
 import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.tap.BasicUploadManager;
 import ca.nrc.cadc.tap.UploadManager;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.db.TableCreator;
@@ -85,8 +98,26 @@ import ca.nrc.cadc.tap.upload.VOTableParser;
 import ca.nrc.cadc.tap.upload.VOTableParserException;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.server.RandomStringGenerator;
+import ca.nrc.cadc.uws.web.UWSInlineContentHandler;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
+
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.channels.Channels;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -94,13 +125,33 @@ import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.apache.solr.s3.S3OutputStream;
 import org.opencadc.tap.io.TableDataInputStream;
+
+import com.csvreader.CsvWriter;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 
 /**
  *
  * @author stvoutsin
  */
-public class RubinUploadManagerImpl implements UploadManager {
+public class RubinUploadManagerImpl extends BasicUploadManager {
+
+    public static final String US_ASCII = "US-ASCII";
+
+    // CSV format delimiter.
+    public static final char CSV_DELI = ',';
+
+    // TSV format delimiter.
+    public static final char TSV_DELI = '\t';
+
+    private static final String bucket = System.getProperty("gcs_bucket");
+    private static final String bucketURL = System.getProperty("gcs_bucket_url");
+    private static final String bucketType = System.getProperty("gcs_bucket_type");
 
     private static final Logger log = Logger.getLogger(RubinUploadManagerImpl.class);
 
@@ -165,180 +216,195 @@ public class RubinUploadManagerImpl implements UploadManager {
      *
      * @param uploadLimits limits on table upload
      */
-    protected RubinUploadManagerImpl(UploadLimits uploadLimits) {
-        if (uploadLimits == null) {
-            throw new IllegalStateException("Upload limits are required.");
-        }
-
+    public RubinUploadManagerImpl(UploadLimits uploadLimits) {
+        super(uploadLimits);
         this.uploadLimits = uploadLimits;
-        dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
     }
 
     @Override
-    public String getUploadSchema() {
-        return "TAP_UPLOAD";
-    }
+    protected void storeTable(TableDesc table, VOTableTable vot) {
 
-    /**
-     * Set the DataSource used for creating and populating tables.
-     *
-     * @param ds
-     */
-    @Override
-    public void setDataSource(DataSource ds) {
-        this.dataSource = ds;
-    }
-
-    /**
-     * Give database specific data type information.
-     *
-     * @param databaseDataType The DatabaseDataType implementation.
-     */
-    @Override
-    public void setDatabaseDataType(DatabaseDataType databaseDataType) {
-        this.databaseDataType = databaseDataType;
-    }
-
-    @Override
-    public void setJob(Job job) {
-        this.job = job;
-    }
-
-    /**
-     * Find and process all UPLOAD requests.
-     *
-     * @param paramList list of all parameters passed to the service.
-     * @param jobID     the UWS jobID.
-     * @return map of service generated upload table name to user-specified table
-     *         metadata
-     */
-    @Override
-    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
-        log.debug("upload jobID " + jobID);
-
-        if (dataSource == null) {
-            throw new IllegalStateException("failed to get DataSource");
+        if (table.dataLocation != null) {
+            log.info("Table already stored in cloud storage: " + table.dataLocation);
+            return; // Table already handled by inline content handler
         }
 
-        // Map of database table name to table descriptions.
-        Map<String, TableDesc> metadata = new HashMap<String, TableDesc>();
-
-        UploadTable cur = null;
-
-        // FormatterFactory factory = DefaultFormatterFactory.getFormatterFactory();
-        // factory.setJobID(jobID);
-        // factory.setParamList(params);
         try {
-            // Get upload table names and URI's from the request parameters.
-            UploadParameters uploadParameters = new UploadParameters(paramList, jobID);
-            if (uploadParameters.uploadTables.isEmpty()) {
-                log.debug("No upload tables found in paramList");
-                return metadata;
+            String uniqueId = new RandomStringGenerator(16).getID();
+            String baseFileName = table.getTableName();
+            String xmlEmptyFilename = baseFileName + ".empty.xml";
+            String csvFilename = baseFileName + ".csv";
+            String schemaFilename = baseFileName + ".schema.json";
+
+            VOTableDocument doc = new VOTableDocument();
+            VOTableResource resource = new VOTableResource("results");
+            resource.setTable(vot);
+            doc.getResources().add(resource);
+
+
+            VOTableTable votable = resource.getTable();
+            TableData originalData = votable.getTableData();
+            List<VOTableField> fields = votable.getFields();
+
+
+            // Write JSON Schema file
+            writeSchemaFile(votable.getFields(), schemaFilename);
+
+
+            // Write CSV version of the data
+            log.info("Writing CSV to: " + csvFilename);
+            OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
+            writeDataWithoutHeaders(fields, originalData, csvOs);
+            csvOs.flush();
+            csvOs.close();
+            log.info("CSV file written to: " + csvFilename);
+
+            // Empty the table data for metadata-only version
+            votable.setTableData(null);
+
+ 
+            log.info("Writing empty VOTable to: " + xmlEmptyFilename);
+            OutputStream xmlOsEmpty = StorageUtils.getOutputStream(xmlEmptyFilename, "application/x-votable+xml");
+            VOTableWriter voWriterEmpty = new VOTableWriter();
+            voWriterEmpty.write(doc, xmlOsEmpty);
+            xmlOsEmpty.flush();
+            xmlOsEmpty.close();
+
+            votable.setTableData(originalData);
+
+            URI votableUri = new URI(StorageUtils.getStorageBaseUrl() + "/" + xmlEmptyFilename);
+            table.dataLocation = votableUri;
+            log.info("Table " + table.getTableName() + " stored at " + table.dataLocation);
+        } catch (Exception e) {
+            log.error("Failed to store table in cloud storage", e);
+            throw new RuntimeException("Failed to store table in cloud storage", e);
+        }
+        
+    }
+
+        /**
+     * Write the schema.json file containing the field names and types
+     * extracted from the VOTable.
+     */
+    private void writeSchemaFile(List<VOTableField> fields, String schemaFilename)
+            throws IOException {
+        log.debug("Writing schema to: " + schemaFilename);
+        OutputStream schemaOs = StorageUtils.getOutputStream(schemaFilename, "application/json");
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(schemaOs, "UTF-8"));
+
+        writer.write("[");
+        boolean first = true;
+
+        for (VOTableField field : fields) {
+            if (!first) {
+                writer.write(",");
             }
+            first = false;
 
-            // Process each table.
-            for (UploadTable uploadTable : uploadParameters.uploadTables) {
-                cur = uploadTable;
-
-                // XML parser
-                // TODO: make configurable.
-                log.debug(uploadTable);
-
-                final VOTableParser parser = getVOTableParser(uploadTable);
-
-                // Get the Table description.
-                TableDesc tableDesc = parser.getTableDesc();
-                sanitizeTable(tableDesc);
-
-                // Fully qualified name of the table in the database.
-                String databaseTableName = getDatabaseTableName(uploadTable);
-
-                metadata.put(databaseTableName, tableDesc);
-                log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
-
-                final String tableName = tableDesc.getTableName();
-                tableDesc.setTableName(databaseTableName);
-
-                //TableCreator tc = new TableCreator(dataSource);
-                //tc.createTable(tableDesc);
-                /* 
-                TableLoader tld = new TableLoader(dataSource, 1000);
-                tld.load(tableDesc, new TableDataInputStream() {
-                    @Override
-                    public void close() {
-                        // no-op: fully read already
-                    }
-
-                    @Override
-                    public Iterator<List<Object>> iterator() {
-                        return parser.iterator();
-                    }
-
-                    @Override
-                    public TableDesc acceptTargetTableDesc(TableDesc td) {
-                        return td;
-                    }
-                });
-
-                tableDesc.setTableName(tableName);*/
-            }
-        } catch (VOTableParserException ex) {
-            throw new RuntimeException("failed to parse table " + cur.tableName + " from " + cur.uri, ex);
-        } catch (IOException ex) {
-            throw new RuntimeException("failed to read table " + cur.tableName + " from " + cur.uri, ex);
+            writer.write("\n  { ");
+            writer.write("\"name\": \"" + escapeJsonString(field.getName()) + "\", ");
+            writer.write("\"type\": \"" + escapeJsonString(field.getDatatype()) + "\"");
+            writer.write(" }");
         }
 
-        return metadata;
-    }
-
-    protected VOTableParser getVOTableParser(UploadTable uploadTable)
-            throws VOTableParserException {
-        VOTableParser ret = new JDOMVOTableParser(uploadLimits);
-        ret.setUpload(uploadTable);
-        return ret;
+        writer.write("\n]");
+        writer.flush();
+        writer.close();
     }
 
     /**
-     * Remove redundant metadata like TAP-1.0 xtypes for primitive columns.
-     *
-     * @param td
+     * Helper method to escape special characters in JSON strings
      */
-    protected void sanitizeTable(TableDesc td) {
-        for (ColumnDesc cd : td.getColumnDescs()) {
-            String xtype = cd.getDatatype().xtype;
-            if (TapConstants.TAP10_TIMESTAMP.equals(xtype)) {
-                cd.getDatatype().xtype = "timestamp"; // DALI-1.1
-            }
-            if (TAP10_XTYPES.contains(xtype)) {
-                cd.getDatatype().xtype = null;
-            }
+    private String escapeJsonString(String input) {
+        if (input == null) {
+            return "";
         }
-    }
 
-    /**
-     * Create the SQL to grant select privileges for the UPLOAD table.
-     *
-     * @param databaseTableName fully qualified table name.
-     * @return
-     */
-    protected String getGrantSelectTableSQL(String databaseTableName) {
-        return null;
-    }
-
-    /**
-     * Constructs the database table name from the schema, upload table name,
-     * and the jobID.
-     *
-     * @return the database table name.
-     */
-    public String getDatabaseTableName(UploadTable uploadTable) {
         StringBuilder sb = new StringBuilder();
-        if (!uploadTable.tableName.toUpperCase().startsWith(SCHEMA)) {
-            sb.append(SCHEMA).append(".");
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            switch (c) {
+                case '\"':
+                    sb.append("\\\"");
+                    break;
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '/':
+                    sb.append("\\/");
+                    break;
+                case '\b':
+                    sb.append("\\b");
+                    break;
+                case '\f':
+                    sb.append("\\f");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append(c);
+            }
         }
-        sb.append(uploadTable.tableName);
-        sb.append("_");
-        sb.append(uploadTable.jobID);
         return sb.toString();
     }
+
+    /**
+     * Write CSV data without the header row
+     */
+    private void writeDataWithoutHeaders(List<VOTableField> fields, TableData tableData, OutputStream out)
+            throws IOException {
+        Writer writer = new BufferedWriter(new OutputStreamWriter(out, US_ASCII));
+        CsvWriter csvWriter = new CsvWriter(writer, CSV_DELI);
+
+        try {
+            // Initialize the format factory
+            FormatFactory formatFactory = new FormatFactory();
+
+            // Initialize the list of associated formats
+            List<Format<Object>> formats = new ArrayList<Format<Object>>();
+            if (fields != null && !fields.isEmpty()) {
+                for (VOTableField field : fields) {
+                    Format<Object> format = null;
+                    if (field.getFormat() == null) {
+                        format = formatFactory.getFormat(field);
+                    } else {
+                        format = field.getFormat();
+                    }
+                    formats.add(format);
+                }
+            }
+
+            // Skip writing headers - just write the data rows
+            Iterator<List<Object>> rows = tableData.iterator();
+            while (rows.hasNext()) {
+                List<Object> row = rows.next();
+                if (!fields.isEmpty() && row.size() != fields.size()) {
+                    throw new IllegalStateException("cannot write row: " + fields.size() +
+                            " metadata fields, " + row.size() + " data columns");
+                }
+
+                for (int i = 0; i < row.size(); i++) {
+                    Object o = row.get(i);
+                    Format<Object> fmt = new DefaultFormat();
+                    if (!fields.isEmpty()) {
+                        fmt = formats.get(i);
+                    }
+                    csvWriter.write(fmt.format(o));
+                }
+                csvWriter.endRecord();
+            }
+        } catch (Exception ex) {
+            throw new IOException("error while writing CSV data", ex);
+        } finally {
+            csvWriter.flush();
+        }
+    }
+    
 }
