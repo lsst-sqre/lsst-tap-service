@@ -193,7 +193,7 @@ public class RubinTableWriter extends DefaultTableWriter {
 
         for (int i = 0; i < fields.size(); i++) {
             VOTableField field = fields.get(i);
-            field.ref = "col_" + i;
+            field.id = "col_" + i;
         }
 
         return votableDocument;
