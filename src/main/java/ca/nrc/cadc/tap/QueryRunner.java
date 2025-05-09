@@ -69,6 +69,9 @@
 
 package ca.nrc.cadc.tap;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.log.WebServiceLogInfo;
@@ -94,7 +97,9 @@ import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.AccessControlContext;
 import java.security.AccessControlException;
+import java.security.AccessController;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -103,10 +108,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
+import javax.security.auth.Subject;
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 
@@ -144,11 +151,12 @@ public class QueryRunner implements JobRunner {
 
     // intermediate state for the UWS JobExecutor to access when job is HELD
     public final transient Map<String, URI> uploadTableLocations = new TreeMap<>();
+    public final transient Map<String, URI> uploadTableSchemaLocations = new TreeMap<>();
+
     public transient List<TapSelectItem> selectList;
     public transient VOTableDocument resultTemplate;
     public transient String internalSQL;
     public transient Integer maxRows;
-    public transient List<Parameter> paramList;
 
     protected final boolean returnHELD;
 
@@ -237,6 +245,28 @@ public class QueryRunner implements JobRunner {
         return getQueryDataSource();
     }
 
+    /** 
+     * Get the username of the caller.
+     * 
+     * @return the username of the caller
+     * @throws Exception
+     */
+    protected String getUsername () {
+        String username = null;
+        try {
+            AccessControlContext acContext = AccessController.getContext();
+            Subject caller = Subject.getSubject(acContext);
+            Set<HttpPrincipal> principals = caller.getPrivateCredentials(HttpPrincipal.class);
+            if (principals != null && !principals.isEmpty()) {
+                HttpPrincipal principal = principals.iterator().next();
+                username = principal.getName();
+            }
+        } catch (Exception e) {
+            log.error("Failed to get username", e);
+        }
+        return username;
+    }
+
     private void runImpl() {
         List<Result> diagnostics = new ArrayList<>();
 
@@ -245,10 +275,29 @@ public class QueryRunner implements JobRunner {
         long dt;
 
         log.debug("run: " + job.getID());
-        paramList = job.getParameterList();
+        List<Parameter> paramList = job.getParameterList();
         log.debug("job " + job.getID() + ": " + paramList.size() + " parameters");
         PluginFactoryImpl pfac = getPluginFactory();
         log.debug("loaded: " + pfac);
+
+
+        AccessControlContext acContext = AccessController.getContext();
+        Subject caller = Subject.getSubject(acContext);
+        log.info("Starting execution of job: " + job.getID());
+
+        AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
+
+        String username;
+
+        if ((authMethod != null) && (authMethod != AuthMethod.ANON)) {
+            final Set<HttpPrincipal> curPrincipals = caller.getPrincipals(HttpPrincipal.class);
+            final HttpPrincipal[] principalArray = new HttpPrincipal[curPrincipals.size()];
+            username = ((HttpPrincipal[]) curPrincipals.toArray(principalArray))[0].getName();
+        } else {
+            username = null;
+        }
+
+        log.info("username: " + username);
 
         ResultStore rs = null;
         if (syncOutput == null) {
@@ -318,6 +367,7 @@ public class QueryRunner implements JobRunner {
                 for (Map.Entry<String, TableDesc> e : tableDescs.entrySet()) {
                     if (e.getValue().dataLocation != null) {
                         uploadTableLocations.put(e.getValue().getTableName(), e.getValue().dataLocation);
+                        uploadTableSchemaLocations.put(e.getValue().getTableName(), e.getValue().schemaLocation);
                     }
                 }
             }

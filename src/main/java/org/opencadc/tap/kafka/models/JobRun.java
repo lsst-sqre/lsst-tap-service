@@ -22,7 +22,7 @@ public class JobRun {
     private String resultDestination;
     private String resultLocation;
     private ResultFormat resultFormat;
-    private UploadTable uploadTable;
+    private List<UploadTable> uploadTables;
     private Integer timeout;
 
     /**
@@ -81,8 +81,13 @@ public class JobRun {
             jobRun.setResultFormat(ResultFormat.fromJson(json.getJSONObject("resultFormat")));
         }
 
-        if (json.has("uploadTable")) {
-            jobRun.setUploadTable(UploadTable.fromJson(json.getJSONObject("uploadTable")));
+        if (json.has("uploadTables")) {
+            JSONArray tablesArray = json.getJSONArray("uploadTables");
+            List<UploadTable> tables = new ArrayList<>();
+            for (int i = 0; i < tablesArray.length(); i++) {
+                tables.add(UploadTable.fromJson(tablesArray.getJSONObject(i)));
+            }
+            jobRun.setUploadTables(tables);
         }
 
         if (json.has("timeout")) {
@@ -113,8 +118,12 @@ public class JobRun {
             json.put("resultLocation", resultLocation);
         }
 
-        if (uploadTable != null) {
-            json.put("uploadTable", uploadTable.toJson());
+        if (uploadTables != null && !uploadTables.isEmpty()) {
+            JSONArray uploadTablesArray = new JSONArray();
+            for (UploadTable table : uploadTables) {
+                uploadTablesArray.put(table.toJson());
+            }
+            json.put("uploadTables", uploadTablesArray);
         }
 
         if (timeout != null) {
@@ -195,12 +204,19 @@ public class JobRun {
         this.resultFormat = resultFormat;
     }
 
-    public UploadTable getUploadTable() {
-        return uploadTable;
+    public List<UploadTable> getUploadTables() {
+        return uploadTables;
     }
 
-    public void setUploadTable(UploadTable uploadTable) {
-        this.uploadTable = uploadTable;
+    public void setUploadTables(List<UploadTable> uploadTables) {
+        this.uploadTables = uploadTables;
+    }
+
+    public void addUploadTable(UploadTable uploadTable) {
+        if (this.uploadTables == null) {
+            this.uploadTables = new ArrayList<>();
+        }
+        this.uploadTables.add(uploadTable);
     }
 
     public Integer getTimeout() {
@@ -230,7 +246,7 @@ public class JobRun {
         private String resultDestination;
         private String resultLocation;
         private ResultFormat resultFormat;
-        private UploadTable uploadTable;
+        private List<UploadTable> uploadTables;
         private Integer timeout;
 
         private Builder() {
@@ -276,11 +292,19 @@ public class JobRun {
             return this;
         }
 
-        public Builder setUploadTable(UploadTable uploadTable) {
-            this.uploadTable = uploadTable;
+        public Builder setUploadTables(List<UploadTable> uploadTables) {
+            this.uploadTables = uploadTables;
             return this;
         }
 
+        public Builder addUploadTable(UploadTable uploadTable) {
+            if (this.uploadTables == null) {
+                this.uploadTables = new ArrayList<>();
+            }
+            this.uploadTables.add(uploadTable);
+            return this;
+        }
+        
         public Builder setTimeout(Integer timeout) {
             this.timeout = timeout;
             return this;
@@ -291,7 +315,7 @@ public class JobRun {
             jobRun.setDatabase(database);
             jobRun.setResultLocation(resultLocation);
             jobRun.setMaxrec(maxrec);
-            jobRun.setUploadTable(uploadTable);
+            jobRun.setUploadTables(uploadTables);
             jobRun.setTimeout(timeout);
             return jobRun;
         }
@@ -308,7 +332,7 @@ public class JobRun {
                 ", resultDestination='" + resultDestination + '\'' +
                 ", resultLocation='" + resultLocation + '\'' +
                 ", resultFormat=" + resultFormat +
-                ", uploadTable=" + uploadTable +
+                ", uploadTables=" + uploadTables +
                 ", timeout=" + timeout +
                 '}';
     }

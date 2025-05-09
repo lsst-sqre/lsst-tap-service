@@ -1,5 +1,13 @@
 package org.opencadc.tap.impl.util;
 
+import org.apache.log4j.Logger;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
@@ -10,17 +18,12 @@ import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
-
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.opencadc.tap.impl.QServQueryRunner;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.UploadManager;
 
+import org.opencadc.tap.impl.QServQueryRunner;
+import org.opencadc.tap.impl.StorageUtils;
+import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
@@ -36,6 +39,11 @@ import org.opencadc.tap.impl.context.WebAppContext;
 public class KafkaJobService {
     private static final Logger log = Logger.getLogger(KafkaJobService.class);
 
+    /**
+     * Default expiration time in minutes for job result URLs
+     */
+    private static final int DEFAULT_JOB_RESULT_EXPIRATION_MINUTES = 120;
+    
     /**
      * Prepares and submits a job to Kafka for execution.
      * 
@@ -84,9 +92,7 @@ public class KafkaJobService {
                     jobInfo.ownerID,
                     databaseString,
                     jobInfo.maxrec,
-                    jobInfo.uploadName,
-                    jobInfo.uploadSource,
-                    jobInfo.uploadSchema);
+                    jobInfo.uploadTables);
 
             log.debug("Job sent to Kafka successfully with event ID: " + eventJobId);
 
@@ -220,42 +226,31 @@ public class KafkaJobService {
      */
     private static JobSubmissionInfo extractJobInfo(Job job, JobRunner jobRunner, String bucketURL, String bucket) {
 
-
         JobSubmissionInfo info = new JobSubmissionInfo();
         info.ownerID = job.getOwnerID();
 
         if (jobRunner instanceof QServQueryRunner) {
             QServQueryRunner qRunner = (QServQueryRunner) jobRunner;
             QueryRunner queryRunner = (QueryRunner) jobRunner;
-            List<Parameter> paramList = queryRunner.paramList;
             info.sql = qRunner.internalSQL;
-            info.resultDestination = GCSStorageUtil.generateSignedUrl(
-                    bucket, job.getID(), "application/x-votable+xml", 120);
-            info.resultLocation = GCSStorageUtil.generateResultLocation(bucketURL, job.getID());
+
+            info.resultDestination = StorageUtils.generateJobResultSignedUrl(
+                    job.getID(), "application/x-votable+xml", DEFAULT_JOB_RESULT_EXPIRATION_MINUTES);
+            info.resultLocation = StorageUtils.generateResultLocation(job.getID());
             info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner);
             info.maxrec = queryRunner.maxRows;
+
             try {
-                for (Parameter param : paramList) {
-                    if (param.getName().equals(UploadManager.UPLOAD)) {
-                        String paramAsString = param.getValue();
-                        // Example <uws:parameter
-                        // id="UPLOAD">ut1,https://tap-files.lsst.codes/ut1-oxz0xczususdgg5z</uws:parameter>
-                        String[] paramParts = paramAsString.split(",");
-                        if (paramParts.length > 1) {
-                            info.uploadName = paramParts[0];
-                            info.uploadSource = paramParts[1];
-                            info.uploadSchema = replaceFileExtension(info.uploadSource); // Perhaps there is a better way to do this
-                        }
-                    }
 
-                }
-
-                if (!queryRunner.uploadTableLocations.isEmpty()) {
+                if (!queryRunner.uploadTableLocations.isEmpty() && queryRunner.uploadTableSchemaLocations != null) {
                     log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
-                    info.uploadTableLocations = new HashMap<>();
                     for (Map.Entry<String, URI> entry : queryRunner.uploadTableLocations.entrySet()) {
-                        info.uploadTableLocations.put(entry.getKey(), entry.getValue().toString());
-                        log.debug("  Upload table: " + entry.getKey() + " -> " + entry.getValue());
+                        String tableName = entry.getKey();
+                        String sourceUrl = entry.getValue().toString();
+                        String schemaUrl = queryRunner.uploadTableSchemaLocations.get(tableName).toString();
+                        UploadTable uploadTable = new UploadTable(tableName, sourceUrl, schemaUrl);
+                        info.uploadTables.add(uploadTable);
+
                     }
                 }
             } catch (Exception e) {
@@ -264,20 +259,6 @@ public class KafkaJobService {
         }
 
         return info;
-    }
-
-    /**
-     * Replaces the file extension of a given filename with ".schema.json".
-     * @param filename
-     * @return
-     */
-    private static String replaceFileExtension(String filename) {
-        int lastDotIndex = filename.lastIndexOf('.');
-        if (lastDotIndex != -1) {
-            return filename.substring(0, lastDotIndex) + ".schema.json";
-        } else {
-            return filename + ".schema.json";
-        }
     }
 
     /**
@@ -290,9 +271,6 @@ public class KafkaJobService {
         JobRun.ResultFormat resultFormat = null;
         String ownerID = "";
         Integer maxrec = null;
-        String uploadName = "";
-        String uploadSource = "";
-        String uploadSchema = "";
-        HashMap<String, String> uploadTableLocations = null;
+        List<UploadTable> uploadTables = new ArrayList<>();
     }
 }

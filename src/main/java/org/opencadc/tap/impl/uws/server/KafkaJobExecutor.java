@@ -5,8 +5,13 @@ import org.apache.log4j.Logger;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Date;
+import java.util.Set;
+
 import javax.security.auth.Subject;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.SyncOutput;
@@ -108,6 +113,18 @@ public class KafkaJobExecutor implements JobExecutor {
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
         log.info("Starting execution of job: " + job.getID());
+
+        AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
+        String username;
+
+        if ((authMethod != null) && (authMethod != AuthMethod.ANON)) {
+            final Set<HttpPrincipal> curPrincipals = caller.getPrincipals(HttpPrincipal.class);
+            final HttpPrincipal[] principalArray = new HttpPrincipal[curPrincipals.size()];
+            username = ((HttpPrincipal[]) curPrincipals.toArray(principalArray))[0].getName();
+        } else {
+            username = null;
+        }
+        
 
         try {
             JobRunner jobRunner = createJobRunner();

@@ -108,7 +108,7 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
 
             // Return URL to the XML file that contains metadata
             String xmlUrl = StorageUtils.getStorageUrl(xmlFilename);
-            log.info("Returning metadata URL: " + xmlUrl);
+            log.info("Returning URL: " + xmlUrl);
 
             Content ret = new Content();
             ret.name = UWSInlineContentHandler.CONTENT_PARAM_REPLACE;

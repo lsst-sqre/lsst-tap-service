@@ -10,6 +10,7 @@ import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +75,7 @@ public class CreateJobEvent implements AutoCloseable {
     public String submitQuery(String query, String jobID, String resultDestination, ResultFormat resultFormat)
             throws ExecutionException, InterruptedException {
 
-        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null, null, null, null, null);
+        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null, null, null);
     }
 
     /**
@@ -94,13 +95,8 @@ public class CreateJobEvent implements AutoCloseable {
      */
     public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
             ResultFormat resultFormat, String ownerID, String database, Integer maxrec, 
-            String uploadName, String uploadSource, String uploadSchema)
+            List<UploadTable> uploadTables)
             throws ExecutionException, InterruptedException {
-
-        UploadTable uploadTable = null;
-        if (uploadName != null && uploadSource != null) {
-            uploadTable = new UploadTable(uploadName, uploadSource, uploadSchema);
-        }
 
         if (closed.get()) {
             throw new IllegalStateException("CreateJobEvent has been closed");
@@ -134,7 +130,7 @@ public class CreateJobEvent implements AutoCloseable {
                     .setResultLocation(resultLocation)
                     .setResultFormat(resultFormat)
                     .setDatabase(database)
-                    .setUploadTable(uploadTable)
+                    .setUploadTables(uploadTables)
                     .build();
 
             String jsonString = jobRun.toJsonString();

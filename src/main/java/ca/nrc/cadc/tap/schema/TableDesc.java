@@ -97,7 +97,8 @@
       * process.
       */
      public transient URI dataLocation;
-     
+     public transient URI schemaLocation;
+
      public enum TableType {
          TABLE("table"),
          VIEW("view");

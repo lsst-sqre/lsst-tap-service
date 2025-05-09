@@ -21,6 +21,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.request.ConfigSetAdminRequest.Upload;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import org.opencadc.tap.kafka.KafkaConfig;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat.Format;
+import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat.Envelope;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
 import org.testcontainers.containers.KafkaContainer;
@@ -50,10 +52,8 @@ public class CreateJobEventTest {
     private static final String TEST_QUERY_TOPIC = "test-query-topic";
     private static final String TEST_STATUS_TOPIC = "test-status-topic";
     private static final String TEST_DELETE_TOPIC = "test-delete-topic";
-    private static final String TEST_UPLOAD_NAME = "test-upload-name";
-    private static final String TEST_UPLOAD_SOURCE = "https://tap-files.lsst.codes/upload_k51tn910ak8wuc2z.xml";
-    private static final String TEST_UPLOAD_SCHEMA = "https://tap-files.lsst.codes/upload_k51tn910ak8wuc2z.schema.json";
     private static final Integer TEST_MAXREC = 1000;
+    private static final List<UploadTable> TEST_UPLOADS = new ArrayList<>();
 
     // Start a Kafka container
     @ClassRule
@@ -102,6 +102,8 @@ public class CreateJobEventTest {
                 TEST_STATUS_TOPIC,
                 TEST_DELETE_TOPIC);
 
+        TEST_UPLOADS.add(new UploadTable("test-upload-name", "test-upload-source", "test-upload-schema"));
+
         createJobEvent = new CreateJobEvent(kafkaConfig, 30);
     }
 
@@ -141,9 +143,7 @@ public class CreateJobEventTest {
                 TEST_OWNER_ID,
                 TEST_DATABASE,
                 TEST_MAXREC,
-                TEST_UPLOAD_NAME,
-                TEST_UPLOAD_SOURCE,
-                TEST_UPLOAD_SCHEMA);
+                TEST_UPLOADS);
 
         assertEquals(TEST_JOB_ID, result);
 
@@ -247,9 +247,7 @@ public class CreateJobEventTest {
                 TEST_OWNER_ID,
                 TEST_DATABASE,
                 TEST_MAXREC,
-                TEST_UPLOAD_NAME,
-                TEST_UPLOAD_SOURCE,
-                TEST_UPLOAD_SCHEMA);
+                TEST_UPLOADS);
 
 
         assertEquals(TEST_JOB_ID + "-close", result);
@@ -266,9 +264,7 @@ public class CreateJobEventTest {
                     TEST_OWNER_ID,
                     TEST_DATABASE,
                     TEST_MAXREC,
-                    TEST_UPLOAD_NAME,
-                    TEST_UPLOAD_SOURCE,
-                    TEST_UPLOAD_SCHEMA);
+                    TEST_UPLOADS);
 
             fail("Expected IllegalStateException was not thrown");
         } catch (IllegalStateException e) {

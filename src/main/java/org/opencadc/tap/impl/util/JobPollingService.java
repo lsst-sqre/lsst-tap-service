@@ -18,6 +18,7 @@ import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.impl.StorageUtils;
 
 /**
  * Service for polling jobs until completion and handling results.
@@ -147,8 +148,8 @@ public class JobPollingService {
             URL url = new URL(resultURL);
             String path = url.getPath();
             String filename = path.substring(path.lastIndexOf('/') + 1);
+            String contentType = StorageUtils.getBlobContentType(filename);
 
-            String contentType = GCSStorageUtil.getBlobContentType(bucket, filename);
             if (contentType != null) {
                 syncOutput.setHeader("Content-Type", contentType);
             } else {
@@ -158,7 +159,7 @@ public class JobPollingService {
             String contentDisposition = "inline; filename=\"" + filename + "\"";
             syncOutput.setHeader("Content-Disposition", contentDisposition);
 
-            boolean success = GCSStorageUtil.streamGCSBlobToOutput(bucket, filename, syncOutput.getOutputStream());
+            boolean success = StorageUtils.streamBlobToOutput(filename, syncOutput.getOutputStream());
 
             if (success) {
                 log.debug("Result successfully streamed for job: " + jobId);
