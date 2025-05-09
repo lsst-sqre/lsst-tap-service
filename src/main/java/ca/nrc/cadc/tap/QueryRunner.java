@@ -249,7 +249,6 @@ public class QueryRunner implements JobRunner {
      * Get the username of the caller.
      * 
      * @return the username of the caller
-     * @throws Exception
      */
     protected String getUsername () {
         String username = null;
