@@ -32,7 +32,7 @@ war {
 configurations {
     intTestCompile.extendsFrom testImplementation
     intTestRuntime.extendsFrom testRuntimeOnly
-    //implementation.exclude group: 'uk.ac.starlink'
+    implementation.exclude group: 'uk.ac.starlink'
 }
 
 dependencies {

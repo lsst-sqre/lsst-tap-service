@@ -302,7 +302,6 @@ public class KafkaJobService {
             username = null;
         }
 
-        log.info("Username:" + username);
         return username;
     }
 
