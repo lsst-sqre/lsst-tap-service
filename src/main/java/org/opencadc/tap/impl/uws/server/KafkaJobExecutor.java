@@ -114,18 +114,6 @@ public class KafkaJobExecutor implements JobExecutor {
         Subject caller = Subject.getSubject(acContext);
         log.info("Starting execution of job: " + job.getID());
 
-        AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
-        String username;
-
-        if ((authMethod != null) && (authMethod != AuthMethod.ANON)) {
-            final Set<HttpPrincipal> curPrincipals = caller.getPrincipals(HttpPrincipal.class);
-            final HttpPrincipal[] principalArray = new HttpPrincipal[curPrincipals.size()];
-            username = ((HttpPrincipal[]) curPrincipals.toArray(principalArray))[0].getName();
-        } else {
-            username = null;
-        }
-        
-
         try {
             JobRunner jobRunner = createJobRunner();
             jobRunner.setJob(job);

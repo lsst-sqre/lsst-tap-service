@@ -3,10 +3,15 @@ package org.opencadc.tap.impl.util;
 import org.apache.log4j.Logger;
 
 import java.net.URI;
+import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import javax.security.auth.Subject;
 
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
@@ -18,6 +23,9 @@ import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.UploadManager;
 
@@ -43,7 +51,7 @@ public class KafkaJobService {
      * Default expiration time in minutes for job result URLs
      */
     private static final int DEFAULT_JOB_RESULT_EXPIRATION_MINUTES = 120;
-    
+
     /**
      * Prepares and submits a job to Kafka for execution.
      * 
@@ -246,11 +254,11 @@ public class KafkaJobService {
                     log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
                     for (Map.Entry<String, URI> entry : queryRunner.uploadTableLocations.entrySet()) {
                         String tableName = entry.getKey();
+                        String formattedTable = formatTableName(entry.getKey(),getUsername());
                         String sourceUrl = entry.getValue().toString();
                         String schemaUrl = queryRunner.uploadTableSchemaLocations.get(tableName).toString();
-                        UploadTable uploadTable = new UploadTable(tableName, sourceUrl, schemaUrl);
+                        UploadTable uploadTable = new UploadTable(formattedTable, sourceUrl, schemaUrl);
                         info.uploadTables.add(uploadTable);
-
                     }
                 }
             } catch (Exception e) {
@@ -272,5 +280,50 @@ public class KafkaJobService {
         String ownerID = "";
         Integer maxrec = null;
         List<UploadTable> uploadTables = new ArrayList<>();
+    }
+
+    /**
+     * Get the username of the caller.
+     * 
+     * @return the username of the caller
+     */
+    protected static String getUsername() {
+        
+        AccessControlContext acContext = AccessController.getContext();
+        Subject caller = Subject.getSubject(acContext);
+        AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
+        String username;
+
+        if ((authMethod != null) && (authMethod != AuthMethod.ANON)) {
+            final Set<HttpPrincipal> curPrincipals = caller.getPrincipals(HttpPrincipal.class);
+            final HttpPrincipal[] principalArray = new HttpPrincipal[curPrincipals.size()];
+            username = ((HttpPrincipal[]) curPrincipals.toArray(principalArray))[0].getName();
+        } else {
+            username = null;
+        }
+
+        log.info("Username:" + username);
+        return username;
+    }
+
+    /**
+     * Format table name to include username, i.e.
+     * user_<username>.TAP_UPLOAD_tableName
+     * 
+     * @param originalTableName The original table name
+     * @param username          The username
+     * @return Formatted table name
+     */
+    private static String formatTableName(String originalTableName, String username) {
+        if (username == null || username.isEmpty()) {
+            username = "anonymous";
+        }
+
+        String baseName = originalTableName;
+        if (originalTableName.startsWith("TAP_UPLOAD.")) {
+            baseName = originalTableName.substring("TAP_UPLOAD.".length());
+        }
+
+        return "user_" + username + ".TAP_UPLOAD_" + baseName;
     }
 }

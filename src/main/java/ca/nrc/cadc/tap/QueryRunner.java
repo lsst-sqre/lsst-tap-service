@@ -245,27 +245,6 @@ public class QueryRunner implements JobRunner {
         return getQueryDataSource();
     }
 
-    /** 
-     * Get the username of the caller.
-     * 
-     * @return the username of the caller
-     */
-    protected String getUsername () {
-        String username = null;
-        try {
-            AccessControlContext acContext = AccessController.getContext();
-            Subject caller = Subject.getSubject(acContext);
-            Set<HttpPrincipal> principals = caller.getPrivateCredentials(HttpPrincipal.class);
-            if (principals != null && !principals.isEmpty()) {
-                HttpPrincipal principal = principals.iterator().next();
-                username = principal.getName();
-            }
-        } catch (Exception e) {
-            log.error("Failed to get username", e);
-        }
-        return username;
-    }
-
     private void runImpl() {
         List<Result> diagnostics = new ArrayList<>();
 
@@ -279,24 +258,7 @@ public class QueryRunner implements JobRunner {
         PluginFactoryImpl pfac = getPluginFactory();
         log.debug("loaded: " + pfac);
 
-
-        AccessControlContext acContext = AccessController.getContext();
-        Subject caller = Subject.getSubject(acContext);
         log.info("Starting execution of job: " + job.getID());
-
-        AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
-
-        String username;
-
-        if ((authMethod != null) && (authMethod != AuthMethod.ANON)) {
-            final Set<HttpPrincipal> curPrincipals = caller.getPrincipals(HttpPrincipal.class);
-            final HttpPrincipal[] principalArray = new HttpPrincipal[curPrincipals.size()];
-            username = ((HttpPrincipal[]) curPrincipals.toArray(principalArray))[0].getName();
-        } else {
-            username = null;
-        }
-
-        log.info("username: " + username);
 
         ResultStore rs = null;
         if (syncOutput == null) {
