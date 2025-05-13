@@ -1,5 +1,12 @@
 package org.opencadc.tap.impl;
 
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import javax.security.auth.Subject;
+
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.auth.AuthenticationUtil;
+import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.dali.tables.TableData;
 import ca.nrc.cadc.dali.tables.votable.VOTableDocument;
 import ca.nrc.cadc.dali.tables.votable.VOTableField;
@@ -13,6 +20,7 @@ import ca.nrc.cadc.tap.BasicUploadManager;
 import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.UploadLimits;
+import ca.nrc.cadc.tap.upload.UploadTable;
 import ca.nrc.cadc.uws.Job;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -26,15 +34,21 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
+import org.checkerframework.checker.units.qual.s;
+
 import com.csvreader.CsvWriter;
 import com.google.cloud.storage.HttpMethod;
 
 /**
  * Implementation of the UploadManager interface for Rubin.
- * This class handles the upload of tables to cloud storage and generates signed URLs for accessing
- * the uploaded files. It also handles generating the JSON schema for the uploaded tables.
+ * This class handles the upload of tables to cloud storage and generates signed
+ * URLs for accessing
+ * the uploaded files. It also handles generating the JSON schema for the
+ * uploaded tables.
  * 
  * @author stvoutsin
  */
@@ -147,9 +161,10 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             // Write JSON Schema file
             writeSchemaFile(votable.getFields(), schemaFilename);
             log.debug("Schema file written to: " + schemaFilename);
-            
+
             // Generate and store signed URL for schema file
-            String schemaSignedUrl = StorageUtils.getSignedUrl(schemaFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
+            String schemaSignedUrl = StorageUtils.getSignedUrl(schemaFilename, HttpMethod.GET,
+                    DEFAULT_URL_EXPIRATION_HOURS);
             signedUrls.put(schemaFilename, schemaSignedUrl);
 
             // Write CSV version of the data
@@ -158,7 +173,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             csvOs.flush();
             csvOs.close();
             log.debug("CSV file written to: " + csvFilename);
-            
+
             // Generate and store signed URL for CSV file
             String csvSignedUrl = StorageUtils.getSignedUrl(csvFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
             signedUrls.put(csvFilename, csvSignedUrl);
@@ -172,15 +187,17 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             xmlOsEmpty.flush();
             xmlOsEmpty.close();
             log.debug("Empty VOTable file written to: " + xmlEmptyFilename);
-            
+
             // Generate and store signed URL for empty XML file
-            String xmlSignedUrl = StorageUtils.getSignedUrl(xmlEmptyFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
+            String xmlSignedUrl = StorageUtils.getSignedUrl(xmlEmptyFilename, HttpMethod.GET,
+                    DEFAULT_URL_EXPIRATION_HOURS);
             signedUrls.put(xmlEmptyFilename, xmlSignedUrl);
             // This isn't currently used, but could be useful for debugging?
 
             votable.setTableData(originalData);
 
-            // Store the signed URL for the CSV file and it's schema as the data location and schema location
+            // Store the signed URL for the CSV file and it's schema as the data location
+            // and schema location
             table.dataLocation = new URI(signedUrls.get(csvFilename));
             table.schemaLocation = new URI(signedUrls.get(schemaFilename));
 
@@ -189,7 +206,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             throw new RuntimeException("Failed to store table in cloud storage", e);
         }
     }
-    
+
     /**
      * Get all generated signed URLs
      * 
@@ -198,7 +215,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     public Map<String, String> getSignedUrls() {
         return signedUrls;
     }
-    
+
     /**
      * Get signed URL for a specific file
      * 
@@ -330,5 +347,48 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             csvWriter.flush();
         }
     }
+
+    /**
+     * Constructs the database table name from the schema, upload table name,
+     * and the jobID.
+     *
+     * @return the database table name.
+     */
+    @Override
+    public String getDatabaseTableName(UploadTable uploadTable) {
+        StringBuilder sb = new StringBuilder();
+        String username = getUsername();
+        if (username != null){
+            sb.append("user_").append(username).append(".");
+        }
+        sb.append(uploadTable.tableName);
+        sb.append("_");
+        sb.append(uploadTable.jobID);
+        return sb.toString();
+    }
+
+    /**
+     * Get the username of the caller.
+     * 
+     * @return the username of the caller
+     */
+    protected static String getUsername() {
+        
+        AccessControlContext acContext = AccessController.getContext();
+        Subject caller = Subject.getSubject(acContext);
+        AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
+        String username;
+
+        if ((authMethod != null) && (authMethod != AuthMethod.ANON)) {
+            final Set<HttpPrincipal> curPrincipals = caller.getPrincipals(HttpPrincipal.class);
+            final HttpPrincipal[] principalArray = new HttpPrincipal[curPrincipals.size()];
+            username = ((HttpPrincipal[]) curPrincipals.toArray(principalArray))[0].getName();
+        } else {
+            username = null;
+        }
+
+        return username;
+    }
+
 
 }

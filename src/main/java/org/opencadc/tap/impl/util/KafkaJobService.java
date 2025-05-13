@@ -254,10 +254,10 @@ public class KafkaJobService {
                     log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
                     for (Map.Entry<String, URI> entry : queryRunner.uploadTableLocations.entrySet()) {
                         String tableName = entry.getKey();
-                        String formattedTable = formatTableName(entry.getKey(),getUsername());
+                        log.info("Table name in  KafkaJobService: " + tableName);
                         String sourceUrl = entry.getValue().toString();
                         String schemaUrl = queryRunner.uploadTableSchemaLocations.get(tableName).toString();
-                        UploadTable uploadTable = new UploadTable(formattedTable, sourceUrl, schemaUrl);
+                        UploadTable uploadTable = new UploadTable(tableName, sourceUrl, schemaUrl);
                         info.uploadTables.add(uploadTable);
                     }
                 }
@@ -288,7 +288,7 @@ public class KafkaJobService {
      * @return the username of the caller
      */
     protected static String getUsername() {
-        
+        // Note: This should probably be a utility method somewhere unless it already is
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
         AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
@@ -317,12 +317,6 @@ public class KafkaJobService {
         if (username == null || username.isEmpty()) {
             username = "anonymous";
         }
-
-        String baseName = originalTableName;
-        if (originalTableName.startsWith("TAP_UPLOAD.")) {
-            baseName = originalTableName.substring("TAP_UPLOAD.".length());
-        }
-
-        return "user_" + username + ".TAP_UPLOAD_" + baseName;
+        return "user_" + username + "." + originalTableName;
     }
 }

@@ -326,9 +326,13 @@ public class QueryRunner implements JobRunner {
                 tapUploadSchema.getTableDescs().addAll(tableDescs.values());
                 tapSchema.getSchemaDescs().add(tapUploadSchema);
                 for (Map.Entry<String, TableDesc> e : tableDescs.entrySet()) {
+                    log.info("upload table: " + e.getKey());
+                    TableDesc tableDesc = (TableDesc) e.getValue();
+                    log.info("TableDesc getTableName: " + tableDesc.getTableName());
+                    
                     if (e.getValue().dataLocation != null) {
-                        uploadTableLocations.put(e.getValue().getTableName(), e.getValue().dataLocation);
-                        uploadTableSchemaLocations.put(e.getValue().getTableName(), e.getValue().schemaLocation);
+                        uploadTableLocations.put(e.getKey(), e.getValue().dataLocation);
+                        uploadTableSchemaLocations.put(e.getKey(), e.getValue().schemaLocation);
                     }
                 }
             }
@@ -622,14 +626,14 @@ public class QueryRunner implements JobRunner {
                     }
                 }
                 if (selectList != null) {
-                    log.warn("select list: " + selectList.size() + " columns");
+                    log.debug("select list: " + selectList.size() + " columns");
                 }
                 if (resultTemplate != null) {
-                    log.warn("result template:\n");
+                    log.debug("result template:\n");
                     VOTableWriter w = new VOTableWriter();
                     StringWriter sw = new StringWriter();
                     w.write(resultTemplate, sw);
-                    log.warn(sw.toString());
+                    log.debug(sw.toString());
                 }
                 log.warn("internal SQL:\n" + internalSQL);
             } catch (Exception oops) {
