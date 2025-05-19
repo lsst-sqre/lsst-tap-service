@@ -197,8 +197,10 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
             // Store the signed URL for the CSV file and it's schema as the data location
             // and schema location
-            table.dataLocation = new URI(signedUrls.get(csvFilename));
-            table.schemaLocation = new URI(signedUrls.get(schemaFilename));
+            table.dataLocation = new TableDesc.TableLocationInfo();
+            table.dataLocation.map.put("data", new URI(signedUrls.get(csvFilename)));
+            table.dataLocation.map.put("schema", new URI(signedUrls.get(schemaFilename)));
+            table.dataLocation.map.put("metadata", new URI(signedUrls.get(xmlEmptyFilename)));
 
         } catch (Exception e) {
             log.error("Failed to store table in cloud storage", e);

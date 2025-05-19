@@ -72,6 +72,8 @@
  import java.net.URI;
  import java.util.ArrayList;
  import java.util.List;
+ import java.util.Map;
+ import java.util.TreeMap;
  
  /**
   * Descriptor Class to represent a TAP_SCHEMA.tables table.
@@ -96,9 +98,15 @@
       * where the rows are stored temporarily and loaded later by an external
       * process.
       */
-     public transient URI dataLocation;
-     public transient URI schemaLocation;
-
+     public transient TableLocationInfo dataLocation;
+     
+     public static class TableLocationInfo {
+         // keys are implementation-specific internal communication between the 
+         // UploadManager: storeTable can create an instance to describe where/how
+         // it stored the table if not in the database and ready to query
+         public final Map<String,URI> map = new TreeMap<>();
+     }
+     
      public enum TableType {
          TABLE("table"),
          VIEW("view");

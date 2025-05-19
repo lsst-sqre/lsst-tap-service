@@ -40,7 +40,7 @@ public class RubinTableWriter extends DefaultTableWriter {
     private static final Logger log = Logger.getLogger(RubinTableWriter.class);
 
     private static final String baseUrl = System.getProperty("base_url");
-    private static final String datalinkConfig = "/tmp/datalink/";
+    private static final String datalinkConfig = "/usr/share/tomcat/webapps/tap##1000/datalink/";
 
     public RubinTableWriter() {
         super();
@@ -159,14 +159,16 @@ public class RubinTableWriter extends DefaultTableWriter {
                 String renderedContent = datalinkTemplate.render();
                 VOTableReader reader = new VOTableReader();
                 VOTableDocument serviceDocument = reader.read(new StringReader(renderedContent));
-                VOTableResource metaResource = serviceDocument.getResourceByType("meta");
-
-                if (metaResource != null) {
-                    metaResources.add(metaResource);
-                    log.debug("Added meta resource from template: " + serviceID);
-                } else {
-                    log.warn("No meta resource found in template: " + serviceID);
+                
+                for (VOTableResource resource : serviceDocument.getResources()) {
+                    if ("meta".equals(resource.getType())) {
+                        metaResources.add(resource);
+                        log.debug("Added meta resource from template: " + serviceID + " - " + 
+                                 (resource.getName() != null ? resource.getName() : "unnamed"));
+                    }
                 }
+
+
             } catch (Exception e) {
                 log.error("Error processing template " + serviceID, e);
             }

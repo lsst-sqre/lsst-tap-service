@@ -28,6 +28,7 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.UploadManager;
+import ca.nrc.cadc.tap.schema.TableDesc;
 
 import org.opencadc.tap.impl.QServQueryRunner;
 import org.opencadc.tap.impl.StorageUtils;
@@ -250,13 +251,15 @@ public class KafkaJobService {
 
             try {
 
-                if (!queryRunner.uploadTableLocations.isEmpty() && queryRunner.uploadTableSchemaLocations != null) {
+                if (!queryRunner.uploadTableLocations.isEmpty()) {
                     log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
-                    for (Map.Entry<String, URI> entry : queryRunner.uploadTableLocations.entrySet()) {
+                    for (Map.Entry<String, TableDesc.TableLocationInfo> entry : queryRunner.uploadTableLocations
+                            .entrySet()) {
                         String tableName = entry.getKey();
-                        log.info("Table name in  KafkaJobService: " + tableName);
-                        String sourceUrl = entry.getValue().toString();
-                        String schemaUrl = queryRunner.uploadTableSchemaLocations.get(tableName).toString();
+                        log.info("Table name in KafkaJobService: " + tableName);
+                        TableDesc.TableLocationInfo locationInfo = entry.getValue();
+                        String sourceUrl = locationInfo.map.get("data").toString();
+                        String schemaUrl = locationInfo.map.get("schema").toString();
                         UploadTable uploadTable = new UploadTable(tableName, sourceUrl, schemaUrl);
                         info.uploadTables.add(uploadTable);
                     }
