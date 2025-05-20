@@ -40,8 +40,8 @@ public class RubinTableWriter extends DefaultTableWriter {
     private static final Logger log = Logger.getLogger(RubinTableWriter.class);
 
     private static final String baseUrl = System.getProperty("base_url");
-    private static final String datalinkConfig = "/usr/share/tomcat/webapps/tap##1000/datalink/";
-
+    private static final String datalinkConfig = "/tmp/datalink/";
+    
     public RubinTableWriter() {
         super();
     }
