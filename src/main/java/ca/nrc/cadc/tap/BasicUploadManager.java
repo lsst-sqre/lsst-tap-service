@@ -68,260 +68,261 @@
 ************************************************************************
  */
 
- package ca.nrc.cadc.tap;
+package ca.nrc.cadc.tap;
 
- import ca.nrc.cadc.dali.tables.votable.VOTableTable;
- import ca.nrc.cadc.date.DateUtil;
- import ca.nrc.cadc.tap.db.DatabaseDataType;
- import ca.nrc.cadc.tap.db.TableCreator;
- import ca.nrc.cadc.tap.db.TableLoader;
- import ca.nrc.cadc.tap.db.TapConstants;
- import ca.nrc.cadc.tap.schema.ColumnDesc;
- import ca.nrc.cadc.tap.schema.TableDesc;
- import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
- import ca.nrc.cadc.tap.upload.UploadLimits;
- import ca.nrc.cadc.tap.upload.UploadParameters;
- import ca.nrc.cadc.tap.upload.UploadTable;
- import ca.nrc.cadc.tap.upload.VOTableParser;
- import ca.nrc.cadc.tap.upload.VOTableParserException;
- import ca.nrc.cadc.uws.Job;
- import ca.nrc.cadc.uws.Parameter;
- import java.io.IOException;
- import java.net.URI;
- import java.text.DateFormat;
- import java.util.Arrays;
- import java.util.HashMap;
- import java.util.Iterator;
- import java.util.List;
- import java.util.Map;
- import java.util.TreeMap;
- import javax.sql.DataSource;
- import org.apache.log4j.Logger;
- import org.opencadc.tap.io.TableDataInputStream;
- 
- /**
-  *
-  * @author jburke
-  */
- public class BasicUploadManager implements UploadManager {
- 
-     private static final Logger log = Logger.getLogger(BasicUploadManager.class);
- 
-     // TAP-1.0 xtypes that can just be dropped from ColumnDesc
-     private static final List<String> TAP10_XTYPES = Arrays.asList(
-             TapConstants.TAP10_CHAR, TapConstants.TAP10_VARCHAR,
-             TapConstants.TAP10_DOUBLE, TapConstants.TAP10_REAL,
-             TapConstants.TAP10_BIGINT, TapConstants.TAP10_INTEGER, TapConstants.TAP10_SMALLINT
-     );
- 
-     /**
-      * DataSource for the DB.
-      */
-     protected DataSource dataSource;
- 
-     /**
-      * IVOA DateFormat
-      */
-     protected DateFormat dateFormat;
- 
-     /**
-      * Limitations on the UPLOAD VOTable.
-      */
-     protected final UploadLimits uploadLimits;
- 
-     protected Job job;
- 
-     /**
-      * Backwards compatible constructor. This uses the default byte limit of 10MiB.
-      *
-      * @param rowLimit maximum number of rows
-      * @deprecated use UploadLimits instead
-      */
-     @Deprecated
-     protected BasicUploadManager(int rowLimit) {
-         // 10MiB of votable xml is roughly 17k rows x 10 columns
-         this(new UploadLimits(10 * 1024L * 1024L));
-         this.uploadLimits.rowLimit = rowLimit;
-     }
- 
-     /**
-      * Subclass constructor.
-      *
-      * @param uploadLimits limits on table upload
-      */
-     protected BasicUploadManager(UploadLimits uploadLimits) {
-         if (uploadLimits == null) {
-             throw new IllegalStateException("Upload limits are required.");
-         }
- 
-         this.uploadLimits = uploadLimits;
-         dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
-     }
- 
-     @Override
-     public String getUploadSchema() {
-         return "TAP_UPLOAD";
-     }
- 
-     /**
-      * Set the DataSource used for creating and populating tables.
-      *
-      * @param ds
-      */
-     @Override
-     public void setDataSource(DataSource ds) {
-         this.dataSource = ds;
-     }
- 
-     @Override
-     public void setJob(Job job) {
-         this.job = job;
-     }
- 
-     /**
-      * Find and process all UPLOAD requests.
-      *
-      * @param paramList list of all parameters passed to the service.
-      * @param jobID the UWS jobID.
-      * @return map of service generated upload table name to user-specified table metadata
-      */
-     @Override
-     public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
-         log.debug("upload jobID " + jobID);
- 
-         if (dataSource == null) {
-             throw new IllegalStateException("failed to get DataSource");
-         }
- 
-         // return a map of database table name to table descriptions.
-         final Map<String, TableDesc> metadata = new HashMap<>();
- 
-         UploadTable cur = null;
- 
-         try {
-             // Get upload table names and URI's from the request parameters.
-             UploadParameters uploadParameters = new UploadParameters(paramList, jobID);
-             if (uploadParameters.uploadTables.isEmpty()) {
-                 log.debug("No upload tables found in paramList");
-                 return metadata;
-             }
- 
-             // Process each table.
-             for (UploadTable uploadTable : uploadParameters.uploadTables) {
-                 cur = uploadTable;
- 
-                 // XML parser
-                 // TODO: make configurable.
-                 log.debug(uploadTable);
- 
-                 final VOTableParser parser = getVOTableParser(uploadTable);
- 
-                 // Get the Table description.
-                 TableDesc tableDesc = parser.getTableDesc();
-                 sanitizeTable(tableDesc);
- 
-                 // Fully qualified name of the table in the database.
-                 String databaseTableName = getDatabaseTableName(uploadTable);
-                 metadata.put(databaseTableName, tableDesc);
-                 log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
- 
-                 final String tableName = tableDesc.getTableName();
-                 try {
-                     tableDesc.setTableName(databaseTableName);
-                     storeTable(tableDesc, parser.getVOTable());
-                 } finally {
-                     tableDesc.setTableName(tableName);
-                 }
-             }
-         } catch (VOTableParserException ex) {
-             // user error
-             throw new IllegalArgumentException("failed to parse uploaded table " + cur, ex);
-         } catch (IOException ex) {
-             // unclear if the is user or server error
-             throw new RuntimeException("failed to read uploaded table " + cur, ex);
-         }
- 
-         return metadata;
-     }
-     
-     /**
-      * Use TableCreator and TableLoader to create and load the table using the dataSource.
-      * 
-      * @param table the table description
-      * @param vot the table data
-      */
-     protected void storeTable(TableDesc table, VOTableTable vot) {
-         TableCreator tc = new TableCreator(dataSource);
-         tc.createTable(table);
-         
-         // TODO: drop table if load fails? or leave for diagnostics
-         TableLoader tld = new TableLoader(dataSource, 1000);
-         tld.load(table, new TableDataInputStream() {
-             @Override
-             public void close() {
-                 //no-op: fully read already
-             }
- 
-             @Override
-             public Iterator<List<Object>> iterator() {
-                 return vot.getTableData().iterator();
-             }
- 
-             @Override
-             public TableDesc acceptTargetTableDesc(TableDesc td) {
-                 return td;
-             }
-         });
-     }
-     
-     protected VOTableParser getVOTableParser(UploadTable uploadTable)
-             throws VOTableParserException {
-         VOTableParser ret = new JDOMVOTableParser(uploadLimits);
-         ret.setUpload(uploadTable);
-         return ret;
-     }
- 
-     /**
-      * Remove redundant metadata like TAP-1.0 xtypes for primitive columns.
-      *
-      * @param td
-      */
-     protected void sanitizeTable(TableDesc td) {
-         for (ColumnDesc cd : td.getColumnDescs()) {
-             String xtype = cd.getDatatype().xtype;
-             if (TapConstants.TAP10_TIMESTAMP.equals(xtype)) {
-                 cd.getDatatype().xtype = "timestamp"; // DALI-1.1
-             }
-             if (TAP10_XTYPES.contains(xtype)) {
-                 cd.getDatatype().xtype = null;
-             }
-         }
-     }
- 
-     /**
-      * Create the SQL to grant select privileges for the UPLOAD table.
-      *
-      * @param databaseTableName fully qualified table name.
-      * @return
-      */
-     protected String getGrantSelectTableSQL(String databaseTableName) {
-         return null;
-     }
- 
-     /**
-      * Constructs the database table name from the schema, upload table name,
-      * and the jobID.
-      *
-      * @return the database table name.
-      */
-     public String getDatabaseTableName(UploadTable uploadTable) {
-         StringBuilder sb = new StringBuilder();
-         if (!uploadTable.tableName.toUpperCase().startsWith(SCHEMA)) {
-             sb.append(SCHEMA).append(".");
-         }
-         sb.append(uploadTable.tableName);
-         sb.append("_");
-         sb.append(uploadTable.jobID);
-         return sb.toString();
-     }
- }
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.tap.db.DatabaseDataType;
+import ca.nrc.cadc.tap.db.TableCreator;
+import ca.nrc.cadc.tap.db.TableLoader;
+import ca.nrc.cadc.tap.db.TapConstants;
+import ca.nrc.cadc.tap.schema.ColumnDesc;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.tap.upload.JDOMVOTableParser;
+import ca.nrc.cadc.tap.upload.UploadLimits;
+import ca.nrc.cadc.tap.upload.UploadParameters;
+import ca.nrc.cadc.tap.upload.UploadTable;
+import ca.nrc.cadc.tap.upload.VOTableParser;
+import ca.nrc.cadc.tap.upload.VOTableParserException;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import java.io.IOException;
+import java.net.URI;
+import java.text.DateFormat;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import javax.sql.DataSource;
+import org.apache.log4j.Logger;
+import org.opencadc.tap.io.TableDataInputStream;
+
+/**
+ *
+ * @author jburke
+ */
+public class BasicUploadManager implements UploadManager {
+
+    private static final Logger log = Logger.getLogger(BasicUploadManager.class);
+
+    // TAP-1.0 xtypes that can just be dropped from ColumnDesc
+    private static final List<String> TAP10_XTYPES = Arrays.asList(
+            TapConstants.TAP10_CHAR, TapConstants.TAP10_VARCHAR,
+            TapConstants.TAP10_DOUBLE, TapConstants.TAP10_REAL,
+            TapConstants.TAP10_BIGINT, TapConstants.TAP10_INTEGER, TapConstants.TAP10_SMALLINT);
+
+    /**
+     * DataSource for the DB.
+     */
+    protected DataSource dataSource;
+
+    /**
+     * IVOA DateFormat
+     */
+    protected DateFormat dateFormat;
+
+    /**
+     * Limitations on the UPLOAD VOTable.
+     */
+    protected final UploadLimits uploadLimits;
+
+    protected Job job;
+
+    /**
+     * Backwards compatible constructor. This uses the default byte limit of 10MiB.
+     *
+     * @param rowLimit maximum number of rows
+     * @deprecated use UploadLimits instead
+     */
+    @Deprecated
+    protected BasicUploadManager(int rowLimit) {
+        // 10MiB of votable xml is roughly 17k rows x 10 columns
+        this(new UploadLimits(10 * 1024L * 1024L));
+        this.uploadLimits.rowLimit = rowLimit;
+    }
+
+    /**
+     * Subclass constructor.
+     *
+     * @param uploadLimits limits on table upload
+     */
+    protected BasicUploadManager(UploadLimits uploadLimits) {
+        if (uploadLimits == null) {
+            throw new IllegalStateException("Upload limits are required.");
+        }
+
+        this.uploadLimits = uploadLimits;
+        dateFormat = DateUtil.getDateFormat(DateUtil.IVOA_DATE_FORMAT, DateUtil.UTC);
+    }
+
+    @Override
+    public String getUploadSchema() {
+        return "TAP_UPLOAD";
+    }
+
+    /**
+     * Set the DataSource used for creating and populating tables.
+     *
+     * @param ds
+     */
+    @Override
+    public void setDataSource(DataSource ds) {
+        this.dataSource = ds;
+    }
+
+    @Override
+    public void setJob(Job job) {
+        this.job = job;
+    }
+
+    /**
+     * Find and process all UPLOAD requests.
+     *
+     * @param paramList list of all parameters passed to the service.
+     * @param jobID     the UWS jobID.
+     * @return map of service generated upload table name to user-specified table
+     *         metadata
+     */
+    @Override
+    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
+        log.debug("upload jobID " + jobID);
+
+        if (dataSource == null) {
+            throw new IllegalStateException("failed to get DataSource");
+        }
+
+        // return a map of database table name to table descriptions.
+        final Map<String, TableDesc> metadata = new HashMap<>();
+
+        UploadTable cur = null;
+
+        try {
+            // Get upload table names and URI's from the request parameters.
+            UploadParameters uploadParameters = new UploadParameters(paramList, jobID);
+            if (uploadParameters.uploadTables.isEmpty()) {
+                log.debug("No upload tables found in paramList");
+                return metadata;
+            }
+
+            // Process each table.
+            for (UploadTable uploadTable : uploadParameters.uploadTables) {
+                cur = uploadTable;
+
+                // XML parser
+                // TODO: make configurable.
+                log.debug(uploadTable);
+
+                final VOTableParser parser = getVOTableParser(uploadTable);
+
+                // Get the Table description.
+                TableDesc tableDesc = parser.getTableDesc();
+                sanitizeTable(tableDesc);
+
+                // Fully qualified name of the table in the database.
+                String databaseTableName = getDatabaseTableName(uploadTable);
+                metadata.put(databaseTableName, tableDesc);
+                log.debug("upload table: " + databaseTableName + " aka " + tableDesc);
+
+                final String tableName = tableDesc.getTableName();
+                try {
+                    tableDesc.setTableName(databaseTableName);
+                    storeTable(tableDesc, parser.getVOTable());
+                } finally {
+                    tableDesc.setTableName(tableName);
+                }
+            }
+        } catch (VOTableParserException ex) {
+            // user error
+            throw new IllegalArgumentException("failed to parse uploaded table " + cur, ex);
+        } catch (IOException ex) {
+            // unclear if the is user or server error
+            throw new RuntimeException("failed to read uploaded table " + cur, ex);
+        }
+
+        return metadata;
+    }
+
+    /**
+     * Use TableCreator and TableLoader to create and load the table using the
+     * dataSource.
+     * 
+     * @param table the table description
+     * @param vot   the table data
+     */
+    protected void storeTable(TableDesc table, VOTableTable vot) {
+        TableCreator tc = new TableCreator(dataSource);
+        tc.createTable(table);
+
+        // TODO: drop table if load fails? or leave for diagnostics
+        TableLoader tld = new TableLoader(dataSource, 1000);
+        tld.load(table, new TableDataInputStream() {
+            @Override
+            public void close() {
+                // no-op: fully read already
+            }
+
+            @Override
+            public Iterator<List<Object>> iterator() {
+                return vot.getTableData().iterator();
+            }
+
+            @Override
+            public TableDesc acceptTargetTableDesc(TableDesc td) {
+                return td;
+            }
+        });
+    }
+
+    protected VOTableParser getVOTableParser(UploadTable uploadTable)
+            throws VOTableParserException {
+        VOTableParser ret = new JDOMVOTableParser(uploadLimits);
+        ret.setUpload(uploadTable);
+        return ret;
+    }
+
+    /**
+     * Remove redundant metadata like TAP-1.0 xtypes for primitive columns.
+     *
+     * @param td
+     */
+    protected void sanitizeTable(TableDesc td) {
+        for (ColumnDesc cd : td.getColumnDescs()) {
+            String xtype = cd.getDatatype().xtype;
+            if (TapConstants.TAP10_TIMESTAMP.equals(xtype)) {
+                cd.getDatatype().xtype = "timestamp"; // DALI-1.1
+            }
+            if (TAP10_XTYPES.contains(xtype)) {
+                cd.getDatatype().xtype = null;
+            }
+        }
+    }
+
+    /**
+     * Create the SQL to grant select privileges for the UPLOAD table.
+     *
+     * @param databaseTableName fully qualified table name.
+     * @return
+     */
+    protected String getGrantSelectTableSQL(String databaseTableName) {
+        return null;
+    }
+
+    /**
+     * Constructs the database table name from the schema, upload table name,
+     * and the jobID.
+     *
+     * @return the database table name.
+     */
+    public String getDatabaseTableName(UploadTable uploadTable) {
+        StringBuilder sb = new StringBuilder();
+        if (!uploadTable.tableName.toUpperCase().startsWith(SCHEMA)) {
+            sb.append(SCHEMA).append(".");
+        }
+        sb.append(uploadTable.tableName);
+        sb.append("_");
+        sb.append(uploadTable.jobID);
+        return sb.toString();
+    }
+}

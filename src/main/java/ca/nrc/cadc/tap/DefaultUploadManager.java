@@ -80,8 +80,10 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 /**
- * Default implementation of the UploadManager implementation. This does not support upload
- * and throws an UnsupportedOperationException if it finds UPLOAD params in the job.
+ * Default implementation of the UploadManager implementation. This does not
+ * support upload
+ * and throws an UnsupportedOperationException if it finds UPLOAD params in the
+ * job.
  *
  * @author pdowler
  */

@@ -67,42 +67,42 @@
 ************************************************************************
  */
 
- package ca.nrc.cadc.tap.upload;
+package ca.nrc.cadc.tap.upload;
 
- import ca.nrc.cadc.dali.tables.votable.VOTableTable;
- import ca.nrc.cadc.tap.schema.TableDesc;
- import java.io.IOException;
- 
- /**
-  * Interface to parse a VOTable and extract the meta data describing the
-  * VOTAble and access the VOTable data.
-  *
-  * @author jburke
-  */
- public interface VOTableParser {
- 
-     /**
-      * Set the Upload Table details.
-      *
-      * @param upload The upload table descriptor.
-      * @throws VOTableParserException For any parsing exceptions.
-      */
-     void setUpload(UploadTable upload) throws VOTableParserException;
- 
-     /**
-      * Get a TableDesc of the VOTable.
-      *
-      * @return TableDesc of the VOTable.
-      * @throws VOTableParserException if unable to parse the VOTable.
-      */
-     public TableDesc getTableDesc()
-             throws IOException, VOTableParserException;
- 
-     /**
-      * Returns the VOTable data.
-      *
-      * @return VOTable data or null if no table resource with data
-      */
-     public VOTableTable getVOTable();
- 
- }
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import java.io.IOException;
+
+/**
+ * Interface to parse a VOTable and extract the meta data describing the
+ * VOTAble and access the VOTable data.
+ *
+ * @author jburke
+ */
+public interface VOTableParser {
+
+    /**
+     * Set the Upload Table details.
+     *
+     * @param upload The upload table descriptor.
+     * @throws VOTableParserException For any parsing exceptions.
+     */
+    void setUpload(UploadTable upload) throws VOTableParserException;
+
+    /**
+     * Get a TableDesc of the VOTable.
+     *
+     * @return TableDesc of the VOTable.
+     * @throws VOTableParserException if unable to parse the VOTable.
+     */
+    public TableDesc getTableDesc()
+            throws IOException, VOTableParserException;
+
+    /**
+     * Returns the VOTable data.
+     *
+     * @return VOTable data or null if no table resource with data
+     */
+    public VOTableTable getVOTable();
+
+}

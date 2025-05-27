@@ -184,10 +184,10 @@ public class KafkaJobService {
             }
 
             String ownerId = job.getOwnerID();
-            String deletedExecutionId = createDeleteEventService.submitDeletion(executionId, ownerId, jobId);
-            log.debug("Job deletion request sent to Kafka successfully for executionId: " + deletedExecutionId);
 
             // Update job phase if jobId and jobUpdater are provided
+            // Do this before sending the deletion request so that the job phase is set to ABORTED
+            // regardless of whether the deletion request succeeds or fails on the other side
             if (jobId != null && !jobId.trim().isEmpty() && jobUpdater != null) {
                 try {
                     ExecutionPhase currentPhase = jobUpdater.getPhase(jobId);
@@ -202,6 +202,9 @@ public class KafkaJobService {
                     log.error("Failed to update job phase after deletion request: " + jobId, ex);
                 }
             }
+
+            String deletedExecutionId = createDeleteEventService.submitDeletion(executionId, ownerId, jobId);
+            log.debug("Job deletion request sent to Kafka successfully for executionId: " + deletedExecutionId);
 
             return true;
         } catch (Exception e) {
@@ -247,7 +250,7 @@ public class KafkaJobService {
                     job.getID(), "application/x-votable+xml", DEFAULT_JOB_RESULT_EXPIRATION_MINUTES);
             info.resultLocation = StorageUtils.generateResultLocation(job.getID());
             info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner);
-            info.maxrec = queryRunner.maxRows;
+            info.maxrec = queryRunner.maxRows + 1;
 
             try {
 
