@@ -127,7 +127,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
     private JobInfo getJobInfo(JobStatus status, Job job) {
         String pctComplete = null;
         String content = "";
-        String contentType = "application/xml";
+        String contentType = "text/xml";
         Boolean valid = true;
 
         int completedChunks = 0;
@@ -155,13 +155,11 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
         try {
             StringBuilder xmlBuilder = new StringBuilder();
-            xmlBuilder.append("<uws:jobInfo>\n");
-            xmlBuilder.append("    <tapQueryInfo>\n");
-            xmlBuilder.append("        <pct_complete>").append(pctComplete).append("</pct_complete>\n");
-            xmlBuilder.append("        <chunks_processed>").append(completedChunks).append("</chunks_processed>\n");
-            xmlBuilder.append("        <total_chunks>").append(totalChunks).append("</total_chunks>\n");
-            xmlBuilder.append("    </tapQueryInfo>\n");
-            xmlBuilder.append("</uws:jobInfo>");
+            xmlBuilder.append("<tapQueryInfo>\n");
+            xmlBuilder.append("    <pct_complete>").append(pctComplete).append("</pct_complete>\n");
+            xmlBuilder.append("    <chunks_processed>").append(completedChunks).append("</chunks_processed>\n");
+            xmlBuilder.append("    <total_chunks>").append(totalChunks).append("</total_chunks>\n");
+            xmlBuilder.append("</tapQueryInfo>\n");
             
             content = xmlBuilder.toString();
         } catch (Exception e) {
