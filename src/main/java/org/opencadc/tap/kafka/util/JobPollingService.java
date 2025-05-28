@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl.util;
+package org.opencadc.tap.kafka.util;
 
 import java.io.InputStream;
 import java.io.OutputStream;

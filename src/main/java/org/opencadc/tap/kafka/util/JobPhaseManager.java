@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl.util;
+package org.opencadc.tap.kafka.util;
 
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.uws.ErrorSummary;

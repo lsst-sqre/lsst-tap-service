@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl.util;
+package org.opencadc.tap.kafka.util;
 
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.tap.QueryRunner;

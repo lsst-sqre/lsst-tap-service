@@ -57,6 +57,8 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
     public static final String US_ASCII = "US-ASCII";
 
+    public static final String UTF_8 = "UTF-8";
+
     // CSV format delimiter.
     public static final char CSV_DELI = ',';
 
@@ -305,7 +307,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
      */
     private void writeDataWithoutHeaders(List<VOTableField> fields, TableData tableData, OutputStream out)
             throws IOException {
-        Writer writer = new BufferedWriter(new OutputStreamWriter(out, US_ASCII));
+        Writer writer = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
         CsvWriter csvWriter = new CsvWriter(writer, CSV_DELI);
 
         try {

@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
+import org.opencadc.tap.kafka.util.VOTableUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;

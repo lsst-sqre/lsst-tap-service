@@ -136,14 +136,14 @@ public class CreateJobEvent implements AutoCloseable {
             String jsonString = jobRun.toJsonString();
             log.debug("JSON message: " + jsonString);
 
-            log.info("Sending job run event to topic: " + queryTopic + " with jobID: " + jobID);
+            log.debug("Sending job run event to topic: " + queryTopic + " with jobID: " + jobID);
 
             ProducerRecord<String, String> record = new ProducerRecord<>(queryTopic, jobID, jsonString);
 
             Future<RecordMetadata> future = producer.send(record);
             RecordMetadata metadata = future.get(timeoutSeconds, TimeUnit.SECONDS);
 
-            log.info("JSON job run sent successfully to " + metadata.topic() +
+            log.debug("JSON job run sent successfully to " + metadata.topic() +
                     " [partition=" + metadata.partition() +
                     ", offset=" + metadata.offset() + "]");
 

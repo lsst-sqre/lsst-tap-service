@@ -4,6 +4,7 @@ import ca.nrc.cadc.uws.ErrorSummary;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.JobInfo;
 import ca.nrc.cadc.uws.Result;
 import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobUpdater;
@@ -53,18 +54,31 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
             Job job = jobPersist.get(status.getJobID());
             jobPersist.getDetails(job);
-
+            
             ExecutionPhase previousPhase = jobUpdater.getPhase(status.getJobID());
             ExecutionPhase newPhase = JobStatus.ExecutionStatus.toExecutionPhase(status.getStatus());
 
+            JobInfo jobInfo = getJobInfo(status, job);
             List<Result> diagnostics = getJobMetadata(status, job);
             ErrorSummary errorSummary = getErrorInfo(status);
-            
+
+            job.setExecutionPhase(newPhase);
             if (errorSummary != null) {
-                jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, errorSummary, new Date());
+                job.setErrorSummary(errorSummary);
             } else {
-                jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, diagnostics, new Date());
+                //jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, diagnostics, new Date());
             }
+            
+            log.info("Is jobInfo null? " + (jobInfo == null));
+            if (jobInfo != null) {
+                job.setJobInfo(jobInfo);
+            }
+
+            if (diagnostics != null && !diagnostics.isEmpty()) {
+                job.setResultsList(diagnostics);
+            }
+
+            jobPersist.put(job);
 
             log.info("Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase);
 
@@ -101,6 +115,63 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             log.error("Error updating error info for job: " + status.getJobID(), e);
         }
         return null;
+    }
+
+    /**
+     * Get job information, mainly used for progress information at this time.
+     * 
+     * @param status
+     * @param job
+     * @return
+     */
+    private JobInfo getJobInfo(JobStatus status, Job job) {
+        String pctComplete = null;
+        String content = "";
+        String contentType = "application/xml";
+        Boolean valid = true;
+
+        int completedChunks = 0;
+        int totalChunks = 0;
+        try {
+            if (status.getQueryInfo() != null) {
+                if (status.getQueryInfo().getCompletedChunks() != null
+                        && status.getQueryInfo().getTotalChunks() != null) {
+                    completedChunks = status.getQueryInfo().getCompletedChunks();
+                    totalChunks = status.getQueryInfo().getTotalChunks();
+                    if (totalChunks > 0) {
+                        pctComplete = String.format("%.0f", (completedChunks / (double) totalChunks) * 100);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error calculating progress for job: " + status.getJobID(), e);
+            return null;
+        }
+
+        if (pctComplete == null) {
+            log.info("Job " + status.getJobID() + " has no progress information available.");
+            return null;
+        }
+
+        try {
+            StringBuilder xmlBuilder = new StringBuilder();
+            xmlBuilder.append("<uws:jobInfo>\n");
+            xmlBuilder.append("    <tapQueryInfo>\n");
+            xmlBuilder.append("        <pct_complete>").append(pctComplete).append("</pct_complete>\n");
+            xmlBuilder.append("        <chunks_processed>").append(completedChunks).append("</chunks_processed>\n");
+            xmlBuilder.append("        <total_chunks>").append(totalChunks).append("</total_chunks>\n");
+            xmlBuilder.append("    </tapQueryInfo>\n");
+            xmlBuilder.append("</uws:jobInfo>");
+            
+            content = xmlBuilder.toString();
+        } catch (Exception e) {
+            log.warn("Error generating job info for job: " + status.getJobID(), e);
+            return null;
+        }
+
+        JobInfo jobInfo = new JobInfo(content, contentType, valid);
+        log.info("Generated job info for job " + status.getJobID() + ": " + content);
+        return jobInfo;
     }
 
     /**
@@ -148,17 +219,6 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
                     metadata.add(res);
                 }
             }
-
-            if (status.getQueryInfo() != null) {
-                if (status.getQueryInfo().getCompletedChunks() != null
-                        && status.getQueryInfo().getTotalChunks() != null) {
-                    Result chunkProgress = new Result("chunkProgress",
-                            URI.create(status.getQueryInfo().getCompletedChunks() + "/"
-                                    + status.getQueryInfo().getTotalChunks()));
-                    metadata.add(chunkProgress);
-                }
-            }
-
             return metadata;
         } catch (Exception e) {
             log.error("Error updating metadata for job: " + status.getJobID(), e);

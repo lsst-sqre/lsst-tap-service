@@ -75,7 +75,7 @@ public class RubinTableWriter extends DefaultTableWriter {
 
         try {
             List<String> datalinks = determineDatalinks(columnNames);
-            log.info("Found " + datalinks.size() + " applicable datalinks for columns");
+            log.debug("Found " + datalinks.size() + " applicable datalinks for columns");
 
             List<VOTableResource> metaResources = generateMetaResources(datalinks, columnNames);
             for (VOTableResource metaResource : metaResources) {
@@ -140,7 +140,7 @@ public class RubinTableWriter extends DefaultTableWriter {
     private List<VOTableResource> generateMetaResources(List<String> serviceIDs, List<String> columns)
             throws IOException {
         List<VOTableResource> metaResources = new ArrayList<>();
-        log.info("Generating meta resources for " + serviceIDs.size() + " datalink services");
+        log.debug("Generating meta resources for " + serviceIDs.size() + " datalink services");
 
         for (String serviceID : serviceIDs) {
             try {

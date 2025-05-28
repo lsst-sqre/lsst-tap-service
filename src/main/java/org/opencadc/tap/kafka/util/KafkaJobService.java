@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl.util;
+package org.opencadc.tap.kafka.util;
 
 import org.apache.log4j.Logger;
 
@@ -16,6 +16,7 @@ import javax.security.auth.Subject;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.JobInfo;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.Result;
 import ca.nrc.cadc.uws.server.JobNotFoundException;
@@ -91,6 +92,12 @@ public class KafkaJobService {
 
             JobSubmissionInfo jobInfo = extractJobInfo(job, jobRunner, bucketURL, bucket);
 
+            // Temp fix
+            // If there is a table upload, use the username as the database
+            if (!jobInfo.uploadTables.isEmpty()){
+                databaseString = "user_" + getUsername();
+            }
+            
             // Submit job to Kafka
             String eventJobId = createJobEventService.submitQuery(
                     jobInfo.sql,
@@ -160,7 +167,7 @@ public class KafkaJobService {
         jobPersistence.getDetails(job);
         String executionId = null;
         String jobId = job.getID();
-
+        
         if (job.getResultsList() != null) {
             for (Result result : job.getResultsList()) {
                 if (result.getName().equals("executionId")) {

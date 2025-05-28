@@ -131,7 +131,7 @@ public class ReadJobStatus implements AutoCloseable {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
                 if (!records.isEmpty()) {
-                    log.info("Received " + records.count() + " records");
+                    log.debug("Received " + records.count() + " records");
                 }
 
                 for (ConsumerRecord<String, String> record : records) {

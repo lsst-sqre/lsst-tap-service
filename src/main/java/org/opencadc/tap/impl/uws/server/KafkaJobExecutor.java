@@ -28,11 +28,11 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 
 import org.opencadc.tap.impl.QServQueryRunner;
-import org.opencadc.tap.impl.util.JobPhaseManager;
-import org.opencadc.tap.impl.util.JobPollingService;
-import org.opencadc.tap.impl.util.KafkaJobService;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
+import org.opencadc.tap.kafka.util.JobPhaseManager;
+import org.opencadc.tap.kafka.util.JobPollingService;
+import org.opencadc.tap.kafka.util.KafkaJobService;
 
 /**
  * JobExecutor implementation that sends jobs to Kafka.
