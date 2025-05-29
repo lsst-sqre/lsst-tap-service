@@ -69,7 +69,6 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
                 //jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, diagnostics, new Date());
             }
             
-            log.info("Is jobInfo null? " + (jobInfo == null));
             if (jobInfo != null) {
                 job.setJobInfo(jobInfo);
             }
@@ -149,7 +148,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
         }
 
         if (pctComplete == null) {
-            log.info("Job " + status.getJobID() + " has no progress information available.");
+            log.debug("Job " + status.getJobID() + " has no progress information available.");
             return null;
         }
 

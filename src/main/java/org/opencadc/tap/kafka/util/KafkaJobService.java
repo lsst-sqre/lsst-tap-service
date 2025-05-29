@@ -257,7 +257,7 @@ public class KafkaJobService {
                     job.getID(), "application/x-votable+xml", DEFAULT_JOB_RESULT_EXPIRATION_MINUTES);
             info.resultLocation = StorageUtils.generateResultLocation(job.getID());
             info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner);
-            info.maxrec = queryRunner.maxRows + 1;
+            info.maxrec = queryRunner.maxRows;
 
             try {
 
