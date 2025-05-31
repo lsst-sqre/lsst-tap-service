@@ -70,7 +70,8 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             }
             
             if (jobInfo != null) {
-                job.setJobInfo(jobInfo);
+                //job.setJobInfo(jobInfo);
+                // TODO: Add the jobInfo once pyvo can handle it properly
             }
 
             if (diagnostics != null && !diagnostics.isEmpty()) {
@@ -158,8 +159,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             xmlBuilder.append("    <pct_complete>").append(pctComplete).append("</pct_complete>\n");
             xmlBuilder.append("    <chunks_processed>").append(completedChunks).append("</chunks_processed>\n");
             xmlBuilder.append("    <total_chunks>").append(totalChunks).append("</total_chunks>\n");
-            xmlBuilder.append("</tapQueryInfo>\n");
-            
+            xmlBuilder.append("</tapQueryInfo>\n");            
             content = xmlBuilder.toString();
         } catch (Exception e) {
             log.warn("Error generating job info for job: " + status.getJobID(), e);
@@ -167,7 +167,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
         }
 
         JobInfo jobInfo = new JobInfo(content, contentType, valid);
-        log.info("Generated job info for job " + status.getJobID() + ": " + content);
+        log.debug("Generated job info for job " + status.getJobID() + ": " + content);
         return jobInfo;
     }
 
