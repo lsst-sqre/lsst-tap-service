@@ -2,19 +2,16 @@
 package org.opencadc.tap.ws;
 
 
-import ca.nrc.cadc.auth.X500IdentityManager;
-import ca.nrc.cadc.tap.QServQueryRunner;
+import org.opencadc.tap.impl.QServQueryRunner;
+import org.opencadc.tap.impl.uws.server.KafkaJobExecutorFactory;
+
 import ca.nrc.cadc.uws.server.JobExecutor;
 import ca.nrc.cadc.uws.server.impl.PostgresJobPersistence;
 import ca.nrc.cadc.uws.server.SimpleJobManager;
-import ca.nrc.cadc.uws.server.ThreadPoolExecutor;
-
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
-import ca.nrc.cadc.uws.server.RequestPathJobManager;
-import org.apache.log4j.Logger;
 
 
 /**
@@ -35,7 +32,8 @@ public class QueryJobManager extends SimpleJobManager {
 
         // max threads: 6 == number of simultaneously running async queries (per
         // web server), plus sync queries, plus VOSI-tables queries
-        final JobExecutor jobExec = new ThreadPoolExecutor(jobPersist, QServQueryRunner.class, 6);
+        
+        final JobExecutor jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, QServQueryRunner.class, jobPersist);
 
         super.setJobPersistence(jobPersist);
         super.setJobExecutor(jobExec);

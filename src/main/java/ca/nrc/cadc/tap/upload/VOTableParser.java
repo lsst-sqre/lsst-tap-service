@@ -65,46 +65,44 @@
 *  $Revision: 4 $
 *
 ************************************************************************
-*/
+ */
 
-package org.opencadc.tap.impl;
-import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.QueryRunner;
+package ca.nrc.cadc.tap.upload;
+
+import ca.nrc.cadc.dali.tables.votable.VOTableTable;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import java.io.IOException;
 
 /**
- * Implementation of the JobRunner interface from the cadcUWS framework. This is the
- * main class that implements TAP semantics; it is usable with both the async and sync
- * servlet configurations from cadcUWS.
- * This class dynamically loads and uses implementation classes as described in the
- * package documentation. This allows one to control the behavior of several key components:
- * query processing, upload support, and writing the result-set to the output file format.
- * In addition, this class uses JDNI to find java.sql.DataSource instances for
- * executing database statements.
- * A datasource named jdbc/tapuser is required; this datasource
- * is used to query the TAP_SCHEMA and to run user-queries. The connection(s) provided by this
- * datasource must have read permission to the TAP_SCHEMA and all tables described within the
- * TAP_SCHEMA.
- * A datasource named jdbc/tapuploadadm is optional; this datasource is used to create tables
- * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
- * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
- * the connection(s) provided by the datasource must have create table permission in the current database and
- * TAP_UPLOAD schema.
+ * Interface to parse a VOTable and extract the meta data describing the
+ * VOTAble and access the VOTable data.
  *
- * @author stvoutsin
+ * @author jburke
  */
-public class QServQueryRunner extends QueryRunner
-{
-    private static final Logger log = Logger.getLogger(QServQueryRunner.class);
+public interface VOTableParser {
 
-    public QServQueryRunner() { 
-        super(true);
-    }
+    /**
+     * Set the Upload Table details.
+     *
+     * @param upload The upload table descriptor.
+     * @throws VOTableParserException For any parsing exceptions.
+     */
+    void setUpload(UploadTable upload) throws VOTableParserException;
 
-    @Override
-    public void run() {
-        log.debug("QservQueryRunner starting execution");
-        super.run();
-        log.debug("QServQueryRunner finished execution");
-    }
+    /**
+     * Get a TableDesc of the VOTable.
+     *
+     * @return TableDesc of the VOTable.
+     * @throws VOTableParserException if unable to parse the VOTable.
+     */
+    public TableDesc getTableDesc()
+            throws IOException, VOTableParserException;
+
+    /**
+     * Returns the VOTable data.
+     *
+     * @return VOTable data or null if no table resource with data
+     */
+    public VOTableTable getVOTable();
 
 }

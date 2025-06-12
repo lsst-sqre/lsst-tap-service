@@ -57,6 +57,10 @@
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
             <param-value>org.opencadc.tap.ws.QueryJobManager</param-value>
         </init-param>
+        <init-param>
+            <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
+            <param-value>org.opencadc.tap.impl.RubinUWSContentHandler</param-value>
+        </init-param>
     </servlet>
 
     <servlet>
@@ -89,6 +93,10 @@
         <init-param>
             <param-name>ca.nrc.cadc.uws.server.JobManager</param-name>
             <param-value>org.opencadc.tap.ws.QueryJobManager</param-value>
+        </init-param>
+        <init-param>
+            <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
+            <param-value>org.opencadc.tap.impl.RubinUWSContentHandler</param-value>
         </init-param>
     </servlet>
     
@@ -137,7 +145,7 @@
         <servlet-name>ResultsServlet</servlet-name>
         <url-pattern>/results/*</url-pattern>
     </servlet-mapping>
-
+    
     <!-- the TAP Endpoints -->
     <servlet-mapping>
         <servlet-name>AsyncServlet</servlet-name>

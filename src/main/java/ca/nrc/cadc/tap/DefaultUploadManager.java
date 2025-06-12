@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2018.                            (c) 2018.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,52 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
 
-package org.opencadc.tap.impl;
-import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.QueryRunner;
+package ca.nrc.cadc.tap;
+
+import ca.nrc.cadc.tap.db.DatabaseDataType;
+import ca.nrc.cadc.tap.schema.TableDesc;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.Parameter;
+import ca.nrc.cadc.uws.ParameterUtil;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.sql.DataSource;
 
 /**
- * Implementation of the JobRunner interface from the cadcUWS framework. This is the
- * main class that implements TAP semantics; it is usable with both the async and sync
- * servlet configurations from cadcUWS.
- * This class dynamically loads and uses implementation classes as described in the
- * package documentation. This allows one to control the behavior of several key components:
- * query processing, upload support, and writing the result-set to the output file format.
- * In addition, this class uses JDNI to find java.sql.DataSource instances for
- * executing database statements.
- * A datasource named jdbc/tapuser is required; this datasource
- * is used to query the TAP_SCHEMA and to run user-queries. The connection(s) provided by this
- * datasource must have read permission to the TAP_SCHEMA and all tables described within the
- * TAP_SCHEMA.
- * A datasource named jdbc/tapuploadadm is optional; this datasource is used to create tables
- * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
- * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
- * the connection(s) provided by the datasource must have create table permission in the current database and
- * TAP_UPLOAD schema.
+ * Default implementation of the UploadManager implementation. This does not
+ * support upload
+ * and throws an UnsupportedOperationException if it finds UPLOAD params in the
+ * job.
  *
- * @author stvoutsin
+ * @author pdowler
  */
-public class QServQueryRunner extends QueryRunner
-{
-    private static final Logger log = Logger.getLogger(QServQueryRunner.class);
-
-    public QServQueryRunner() { 
-        super(true);
+public class DefaultUploadManager implements UploadManager {
+    public Map<String, TableDesc> upload(List<Parameter> paramList, String jobID) {
+        List<String> uploads = ParameterUtil.findParameterValues(UPLOAD, paramList);
+        if (uploads == null || uploads.isEmpty()) {
+            return new HashMap<>();
+        }
+        throw new UnsupportedOperationException("UPLOAD parameter not supported by this service");
     }
 
     @Override
-    public void run() {
-        log.debug("QservQueryRunner starting execution");
-        super.run();
-        log.debug("QServQueryRunner finished execution");
+    public void setDataSource(DataSource ds) {
+
     }
 
+    @Override
+    public void setJob(Job job) {
+
+    }
+
+    @Override
+    public String getUploadSchema() {
+        return "TAP_UPLOAD";
+    }
 }
