@@ -50,9 +50,6 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
         try {
             String baseFilename = name + "-" + new RandomStringGenerator(16).getID();
             String xmlFilename = baseFilename + ".xml";
-            //String xmlEmptyFilename = baseFilename + ".empty.xml";
-            //String csvFilename = baseFilename + ".csv";
-            //String schemaFilename = baseFilename + ".schema.json";
 
             log.info("Reading VOTable from input stream");
             VOTableReader voTableReader = new VOTableReader();
@@ -70,34 +67,6 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
             VOTableTable table = resource.getTable();
             TableData originalData = table.getTableData();
             List<VOTableField> fields = table.getFields();
-
-            /*
-            writeSchemaFile(table.getFields(), schemaFilename);
-
-            // Write CSV version of the data
-            log.info("Writing CSV to: " + csvFilename);
-            OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
-            //TableWriter<VOTableDocument> tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
-            //tableWriter.write(doc, csvOs);
-
-            writeDataWithoutHeaders(fields, originalData, csvOs);
-
-            csvOs.flush();
-            csvOs.close();
-
-            // Empty the table data for metadata-only version
-            table.setTableData(null);
-
-            // Write empty VOTable for metadata
-            log.info("Writing empty VOTable to: " + xmlEmptyFilename);
-            OutputStream xmlOsEmpty = StorageUtils.getOutputStream(xmlEmptyFilename, contentType);
-            VOTableWriter voWriterEmpty = new VOTableWriter();
-            voWriterEmpty.write(doc, xmlOsEmpty);
-            xmlOsEmpty.flush();
-            xmlOsEmpty.close();
-
-            table.setTableData(originalData);
-             */
 
             log.info("Writing full VOTable to: " + xmlFilename);
             OutputStream xmlOs = StorageUtils.getOutputStream(xmlFilename, contentType);
