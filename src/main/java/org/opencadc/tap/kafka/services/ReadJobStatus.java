@@ -148,7 +148,7 @@ public class ReadJobStatus implements AutoCloseable {
                             continue;
                         }
 
-                        log.info("Received status update for job " + status.getJobID() + ": " + status.getStatus());
+                        log.debug("Received status update for job " + status.getJobID() + ": " + status.getStatus());
 
                         synchronized (this) {
                             for (StatusListener listener : statusListeners) {

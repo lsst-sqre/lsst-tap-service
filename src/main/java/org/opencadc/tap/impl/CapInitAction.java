@@ -167,7 +167,7 @@ public class CapInitAction extends InitAction {
                 log.debug("no previously bound template, continuting");
             }
             initContext.bind(jndiKey, tmpl);
-            log.info("doInit: capabilities template=" + str + " stored via JNDI: " + jndiKey);
+            log.debug("doInit: capabilities template=" + str + " stored via JNDI: " + jndiKey);
         } catch (Exception ex) {
             throw new IllegalArgumentException("CONFIG: failed to read capabilities template: " + str, ex);
         }
@@ -183,10 +183,10 @@ public class CapInitAction extends InitAction {
             }
             if ("true".equals(authRequired)) {
                 initContext.bind(jndiKey, Boolean.TRUE);
-                log.info("doInit: authRequired=true stored via JNDI: " + jndiKey);
+                log.debug("doInit: authRequired=true stored via JNDI: " + jndiKey);
             } else {
                 initContext.bind(jndiKey, Boolean.FALSE);
-                log.info("doInit: authRequired=false stored via JNDI: " + jndiKey);
+                log.debug("doInit: authRequired=false stored via JNDI: " + jndiKey);
             }
         } catch (Exception ex) {
             throw new IllegalArgumentException("CONFIG: failed to set authRequired flag", ex);
@@ -203,7 +203,7 @@ public class CapInitAction extends InitAction {
                 log.debug("no previously bound value, continuting");
             }
             initContext.bind(jndiKey, version.getMajorMinor());
-            log.info("doInit: version=" + version + " stored via JNDI: " + jndiKey);
+            log.debug("doInit: version=" + version + " stored via JNDI: " + jndiKey);
         } catch (Exception ex) {
             throw new IllegalArgumentException("CONFIG: failed to set version flag", ex);
         }

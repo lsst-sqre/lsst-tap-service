@@ -183,7 +183,7 @@ public class VOTableUtil {
 
                             urlRewriteRules.computeIfAbsent(tableName, k -> new ArrayList<>())
                                     .add(columnName);
-                            log.info("Added URL rewrite rule: " + tableName + "." + columnName);
+                            log.debug("Added URL rewrite rule: " + tableName + "." + columnName);
                         } else {
                             log.warn("Invalid URL rewrite rule format: " + rule +
                                     " (expected format: table:column)");
@@ -195,7 +195,7 @@ public class VOTableUtil {
             }
 
             if (urlRewriteRules.isEmpty()) {
-                log.info("No URL rewrite rules configured");
+                log.debug("No URL rewrite rules configured");
             }
         }
 

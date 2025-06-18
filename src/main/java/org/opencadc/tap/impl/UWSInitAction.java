@@ -94,15 +94,15 @@ public class UWSInitAction extends InitAction {
          try {
             uws = DBUtil.findJNDIDataSource("jdbc/uws");
             if (!schemaExists(uws, "uws")) {
-                log.info("uws schema does not exist, creating...");
+                log.debug("uws schema does not exist, creating...");
                 createSchema(uws, "uws");
-                log.info("uws schema created");
+                log.debug("uws schema created");
                 // Continue with initialization only if the schema was just created
                 InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
                 uwsi.doInit();
-                log.info("init uws: OK");
+                log.debug("init uws: OK");
             } else {
-                log.info("uws schema already exists");
+                log.debug("uws schema already exists");
                 return; // Exit the method early if the schema already exists
             }
         } catch (Exception ex) {

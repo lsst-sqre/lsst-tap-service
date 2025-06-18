@@ -44,7 +44,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
     @Override
     public void onStatusUpdate(JobStatus status) {
-        log.info("Job Status Update Received: " + status.toString());
+        log.debug("Job Status Update Received: " + status.toString());
 
         try {
             if (status == null || status.getJobID() == null) {
@@ -93,9 +93,9 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
                 job.setEndTime(new Date());
             }
 
-            // jobPersist.put(job);
+            //jobPersist.put(job);
 
-            log.info("Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase
+            log.debug("Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase
                     + " for user: " + job.getOwnerID());
 
             if (isTerminalStatus(status.getStatus())) {

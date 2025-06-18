@@ -23,7 +23,7 @@ public class RubinFormatFactory extends OracleFormatFactory {
             // ivoa.ObsCore
             if ("ivoa.ObsCore".equalsIgnoreCase(columnDesc.tableName)) {
                 if ("access_url".equalsIgnoreCase(columnDesc.getColumnName())) {
-                    log.info("getClobFormat called for access_url");
+                    log.debug("getClobFormat called for access_url");
                     return new RubinURLFormat();
                 }
             }

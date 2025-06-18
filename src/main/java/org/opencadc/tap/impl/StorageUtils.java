@@ -116,7 +116,7 @@ public class StorageUtils {
                         Storage.SignUrlOption.httpMethod(httpMethod),
                         Storage.SignUrlOption.withV4Signature());
 
-                log.info("Generated signed URL for " + filename + ": " + signedUrl.toString());
+                log.debug("Generated signed URL for " + filename + ": " + signedUrl.toString());
                 return signedUrl.toString();
             } catch (Exception e) {
                 log.error("Error generating signed URL for " + filename, e);
@@ -279,7 +279,7 @@ public class StorageUtils {
                 .setContentType(contentType)
                 .build();
         Blob blob = storage.create(blobInfo);
-        log.info("GCS blob created: " + blob.getSelfLink());
+        log.debug("GCS blob created: " + blob.getSelfLink());
         return Channels.newOutputStream(blob.writer());
     }
 

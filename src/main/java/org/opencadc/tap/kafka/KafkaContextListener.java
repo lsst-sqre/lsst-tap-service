@@ -29,7 +29,7 @@ public class KafkaContextListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        log.info("Initializing Kafka configuration");
+        log.debug("Initializing Kafka configuration");
 
         ServletContext context = sce.getServletContext();
         WebAppContext.setServletContext(context);
@@ -110,7 +110,7 @@ public class KafkaContextListener implements ServletContextListener {
             }
         }
 
-        log.info("Kafka connections shut down");
+        log.debug("Kafka connections shut down");
     }
 
     /**
