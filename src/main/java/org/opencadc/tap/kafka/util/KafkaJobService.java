@@ -266,7 +266,7 @@ public class KafkaJobService {
                     for (Map.Entry<String, TableDesc.TableLocationInfo> entry : queryRunner.uploadTableLocations
                             .entrySet()) {
                         String tableName = entry.getKey();
-                        log.info("Table name in KafkaJobService: " + tableName);
+                        log.debug("Table name in KafkaJobService: " + tableName);
                         TableDesc.TableLocationInfo locationInfo = entry.getValue();
                         String sourceUrl = locationInfo.map.get("data").toString();
                         String schemaUrl = locationInfo.map.get("schema").toString();

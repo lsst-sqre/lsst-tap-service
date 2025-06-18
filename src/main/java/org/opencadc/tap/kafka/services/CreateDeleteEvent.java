@@ -42,7 +42,7 @@ public class CreateDeleteEvent implements AutoCloseable {
      * @param timeoutSeconds Timeout for Kafka operations
      */
     public CreateDeleteEvent(KafkaConfig kafkaConfig, int timeoutSeconds) {
-        log.info("Initializing CreateDeleteEvent with timeout: " + timeoutSeconds + " seconds");
+        log.debug("Initializing CreateDeleteEvent with timeout: " + timeoutSeconds + " seconds");
 
         this.producer = kafkaConfig.createProducer();
         this.deleteTopic = kafkaConfig.getDeleteTopic();
@@ -52,7 +52,7 @@ public class CreateDeleteEvent implements AutoCloseable {
             throw new IllegalArgumentException("Kafka delete topic cannot be null or empty");
         }
 
-        log.info("CreateDeleteEvent initialized");
+        log.debug("CreateDeleteEvent initialized");
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::close));
     }
@@ -83,7 +83,7 @@ public class CreateDeleteEvent implements AutoCloseable {
         }
 
         try {
-            log.info("Creating job delete event for executionID: " + executionID);
+            log.debug("Creating job delete event for executionID: " + executionID);
 
             JobDelete jobDelete = JobDelete.newBuilder()
                     .setExecutionID(executionID)
@@ -94,14 +94,14 @@ public class CreateDeleteEvent implements AutoCloseable {
             String jsonString = jobDelete.toJsonString();
             log.debug("JSON message: " + jsonString);
 
-            log.info("Sending job delete event to topic: " + deleteTopic + " with executionID: " + executionID);
+            log.debug("Sending job delete event to topic: " + deleteTopic + " with executionID: " + executionID);
 
             ProducerRecord<String, String> record = new ProducerRecord<>(deleteTopic, executionID, jsonString);
 
             Future<RecordMetadata> future = producer.send(record);
             RecordMetadata metadata = future.get(timeoutSeconds, TimeUnit.SECONDS);
 
-            log.info("JSON job delete sent successfully to " + metadata.topic() +
+            log.debug("JSON job delete sent successfully to " + metadata.topic() +
                     " [partition=" + metadata.partition() +
                     ", offset=" + metadata.offset() + "]");
 
@@ -126,7 +126,7 @@ public class CreateDeleteEvent implements AutoCloseable {
                 try {
                     producer.flush();
                     producer.close(Duration.ofSeconds(30));
-                    log.info("Kafka producer closed successfully");
+                    log.debug("Kafka producer closed successfully");
                 } catch (Exception e) {
                     log.warn("Error closing Kafka producer", e);
                 }

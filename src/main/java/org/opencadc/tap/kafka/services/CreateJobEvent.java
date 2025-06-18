@@ -46,7 +46,6 @@ public class CreateJobEvent implements AutoCloseable {
      * @param timeoutSeconds Timeout for Kafka operations
      */
     public CreateJobEvent(KafkaConfig kafkaConfig, int timeoutSeconds) {
-        log.info("Initializing CreateJobEvent with timeout: " + timeoutSeconds + " seconds");
 
         this.producer = kafkaConfig.createProducer();
         this.queryTopic = kafkaConfig.getQueryTopic();
@@ -55,8 +54,6 @@ public class CreateJobEvent implements AutoCloseable {
         if (queryTopic == null || queryTopic.isEmpty()) {
             throw new IllegalArgumentException("Kafka query topic cannot be null or empty");
         }
-
-        log.info("CreateJobEvent initialized");
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::close));
     }
@@ -119,8 +116,6 @@ public class CreateJobEvent implements AutoCloseable {
         }
 
         try {
-            log.info("Creating job run event for jobID: " + jobID);
-
             JobRun jobRun = JobRun.newBuilder()
                     .setJobID(jobID)
                     .setQuery(query)
@@ -168,7 +163,6 @@ public class CreateJobEvent implements AutoCloseable {
                 try {
                     producer.flush();
                     producer.close(Duration.ofSeconds(30));
-                    log.info("Kafka producer closed successfully");
                 } catch (Exception e) {
                     log.warn("Error closing Kafka producer", e);
                 }

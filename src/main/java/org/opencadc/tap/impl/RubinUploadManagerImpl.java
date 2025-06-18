@@ -140,7 +140,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     protected void storeTable(TableDesc table, VOTableTable vot) {
 
         if (table.dataLocation != null) {
-            log.info("Table already stored in cloud storage: " + table.dataLocation);
+            log.debug("Table already stored in cloud storage: " + table.dataLocation);
             return;
         }
 

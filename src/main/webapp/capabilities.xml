@@ -88,7 +88,9 @@
       <mime>text/tab-separated-values</mime>
       <alias>tsv</alias>
     </outputFormat>
-    <!-- uploadMethods are not yet supported by Qserv -->
+    <uploadMethod ivo-id="ivo://ivoa.net/std/TAPRegExt#upload-inline"/>
+    <uploadMethod ivo-id="ivo://ivoa.net/std/TAPRegExt#upload-http"/>
+    <uploadMethod ivo-id="ivo://ivoa.net/std/TAPRegExt#upload-https"/>
     <retentionPeriod>
       <default>604800</default>
       <hard>604800</hard>
@@ -104,8 +106,8 @@
     </outputLimit>
     <!-- outputLimit for sync queries: no limit -->
     <uploadLimit>
-      <default unit="row">10000</default>
-      <hard unit="row">10000</hard>
+      <default unit="byte">10485760</default>
+      <hard unit="byte">10485760</hard>
     </uploadLimit>
   </capability>
 

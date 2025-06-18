@@ -112,7 +112,6 @@ public class KafkaJobExecutor implements JobExecutor {
 
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
-        log.info("Starting execution of job: " + job.getID());
 
         try {
             JobRunner jobRunner = createJobRunner();
@@ -179,8 +178,6 @@ public class KafkaJobExecutor implements JobExecutor {
         if (syncOutput == null) {
             throw new IllegalArgumentException("syncOutput cannot be null");
         }
-
-        log.info("Starting synchronous execution of job: " + job.getID());
 
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
@@ -315,7 +312,7 @@ public class KafkaJobExecutor implements JobExecutor {
             throw new IllegalArgumentException("job cannot be null");
         }
 
-        log.info("Aborting job: " + job.getID());
+        log.debug("Aborting job: " + job.getID());
 
         try {
             ExecutionPhase current = jobUpdater.getPhase(job.getID());

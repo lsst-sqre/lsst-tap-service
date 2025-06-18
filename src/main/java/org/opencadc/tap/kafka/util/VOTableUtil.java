@@ -11,7 +11,9 @@ import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility class for VOTable operations.
@@ -23,6 +25,12 @@ import java.util.List;
 public class VOTableUtil {
     private static final Logger log = Logger.getLogger(VOTableUtil.class);
     private static final String BASE_URL = System.getProperty("base_url");
+    private static final boolean URL_REWRITE_ENABLED = Boolean.parseBoolean(
+            System.getProperty("url.rewrite.enabled", "true"));
+    private static final String URL_REWRITE_RULES = System.getProperty(
+            "url.rewrite.rules", "ivoa.ObsCore:access_url");
+
+    private static Map<String, List<String>> urlRewriteRules = null;
 
     /**
      * Create a ResultFormat configuration for the job.
@@ -96,7 +104,7 @@ public class VOTableUtil {
             throw new RuntimeException("Failed to generate VOTable XML: " + e.getMessage());
         }
 
-        return new String[] { header, footer, footerOverflow};
+        return new String[] { header, footer, footerOverflow };
     }
 
     /**
@@ -123,18 +131,75 @@ public class VOTableUtil {
 
             // Handle columns that need rewriting
             // Currently only the access_url column in ivoa.ObsCore
-            if (item != null) {
-                if ("ivoa.ObsCore".equalsIgnoreCase(item.tableName)) {
-                    if ("access_url".equalsIgnoreCase(item.getColumnName())) {
-                        columnType.setRequiresUrlRewrite(true);
-                    }
-                }
+            if (item != null && shouldRewriteUrl(item.tableName, item.getColumnName())) {
+                columnType.setRequiresUrlRewrite(true);
             }
 
             columnTypes.add(columnType);
         }
 
         return columnTypes;
+    }
+
+    /**
+     * Check if a column requires URL rewriting
+     * 
+     * @param tableName  The table name
+     * @param columnName The column name
+     * @return true if URL rewriting is needed
+     */
+    private static boolean shouldRewriteUrl(String tableName, String columnName) {
+        if (!URL_REWRITE_ENABLED || tableName == null || columnName == null) {
+            return false;
+        }
+
+        Map<String, List<String>> rules = getUrlRewriteRules();
+
+        List<String> columnsForTable = rules.get(tableName.toLowerCase());
+        if (columnsForTable != null) {
+            return columnsForTable.contains(columnName.toLowerCase());
+        }
+
+        return false;
+    }
+
+    /**
+     * Parse and cache URL rewrite rules
+     * 
+     * @return Map of table names to lists of column names that need rewriting
+     */
+    private static synchronized Map<String, List<String>> getUrlRewriteRules() {
+        if (urlRewriteRules == null) {
+            urlRewriteRules = new HashMap<>();
+
+            if (URL_REWRITE_RULES != null && !URL_REWRITE_RULES.trim().isEmpty()) {
+                try {
+                    String[] rules = URL_REWRITE_RULES.split(",");
+                    for (String rule : rules) {
+                        String[] parts = rule.trim().split(":");
+                        if (parts.length == 2) {
+                            String tableName = parts[0].trim().toLowerCase();
+                            String columnName = parts[1].trim().toLowerCase();
+
+                            urlRewriteRules.computeIfAbsent(tableName, k -> new ArrayList<>())
+                                    .add(columnName);
+                            log.debug("Added URL rewrite rule: " + tableName + "." + columnName);
+                        } else {
+                            log.warn("Invalid URL rewrite rule format: " + rule +
+                                    " (expected format: table:column)");
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Error parsing URL rewrite rules: " + URL_REWRITE_RULES, e);
+                }
+            }
+
+            if (urlRewriteRules.isEmpty()) {
+                log.debug("No URL rewrite rules configured");
+            }
+        }
+
+        return urlRewriteRules;
     }
 
     /**

@@ -21,7 +21,7 @@ public class WebAppContext {
      */
     public static void setServletContext(ServletContext context) {
         if (context != null) {
-            log.info("Storing ServletContext in WebAppContext singleton");
+            log.debug("Storing ServletContext in WebAppContext singleton");
             servletContext = context;
         }
     }

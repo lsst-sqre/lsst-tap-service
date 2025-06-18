@@ -40,7 +40,7 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
     @Override
     public Content accept(String name, String contentType, InputStream inputStream)
             throws InlineContentException, IOException {
-        log.info("name: " + name);
+        log.debug("name: " + name);
         log.debug("Content-Type: " + contentType);
 
         if (inputStream == null) {
@@ -50,11 +50,8 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
         try {
             String baseFilename = name + "-" + new RandomStringGenerator(16).getID();
             String xmlFilename = baseFilename + ".xml";
-            //String xmlEmptyFilename = baseFilename + ".empty.xml";
-            //String csvFilename = baseFilename + ".csv";
-            //String schemaFilename = baseFilename + ".schema.json";
 
-            log.info("Reading VOTable from input stream");
+            log.debug("Reading VOTable from input stream");
             VOTableReader voTableReader = new VOTableReader();
             VOTableDocument doc = voTableReader.read(inputStream);
 
@@ -71,35 +68,7 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
             TableData originalData = table.getTableData();
             List<VOTableField> fields = table.getFields();
 
-            /*
-            writeSchemaFile(table.getFields(), schemaFilename);
-
-            // Write CSV version of the data
-            log.info("Writing CSV to: " + csvFilename);
-            OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
-            //TableWriter<VOTableDocument> tableWriter = new AsciiTableWriter(AsciiTableWriter.ContentType.CSV);
-            //tableWriter.write(doc, csvOs);
-
-            writeDataWithoutHeaders(fields, originalData, csvOs);
-
-            csvOs.flush();
-            csvOs.close();
-
-            // Empty the table data for metadata-only version
-            table.setTableData(null);
-
-            // Write empty VOTable for metadata
-            log.info("Writing empty VOTable to: " + xmlEmptyFilename);
-            OutputStream xmlOsEmpty = StorageUtils.getOutputStream(xmlEmptyFilename, contentType);
-            VOTableWriter voWriterEmpty = new VOTableWriter();
-            voWriterEmpty.write(doc, xmlOsEmpty);
-            xmlOsEmpty.flush();
-            xmlOsEmpty.close();
-
-            table.setTableData(originalData);
-             */
-
-            log.info("Writing full VOTable to: " + xmlFilename);
+            log.debug("Writing full VOTable to: " + xmlFilename);
             OutputStream xmlOs = StorageUtils.getOutputStream(xmlFilename, contentType);
             VOTableWriter voWriter = new VOTableWriter();
             voWriter.write(doc, xmlOs);
@@ -108,7 +77,7 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
 
             // Return URL to the XML file that contains metadata
             String xmlUrl = StorageUtils.getStorageUrl(xmlFilename);
-            log.info("Returning URL: " + xmlUrl);
+            log.debug("Returning URL: " + xmlUrl);
 
             Content ret = new Content();
             ret.name = UWSInlineContentHandler.CONTENT_PARAM_REPLACE;
