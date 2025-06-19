@@ -65,8 +65,6 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     // TSV format delimiter.
     public static final char TSV_DELI = '\t';
 
-    public static final int MAX_UPLOAD_ROWS = 100000;
-
     /**
      * Default expiration time for signed URLs in hours.
      */
@@ -78,7 +76,6 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
      */
     static {
         MAX_UPLOAD = new UploadLimits(32 * 1024L * 1024L); // 32 Mb
-        MAX_UPLOAD.rowLimit = MAX_UPLOAD_ROWS;
     }
 
     /**
@@ -107,19 +104,6 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
      * Storage for file metadata and signed URLs
      */
     protected Map<String, String> signedUrls;
-
-    /**
-     * Backwards compatible constructor. This uses the default byte limit of 10MiB.
-     *
-     * @param rowLimit maximum number of rows
-     * @deprecated use UploadLimits instead
-     */
-    @Deprecated
-    protected RubinUploadManagerImpl(int rowLimit) {
-        // 10MiB of votable xml is roughly 17k rows x 10 columns
-        this(new UploadLimits(10 * 1024L * 1024L));
-        this.uploadLimits.rowLimit = rowLimit;
-    }
 
     public RubinUploadManagerImpl() {
         this(MAX_UPLOAD);
@@ -309,7 +293,6 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             throws IOException {
         Writer writer = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
         CsvWriter csvWriter = new CsvWriter(writer, CSV_DELI);
-
         try {
             FormatFactory formatFactory = new FormatFactory();
 
