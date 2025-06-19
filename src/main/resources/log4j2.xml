@@ -1,31 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO" name="TAP ObsCore">
-    <Properties>
-        <Property name="SENTRY_ENABLED">${env:SENTRY_DSN:-}</Property>
-    </Properties>
-    
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %c [%t] %-5p %m%n"/>
         </Console>
-        
-        <!-- Sentry Appender - Only created if SENTRY_DSN is set -->
-        <Sentry name="Sentry" 
-            minimumEventLevel="ERROR"
-            minimumBreadcrumbLevel="WARN">
-            <filters>
-                <!-- Only allow if SENTRY_DSN is not empty -->
-                <StringMatchFilter text="${SENTRY_ENABLED}" onMatch="ACCEPT" onMismatch="DENY"/>
-            </filters>
-        </Sentry>
     </Appenders>
-
+    
     <Loggers>
         <Root level="INFO">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="Sentry" level="ERROR"/>
         </Root>
         <Logger name="org.apache.kafka" level="INFO"/>
-
     </Loggers>
 </Configuration>

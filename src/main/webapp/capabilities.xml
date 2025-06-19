@@ -106,8 +106,8 @@
     </outputLimit>
     <!-- outputLimit for sync queries: no limit -->
     <uploadLimit>
-      <default unit="byte">10485760</default>
-      <hard unit="byte">10485760</hard>
+      <default unit="byte">33554432</default>
+      <hard unit="byte">33554432</hard>
     </uploadLimit>
   </capability>
 
