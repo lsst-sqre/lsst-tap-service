@@ -100,16 +100,17 @@ public class JobPollingService {
         } catch (JobServiceUnavailableException e) {
             // This error is expected to be encountered if we timed out waiting for
             // the job to complete, but the job is still in a transient state.
-            // We return a 503 response to the client with a retry-after header.
-            log.warn("Job " + jobId + " still processing, returning 503 response");
+            // We return a VOTable error response with HTTP 200 (traditional DAL approach).
+            log.warn("Job " + jobId + " still processing, returning VOTable error with 200 status");
             try {
-                syncOutput.setCode(503);
-                syncOutput.setHeader("Content-Type", "text/plain");
-                syncOutput.setHeader("Retry-After", String.valueOf(e.getRetryAfterMs() / 1000));
-                String message = e.getMessage();
+                syncOutput.setCode(200);
+                syncOutput.setHeader("Content-Type", "application/x-votable+xml");
+                //syncOutput.setHeader("Retry-After", String.valueOf(e.getRetryAfterMs() / 1000));
+                String message = VOTableUtil.generateErrorVOTable(
+                    "Query timeout exceeded for synchronous execution. Please use /async endpoint for long-running queries.");
                 syncOutput.getOutputStream().write(message.getBytes());
             } catch (IOException ioe) {
-                log.error("Failed to write service unavailable message to output stream", ioe);
+                log.error("Failed to write timeout error message to output stream", ioe);
             }
             return false;
         }
