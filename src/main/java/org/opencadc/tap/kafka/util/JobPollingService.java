@@ -29,7 +29,7 @@ import org.opencadc.tap.impl.StorageUtils;
 public class JobPollingService {
     private static final Logger log = Logger.getLogger(JobPollingService.class);
 
-    private static final int DEFAULT_MAX_ATTEMPTS = 120;
+    private static final int DEFAULT_MAX_ATTEMPTS = 20;
     private static final int DEFAULT_POLL_INTERVAL_MS = 3000;
 
     private final JobUpdater jobUpdater;
@@ -105,6 +105,7 @@ public class JobPollingService {
             try {
                 syncOutput.setCode(200);
                 syncOutput.setHeader("Content-Type", "application/x-votable+xml");
+                syncOutput.setHeader("Content-Disposition", "inline; filename=\"tap_sync_timeout_error.xml\"");
                 //syncOutput.setHeader("Retry-After", String.valueOf(e.getRetryAfterMs() / 1000));
                 String message = VOTableUtil.generateErrorVOTable(
                     "Query timeout exceeded for synchronous execution. Please use /async endpoint for long-running queries.");
