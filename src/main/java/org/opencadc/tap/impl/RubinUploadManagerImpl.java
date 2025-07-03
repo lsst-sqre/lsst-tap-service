@@ -38,7 +38,6 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 import org.apache.log4j.Logger;
-
 import com.csvreader.CsvWriter;
 import com.google.cloud.storage.HttpMethod;
 
@@ -234,13 +233,74 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
             writer.write("\n  { ");
             writer.write("\"name\": \"" + escapeJsonString(field.getName()) + "\", ");
-            writer.write("\"type\": \"" + escapeJsonString(field.getDatatype()) + "\"");
+            String datatype = field.getDatatype().toLowerCase();
+            String typeString = convertVOTableTypeToMySQL(datatype);
+
+            if (field.getArraysize() != null && !field.getArraysize().trim().isEmpty()) {
+                String arraysize = field.getArraysize().trim();
+                if ("*".equals(arraysize)) {
+                    if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
+                        typeString = "VARCHAR(255)";
+                    } else if ("bit".equals(datatype)) {
+                        typeString = "BIT(64)";
+                    } else {
+                        log.warn("Array type detected for " + datatype + " with arraysize=*, converting to TEXT");
+                        typeString = "TEXT";
+                    }
+                } else {
+                    if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
+                        typeString += "(" + arraysize + ")";
+                    } else if ("bit".equals(datatype)) {
+                        typeString += "(" + arraysize + ")";
+                    } else {
+                        log.warn("Array type detected for " + datatype + " with arraysize=" + arraysize
+                                + ", converting to TEXT");
+                        typeString = "TEXT";
+                    }
+                }
+            }
+            writer.write("\"type\": \"" + escapeJsonString(typeString) + "\"");
+
             writer.write(" }");
         }
 
         writer.write("\n]");
         writer.flush();
         writer.close();
+    }
+
+    /**
+     * Convert VOTable data types to MySQL equivalents
+     */
+    private String convertVOTableTypeToMySQL(String voTableType) {
+        switch (voTableType) {
+            case "boolean":
+                return "BOOLEAN";
+            case "unsignedbyte":
+                return "TINYINT UNSIGNED";
+            case "short":
+                return "SMALLINT";
+            case "int":
+                return "INT";
+            case "long":
+                return "BIGINT";
+            case "float":
+                return "FLOAT";
+            case "double":
+                return "DOUBLE";
+            case "char":
+            case "unicodechar":
+                return "CHAR";
+            case "bit":
+                return "BIT";
+            case "floatcomplex":
+            case "doublecomplex":
+                log.warn("Complex type " + voTableType + " not supported in MySQL, using VARCHAR");
+                return "VARCHAR(255)";
+            default:
+                log.warn("Unknown VOTable type: " + voTableType + ", keeping as-is");
+                return voTableType.toUpperCase();
+        }
     }
 
     /**
@@ -344,7 +404,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     public String getDatabaseTableName(UploadTable uploadTable) {
         StringBuilder sb = new StringBuilder();
         String username = getUsername();
-        if (username != null){
+        if (username != null) {
             sb.append("user_").append(username).append(".");
         }
         sb.append(uploadTable.tableName);
@@ -359,7 +419,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
      * @return the username of the caller
      */
     protected static String getUsername() {
-        
+
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
         AuthMethod authMethod = AuthenticationUtil.getAuthMethod(caller);
@@ -375,6 +435,5 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
         return username;
     }
-
 
 }
