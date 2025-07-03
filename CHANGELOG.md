@@ -6,6 +6,58 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.4.0'></a>
+## 3.4.0 (2025-07-03)
+
+### Changed
+
+- DM-51713: Fix upload field type conversion
+
+<a id='changelog-3.3.1'></a>
+## 3.3.1 (2025-06-26)
+
+### Changed
+
+- DM-51583: Change default timeout for sync queries to 60 seconds
+
+<a id='changelog-3.3.0'></a>
+## 3.3.0 (2025-06-26)
+
+### Changed
+
+- DM-51561: Change sync timeout to return a 200 with a VOTable Error instead of the 503 with retry-after
+
+<a id='changelog-3.2.0'></a>
+## 3.2.0 (2025-06-18)
+
+### Changed
+
+- DM-51463: Fix issue with binary2 uploaded table appearing empty by @stvoutsin in #150
+- Fixes issue with binary2 uploaded table appearing empty, by removing deprecated rowlimit-based upload constructor
+- Also fixes logging issue, by removing Sentry logging for now
+- Update capabilities to show proper file size limit
+
+### Changed
+
+<a id='changelog-3.1.0'></a>
+## 3.1.0 (2025-06-17)
+
+### Changed
+
+- DM-51382 Make URL Rewriting optional, read urlRewriteRules from env by @stvoutsin in #149
+- Read URL_REWRITE_RULES from env and use to determine whether a table-column needs to be formatted/rewritten.
+- Fix some formatting issues
+- Reduce logging
+- Remove upstream patch classes
+- Upgrade uws uws-server and cadc-rest libraries
+
+<a id='changelog-3.0.0'></a>
+## 3.0.0 (2025-06-12)
+
+### Changed
+
+- Enable Kafka based TAP Service
+
 <a id='changelog-2.13.1'></a>
 ## 2.13.1 (2025-04-16)
 
@@ -13,7 +65,7 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 - TableServlet now uses RestServlet
 
-## Added
+### Added
 
 - Added tapadm resource in context
 
@@ -219,4 +271,3 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 ## Bug Fixes
 
 - Fixed capabilities output (securityMethods)
-
