@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.4.1'></a>
+## 3.4.1 (2025-07-08)
+
+### Changed
+
+- DM-51737: Upgrade cadc-adql to version 1.15.0 which fixes issue where maxrec and limit don't work together
+
 <a id='changelog-3.4.0'></a>
 ## 3.4.0 (2025-07-03)
 
