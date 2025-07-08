@@ -41,7 +41,7 @@
               type="javax.sql.DataSource"
               factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
               minEvictableIdleTimeMillis="30000"
-              maxActive="${qservuser.maxActive}" maxIdle="1" maxWait="20000" initialSize="5"
+              maxActive="${qservuser.maxActive}" maxIdle="1" maxWait="20000" initialSize="0"
               username="${qservuser.username}" password="${qservuser.password}"
               driverClassName="${qservuser.driverClassName}"
               url="${qservuser.url}"
