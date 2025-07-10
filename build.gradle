@@ -48,7 +48,7 @@ dependencies {
     }
 
     implementation 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
-    implementation 'org.opencadc:cadc-adql:[1.1.15,)'
+    implementation 'org.opencadc:cadc-adql:[1.1.16,)'
     implementation 'org.opencadc:cadc-dali-pg:0.3.1'
     implementation 'org.opencadc:cadc-dali:[1.2.24,)'
     implementation 'org.opencadc:cadc-log:[1.2.1,)'
