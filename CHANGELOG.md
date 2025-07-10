@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.4.2'></a>
+## 3.4.2 (2025-07-10)
+
+### Changed
+
+- DM-51772: Upgrade cadc-adql to version 1.16.0 which restricts use of LIMIT in ADQL queries
+
 <a id='changelog-3.4.1'></a>
 ## 3.4.1 (2025-07-08)
 
