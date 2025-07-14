@@ -95,7 +95,11 @@ public class KafkaJobService {
             // Temp fix
             // If there is a table upload, use the username as the database
             if (!jobInfo.uploadTables.isEmpty()){
-                databaseString = "user_" + getUsername();
+                String username = getUsername();
+                if (username == null || username.isEmpty()) {
+                    username = "anonymous";
+                }
+                databaseString = "user_" + getUsername().replace("-", "_");
             }
             
             // Submit job to Kafka
