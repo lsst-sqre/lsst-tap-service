@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.4.3'></a>
+## 3.4.3 (2025-07-15)
+
+### Changed
+
+- Change dashes to underscores in user database name for uploaded tables
+
 <a id='changelog-3.4.2'></a>
 ## 3.4.2 (2025-07-10)
 

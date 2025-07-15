@@ -405,7 +405,9 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
         StringBuilder sb = new StringBuilder();
         String username = getUsername();
         if (username != null) {
-            sb.append("user_").append(username).append(".");
+            // Replace dashes with underscores
+            String sanitizedUsername = username.replace("-", "_");
+            sb.append("user_").append(sanitizedUsername).append(".");
         }
         sb.append(uploadTable.tableName);
         sb.append("_");
