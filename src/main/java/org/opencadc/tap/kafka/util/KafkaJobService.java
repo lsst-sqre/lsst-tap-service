@@ -35,6 +35,7 @@ import org.opencadc.tap.impl.QServQueryRunner;
 import org.opencadc.tap.impl.StorageUtils;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.JobRun;
+import org.opencadc.tap.kafka.util.DatabaseNameUtil;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
 import org.opencadc.tap.impl.context.WebAppContext;
@@ -94,14 +95,11 @@ public class KafkaJobService {
 
             // Temp fix
             // If there is a table upload, use the username as the database
-            if (!jobInfo.uploadTables.isEmpty()){
-                String username = getUsername();
-                if (username == null || username.isEmpty()) {
-                    username = "anonymous";
-                }
-                databaseString = "user_" + getUsername().replace("-", "_");
+            if (!jobInfo.uploadTables.isEmpty()) {
+                String username = DatabaseNameUtil.getUsername();
+                databaseString = DatabaseNameUtil.constructDatabaseName(username, jobId);
             }
-            
+
             // Submit job to Kafka
             String eventJobId = createJobEventService.submitQuery(
                     jobInfo.sql,
@@ -320,20 +318,5 @@ public class KafkaJobService {
         }
 
         return username;
-    }
-
-    /**
-     * Format table name to include username, i.e.
-     * user_<username>.TAP_UPLOAD_tableName
-     * 
-     * @param originalTableName The original table name
-     * @param username          The username
-     * @return Formatted table name
-     */
-    private static String formatTableName(String originalTableName, String username) {
-        if (username == null || username.isEmpty()) {
-            username = "anonymous";
-        }
-        return "user_" + username + "." + originalTableName;
     }
 }
