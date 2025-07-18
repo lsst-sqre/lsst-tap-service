@@ -226,6 +226,8 @@ public class VOTableUtil {
                 return "float";
             case "DOUBLE":
                 return "double";
+            case "UNICODECHAR":
+                return "unicodeChar";
             case "CHAR":
             case "VARCHAR":
             case "STRING":
