@@ -52,7 +52,7 @@ dependencies {
     implementation 'org.opencadc:cadc-dali-pg:0.3.1'
     implementation 'org.opencadc:cadc-dali:[1.2.24,)'
     implementation 'org.opencadc:cadc-log:[1.2.1,)'
-    implementation 'org.opencadc:cadc-gms:[1.0.16,2.0)'
+    implementation 'org.opencadc:cadc-gms:[1.0.17,2.0)'
 
     implementation 'org.opencadc:cadc-rest:[1.4.3,)'
     implementation 'org.opencadc:cadc-tap-schema:[1.2.6,)'
