@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.5.0'></a>
+## 3.5.0 (2025-08-01)
+
+### Changed
+
+- Replace dashes with underscores in usernames used for uploads 
+
+- Add support for unicodeChar for uploaded tables 
+
+- Upgrade cadc-gms library to 1.0.17 
+
 <a id='changelog-3.4.3'></a>
 ## 3.4.3 (2025-07-15)
 
