@@ -61,9 +61,6 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             ExecutionPhase previousPhase = jobUpdater.getPhase(status.getJobID());
             ExecutionPhase newPhase = JobStatus.ExecutionStatus.toExecutionPhase(status.getStatus());
 
-            // Update the job phase
-            // jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, new Date());
-
             // Now update with additional metadata
             JobInfo jobInfo = getJobInfo(status, job);
             List<Result> diagnostics = getJobMetadata(status, job);
@@ -74,9 +71,6 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
             if (errorSummary != null) {
                 job.setErrorSummary(errorSummary);
-                jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, errorSummary, new Date());
-            } else {
-                jobUpdater.setPhase(status.getJobID(), previousPhase, newPhase, diagnostics, new Date());
             }
 
             if (jobInfo != null) {
@@ -93,7 +87,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
                 job.setEndTime(new Date());
             }
 
-            //jobPersist.put(job);
+            jobPersist.put(job);
 
             log.debug("Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase
                     + " for user: " + job.getOwnerID());
@@ -198,18 +192,10 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
         try {
             Boolean skipExecutionId = false;
 
-            // Only add executionId once to Results
-            if (job.getResultsList() != null) {
-                for (Result result : job.getResultsList()) {
-                    if (result.getName().equals("executionId")) {
-                        skipExecutionId = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!skipExecutionId && status.getExecutionID() != null) {
+            if (status.getExecutionID() != null && !status.getExecutionID().trim().isEmpty()) {
                 metadata.add(new Result("executionId", URI.create(status.getExecutionID())));
+            } else {
+                log.warn("ExecutionID is null or empty for job: " + status.getJobID());
             }
 
             if (status.getResultInfo() != null) {
