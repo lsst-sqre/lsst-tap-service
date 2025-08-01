@@ -76,7 +76,6 @@ import ca.nrc.cadc.vosi.avail.CheckDataSource;
 import ca.nrc.cadc.vosi.avail.CheckException;
 import org.apache.log4j.Logger;
 
-
 /**
  * VOSI Plugin interface for the AvailabilityServlet.
  *
@@ -85,13 +84,15 @@ import org.apache.log4j.Logger;
 public class TAPWebService implements AvailabilityPlugin {
     private static final Logger log = Logger.getLogger(TAPWebService.class);
 
+    private static final Availability STATUS_DOWN = new Availability(false,
+            "The TAP service is temporarily down for maintenance");
+    private static final boolean available = parseAvailableProperty();
+
     private final static String TAPDS_NAME = "jdbc/tapuser";
     // note tap_schema table names
-    private final static String TAPDS_TEST =
-        "select SCHEMA_NAME from tap_schema.schemas11 where SCHEMA_NAME='TAP_SCHEMA'";
+    private final static String TAPDS_TEST = "select SCHEMA_NAME from tap_schema.schemas11 where SCHEMA_NAME='TAP_SCHEMA'";
 
     private String applicationName;
-
 
     public TAPWebService() {
 
@@ -107,6 +108,23 @@ public class TAPWebService implements AvailabilityPlugin {
         this.applicationName = appName;
     }
 
+    /**
+     * Parse the 'available' system property with proper error handling.
+     * 
+     * @return true if the property is "true", false otherwise
+     */
+    private static boolean parseAvailableProperty() {
+        String availableProperty = System.getProperty("tap.service.available", "true");
+        try {
+            boolean result = Boolean.parseBoolean(availableProperty);
+            log.debug("Available system property parsed as: " + result);
+            return result;
+        } catch (Exception e) {
+            log.debug("Error parsing 'available' system property '" + availableProperty + "', defaulting to true", e);
+            return true;
+        }
+    }
+
     @Override
     public boolean heartbeat() {
         // currently no-op: the most that makes sense here is to maybe
@@ -119,7 +137,12 @@ public class TAPWebService implements AvailabilityPlugin {
     public Availability getStatus() {
         boolean isGood = true;
         String note = String.format("The%s service is accepting queries",
-                                    StringUtil.hasText(applicationName) ? " " + applicationName : "");
+                StringUtil.hasText(applicationName) ? " " + applicationName : "");
+
+        if (!available) {
+            return STATUS_DOWN;
+        }
+
         try {
             // Test query using standard TAP data source
             check(TAPDS_TEST);

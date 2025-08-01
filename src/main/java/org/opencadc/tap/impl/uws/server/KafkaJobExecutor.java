@@ -46,6 +46,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
     private static final Logger log = Logger.getLogger(KafkaJobExecutor.class);
 
+    private static final String SERVICE_DOWNTIME_STRING = "The TAP service is currently down for maintenance. Please try again later.";
     private JobUpdater jobUpdater;
     private Class jobRunnerClass;
     private String appName;
@@ -95,6 +96,30 @@ public class KafkaJobExecutor implements JobExecutor {
     }
 
     /**
+     * Check if the TAP service is available based on system property.
+     * 
+     * @return true if service is available, false otherwise
+     */
+    private boolean isServiceAvailable() {
+        String availableProperty = System.getProperty("tap.service.available", "true");
+        return "true".equalsIgnoreCase(availableProperty);
+    }
+
+    /**
+     * Generate a VOTable error response for service unavailable.
+     * 
+     * @return VOTable XML error content
+     */
+    private String generateServiceUnavailableVOTableError() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n" +
+               "  <RESOURCE type=\"results\">\n" +
+               "    <INFO name=\"QUERY_STATUS\" value=\"ERROR\">" + SERVICE_DOWNTIME_STRING + "</INFO>\n" +
+               "  </RESOURCE>\n" +
+               "</VOTABLE>";
+    }
+
+    /**
      * Execute async job. This method transitions the job to QUEUED state,
      * initializes it and then runs the JobRunner.
      * 
@@ -109,6 +134,7 @@ public class KafkaJobExecutor implements JobExecutor {
         if (job == null) {
             throw new IllegalArgumentException("job cannot be null");
         }
+
 
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
@@ -144,7 +170,24 @@ public class KafkaJobExecutor implements JobExecutor {
             log.debug("Current job phase after preparation: " + updatedPhase);
 
             if (ExecutionPhase.HELD.equals(updatedPhase)) {
+
+                // Check if service is available
+                if (!isServiceAvailable()) {
+                    log.warn("TAP service is not available, rejecting job: " + job.getID());
+                    try {
+                        JobPhaseManager.setErrorPhase(
+                                job.getID(),
+                                SERVICE_DOWNTIME_STRING,
+                                ErrorType.FATAL,
+                                jobUpdater);
+                    } catch (Exception e) {
+                        log.error("Failed to set job " + job.getID() + " to ERROR state", e);
+                    }
+                    return;
+                }
+                
                 log.debug("Job " + job.getID() + " is in HELD state, sending to Kafka");
+
                 KafkaJobService.prepareAndSubmitJob(
                         job, jobRunner, createJobEventService, databaseString, bucketURL, bucket, jobUpdater);
             } else if (ExecutionPhase.COMPLETED.equals(updatedPhase) ||
@@ -207,6 +250,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
                     
             if (currentPhase == ExecutionPhase.PENDING) {
+        
                 JobPhaseManager.transitionJobPhase(
                         job.getID(), ExecutionPhase.PENDING, ExecutionPhase.QUEUED, jobUpdater);
 
@@ -233,6 +277,29 @@ public class KafkaJobExecutor implements JobExecutor {
             if (ExecutionPhase.HELD.equals(currentPhase)) {
                 log.debug("Job " + job.getID() + " is in HELD state, sending to Kafka");
 
+
+                // Check if service is available
+                if (!isServiceAvailable()) {
+                    log.warn("TAP service is not available  reject sync job: " + job.getID());
+                    try {
+                        JobPhaseManager.setErrorPhase(
+                                job.getID(),
+                                SERVICE_DOWNTIME_STRING,
+                                ErrorType.FATAL,
+                                jobUpdater);
+
+                        // Write VOTable error to sync output
+                        syncOutput.setCode(200);
+                        syncOutput.setHeader("Content-Type", "application/x-votable+xml");
+                        syncOutput.setHeader("Content-Disposition", "inline; filename=\"tap_service_unavailable_error.xml\"");
+                        String errorVOTable = generateServiceUnavailableVOTableError();
+                        syncOutput.getOutputStream().write(errorVOTable.getBytes("UTF-8"));                
+                    } catch (Exception e) {
+                        log.error("Failed to write service unavailable error for job " + job.getID(), e);
+                    }
+                    return;
+                }
+                
                 boolean submitted = KafkaJobService.prepareAndSubmitJob(
                         job, jobRunner, createJobEventService, databaseString, bucketURL, bucket, jobUpdater);
 
