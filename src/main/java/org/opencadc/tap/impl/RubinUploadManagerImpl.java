@@ -21,6 +21,7 @@ import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.UploadLimits;
 import ca.nrc.cadc.tap.upload.UploadTable;
+import org.opencadc.tap.kafka.util.DatabaseNameUtil;
 import ca.nrc.cadc.uws.Job;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -402,22 +403,12 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
      */
     @Override
     public String getDatabaseTableName(UploadTable uploadTable) {
-        StringBuilder sb = new StringBuilder();
-        String username = getUsername();
-        if (username != null) {
-            // Replace dashes with underscores
-            String sanitizedUsername = username.replace("-", "_");
-            sb.append("user_").append(sanitizedUsername).append(".");
-        }
-        sb.append(uploadTable.tableName);
-        sb.append("_");
-        sb.append(uploadTable.jobID);
-        return sb.toString();
+        return DatabaseNameUtil.getDatabaseTableName(uploadTable);
     }
 
     /**
      * Get the username of the caller.
-     * 
+     *
      * @return the username of the caller
      */
     protected static String getUsername() {
