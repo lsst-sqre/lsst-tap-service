@@ -6,6 +6,14 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+
+<a id='changelog-3.6.0'></a>
+## 3.6.0 (2025-08-06)
+
+### Changed
+
+- Create new database for each upload job
+
 <a id='changelog-3.5.0'></a>
 ## 3.5.0 (2025-08-01)
 
