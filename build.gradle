@@ -22,8 +22,12 @@ repositories {
 }
 
 group = 'org.opencadc'
-sourceCompatibility = 11
 version = '1000'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
 
 war {
     archiveFileName = 'tap##' + project.version + '.war'
@@ -33,32 +37,45 @@ configurations {
     intTestCompile.extendsFrom testImplementation
     intTestRuntime.extendsFrom testRuntimeOnly
     implementation.exclude group: 'uk.ac.starlink'
+
+    runtimeOnly.exclude module: 'slf4j-reload4j'
+    runtimeOnly.exclude module: 'reload4j'
+
+    runtimeOnly.exclude group: 'com.sun.jersey'
+    runtimeOnly.exclude group: 'com.sun.jersey.contribs' 
+    runtimeOnly.exclude group: 'com.google.inject'
+    runtimeOnly.exclude group: 'com.google.inject.extensions'
+    runtimeOnly.exclude group: 'org.eclipse.jetty'
+    runtimeOnly.exclude group: 'io.netty'
+    runtimeOnly.exclude group: 'org.apache.kerby'
+    runtimeOnly.exclude group: 'org.yaml', module: 'snakeyaml'
+    runtimeOnly.exclude group: 'org.apache.httpcomponents'
+    
+    all {
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'org.slf4j', module: 'slf4j-nop'
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+    }
 }
 
 dependencies {
-
-    configurations.all {
-        exclude group: 'ch.qos.logback', module: 'logback-classic'
-        exclude group: 'org.slf4j', module: 'slf4j-reload4j'
-        exclude group: 'log4j', module: 'log4j'
-    }
-
-    implementation('org.opencadc:cadc-log:[1.2.1,)') {
-        exclude group: 'log4j', module: 'log4j'
-    }
-
+    implementation 'log4j:log4j:1.2.17'
+    implementation 'org.slf4j:slf4j-log4j12:1.7.36'
+    
     implementation 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
     implementation 'org.opencadc:cadc-adql:1.1.15'
     implementation 'org.opencadc:cadc-dali-pg:0.3.1'
     implementation 'org.opencadc:cadc-dali:[1.2.24,)'
     implementation 'org.opencadc:cadc-log:[1.2.1,)'
     implementation 'org.opencadc:cadc-gms:[1.0.17,2.0)'
-
     implementation 'org.opencadc:cadc-rest:[1.4.3,)'
     implementation 'org.opencadc:cadc-tap-schema:[1.2.6,)'
-    implementation 'org.opencadc:cadc-tap:[1.1.19,)'
-    implementation 'org.opencadc:cadc-tap-server:[1.1.30,)'
-    implementation 'org.opencadc:cadc-tap-server-pg:1.1.0'
+    implementation 'org.opencadc:cadc-tap:[1.1.20,)'
+    implementation 'org.opencadc:cadc-tap-server:[1.1.32,)'
+    implementation 'org.opencadc:cadc-tap-server-pg:1.1.1'
     implementation 'org.opencadc:cadc-tap-server-oracle:1.2.11'
     implementation 'org.opencadc:cadc-util:[1.11.2,)'
     implementation 'org.opencadc:cadc-uws:[1.0.5,)'
@@ -67,7 +84,6 @@ dependencies {
 
     implementation 'uk.ac.starlink:stil:[4.0,5.0)'
     implementation 'uk.ac.starlink:jcdf:[1.2.3,2.0)'
-    implementation 'uk.ac.starlink:stil:[4.0,5.0)'
 
     // Switch out this to use any supported database instead of PostgreSQL.
     // ## START CUSTOM DATABASE ##
@@ -75,9 +91,9 @@ dependencies {
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.5'
     // ## END CUSTOM DATABASE ##
 
-    // JUnit 4
+    // Test dependencies
     testImplementation 'junit:junit:4.13.2'
-    
+
     // Mockito core
     testImplementation 'org.mockito:mockito-core:4.11.0'
     testImplementation 'org.mockito:mockito-inline:4.11.0'
@@ -89,8 +105,10 @@ dependencies {
     // TestContainers Kafka specifically
     testImplementation 'org.testcontainers:kafka:1.18.3'
         
+    // XMLUnit
     testImplementation 'xmlunit:xmlunit:[1.0,)'
 
+    // Cloud storage
     implementation 'com.google.cloud:google-cloud-storage:2.22.2'
     implementation 'software.amazon.awssdk:s3:2.17.230'
     implementation 'software.amazon.awssdk:auth:2.17.230'
@@ -100,7 +118,6 @@ dependencies {
 
     // https://mvnrepository.com/artifact/com.google.code.gson/gson
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
-    // https://mvnrepository.com/artifact/org.antlr/ST4
     implementation 'org.antlr:ST4:4.3.1'
     implementation 'io.sentry:sentry:7.1.0'
     implementation 'io.sentry:sentry-log4j2:7.1.0'
@@ -121,9 +138,6 @@ dependencies {
 
     // CSV writer 
     implementation 'net.sourceforge.javacsv:javacsv:2.0'
-
-
-
 }
 
 avro {
@@ -143,12 +157,10 @@ sourceSets {
         resources.srcDir file('src/intTest/resources')
     }
 }
-
-	tasks.withType(Test) {
+tasks.withType(Test) {
     // reset the report destinations so that intTests go to their
     // own page
-    //reports.html.destination = file("${reporting.baseDir}/${name}")
-    reports.html.destination = file(reporting.baseDir.getAbsolutePath() + '/' + name)
+    reports.html.outputLocation = layout.buildDirectory.dir("reports/${name}")
 
     // Assign all Java system properties from
     // the command line to the tests

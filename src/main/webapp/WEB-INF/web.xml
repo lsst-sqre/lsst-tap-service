@@ -27,11 +27,8 @@
                 ca.nrc.cadc.auth
                 ca.nrc.cadc.vosi
                 ca.nrc.cadc.reg
+                org.opencadc.tap.kafka
             </param-value>
-        </init-param>
-        <init-param>
-            <param-name>logControlProperties</param-name>
-            <param-value>logcontrol.properties</param-value>
         </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
