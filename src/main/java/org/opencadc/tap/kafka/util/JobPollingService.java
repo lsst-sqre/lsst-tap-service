@@ -29,8 +29,10 @@ import org.opencadc.tap.impl.StorageUtils;
 public class JobPollingService {
     private static final Logger log = Logger.getLogger(JobPollingService.class);
 
-    private static final int DEFAULT_MAX_ATTEMPTS = 20;
-    private static final int DEFAULT_POLL_INTERVAL_MS = 3000;
+    private static final int DEFAULT_MAX_ATTEMPTS = Integer.parseInt(
+        System.getProperty("tap.sync.polling.maxAttempts", "20"));
+    private static final int DEFAULT_POLL_INTERVAL_MS = Integer.parseInt(
+        System.getProperty("tap.sync.polling.intervalMs", "3000"));
 
     private final JobUpdater jobUpdater;
     private final JobPersistence jobPersistence;
@@ -97,24 +99,7 @@ public class JobPollingService {
             log.error("Polling interrupted for job: " + jobId, e);
             Thread.currentThread().interrupt();
             throw new TransientException("Polling interrupted", e);
-        } catch (JobServiceUnavailableException e) {
-            // This error is expected to be encountered if we timed out waiting for
-            // the job to complete, but the job is still in a transient state.
-            // We return a VOTable error response with HTTP 200 (traditional DAL approach).
-            log.warn("Job " + jobId + " still processing, returning VOTable error with 200 status");
-            try {
-                syncOutput.setCode(200);
-                syncOutput.setHeader("Content-Type", "application/x-votable+xml");
-                syncOutput.setHeader("Content-Disposition", "inline; filename=\"tap_sync_timeout_error.xml\"");
-                //syncOutput.setHeader("Retry-After", String.valueOf(e.getRetryAfterMs() / 1000));
-                String message = VOTableUtil.generateErrorVOTable(
-                    "Query timeout exceeded for synchronous execution. Please use /async endpoint for long-running queries.");
-                syncOutput.getOutputStream().write(message.getBytes());
-            } catch (IOException ioe) {
-                log.error("Failed to write timeout error message to output stream", ioe);
-            }
-            return false;
-        }
+        } 
     }
 
     /**

@@ -2,6 +2,7 @@ package org.opencadc.tap.impl.uws.server;
 
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Date;
@@ -33,6 +34,7 @@ import org.opencadc.tap.kafka.services.CreateJobEvent;
 import org.opencadc.tap.kafka.util.JobPhaseManager;
 import org.opencadc.tap.kafka.util.JobPollingService;
 import org.opencadc.tap.kafka.util.KafkaJobService;
+import org.opencadc.tap.kafka.util.VOTableUtil;
 
 /**
  * JobExecutor implementation that sends jobs to Kafka.
@@ -112,11 +114,11 @@ public class KafkaJobExecutor implements JobExecutor {
      */
     private String generateServiceUnavailableVOTableError() {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-               "<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n" +
-               "  <RESOURCE type=\"results\">\n" +
-               "    <INFO name=\"QUERY_STATUS\" value=\"ERROR\">" + SERVICE_DOWNTIME_STRING + "</INFO>\n" +
-               "  </RESOURCE>\n" +
-               "</VOTABLE>";
+                "<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n" +
+                "  <RESOURCE type=\"results\">\n" +
+                "    <INFO name=\"QUERY_STATUS\" value=\"ERROR\">" + SERVICE_DOWNTIME_STRING + "</INFO>\n" +
+                "  </RESOURCE>\n" +
+                "</VOTABLE>";
     }
 
     /**
@@ -134,7 +136,6 @@ public class KafkaJobExecutor implements JobExecutor {
         if (job == null) {
             throw new IllegalArgumentException("job cannot be null");
         }
-
 
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
@@ -185,7 +186,7 @@ public class KafkaJobExecutor implements JobExecutor {
                     }
                     return;
                 }
-                
+
                 log.debug("Job " + job.getID() + " is in HELD state, sending to Kafka");
 
                 KafkaJobService.prepareAndSubmitJob(
@@ -245,12 +246,11 @@ public class KafkaJobExecutor implements JobExecutor {
             // Check if continuation or terminal state, if so run the polling service
 
             Boolean queryInProgress = false; // Check if we are in a state that requires polling
-            
+
             ExecutionPhase currentPhase = jobUpdater.getPhase(job.getID());
 
-                    
             if (currentPhase == ExecutionPhase.PENDING) {
-        
+
                 JobPhaseManager.transitionJobPhase(
                         job.getID(), ExecutionPhase.PENDING, ExecutionPhase.QUEUED, jobUpdater);
 
@@ -268,15 +268,15 @@ public class KafkaJobExecutor implements JobExecutor {
             }
 
             if (!queryInProgress && (ExecutionPhase.EXECUTING.equals(currentPhase) ||
-            ExecutionPhase.COMPLETED.equals(currentPhase) ||
-            ExecutionPhase.ERROR.equals(currentPhase)) ) {
-                log.debug("Job " + job.getID() + " was most likely a TAP_SCHEMA query, and is already in terminal state: " + currentPhase);
+                    ExecutionPhase.COMPLETED.equals(currentPhase) ||
+                    ExecutionPhase.ERROR.equals(currentPhase))) {
+                log.debug("Job " + job.getID()
+                        + " was most likely a TAP_SCHEMA query, and is already in terminal state: " + currentPhase);
                 return;
             }
 
             if (ExecutionPhase.HELD.equals(currentPhase)) {
                 log.debug("Job " + job.getID() + " is in HELD state, sending to Kafka");
-
 
                 // Check if service is available
                 if (!isServiceAvailable()) {
@@ -291,15 +291,16 @@ public class KafkaJobExecutor implements JobExecutor {
                         // Write VOTable error to sync output
                         syncOutput.setCode(200);
                         syncOutput.setHeader("Content-Type", "application/x-votable+xml");
-                        syncOutput.setHeader("Content-Disposition", "inline; filename=\"tap_service_unavailable_error.xml\"");
+                        syncOutput.setHeader("Content-Disposition",
+                                "inline; filename=\"tap_service_unavailable_error.xml\"");
                         String errorVOTable = generateServiceUnavailableVOTableError();
-                        syncOutput.getOutputStream().write(errorVOTable.getBytes("UTF-8"));                
+                        syncOutput.getOutputStream().write(errorVOTable.getBytes("UTF-8"));
                     } catch (Exception e) {
                         log.error("Failed to write service unavailable error for job " + job.getID(), e);
                     }
                     return;
                 }
-                
+
                 boolean submitted = KafkaJobService.prepareAndSubmitJob(
                         job, jobRunner, createJobEventService, databaseString, bucketURL, bucket, jobUpdater);
 
@@ -316,10 +317,55 @@ public class KafkaJobExecutor implements JobExecutor {
                 job = jobPersistence.get(job.getID());
                 jobPersistence.getDetails(job);
 
-                boolean handled = jobPollingService.pollAndHandleResults(job.getID(), syncOutput);
+                try {
 
-                if (!handled) {
-                    log.warn("Failed to handle results for job: " + job.getID());
+                    boolean handled = jobPollingService.pollAndHandleResults(job.getID(), syncOutput);
+
+                    if (!handled) {
+                        log.warn("Failed to handle results for job: " + job.getID());
+                    }
+                } catch (JobPollingService.JobServiceUnavailableException timeoutEx) {
+                    // Timeout occurred, abort the job and write response
+                    log.warn("Job " + job.getID() + " timed out during sync execution, aborting job");
+
+                    boolean jobAborted = false;
+                    try {
+                        ExecutionPhase timeoutPhase = jobUpdater.getPhase(job.getID());
+                        if (!JobPhaseManager.isTerminal(job.getID(), jobUpdater)) {
+                            log.debug("Job " + job.getID() + " is in non-terminal state " + timeoutPhase
+                                    + ", calling abort()");
+
+                            Job timeoutJob = jobPersistence.get(job.getID());
+                            abort(timeoutJob);
+
+                            jobAborted = true;
+                            log.debug("Successfully aborted timed-out job: " + job.getID());
+                        } else {
+                            log.debug("Job " + job.getID() + " already in terminal state " + timeoutPhase
+                                    + ", no abort needed");
+                        }
+                    } catch (Exception abortEx) {
+                        log.error("Failed to abort job " + job.getID() + " after timeout", abortEx);
+                    }
+
+                    // Write timeout error response as VOTable with HTTP 200 (traditional DAL
+                    // approach)
+                    try {
+                        syncOutput.setCode(200);
+                        syncOutput.setHeader("Content-Type", "application/x-votable+xml");
+                        syncOutput.setHeader("Content-Disposition", "inline; filename=\"tap_sync_timeout_error.xml\"");
+
+                        String errorMessage = jobAborted
+                                ? "Query timeout exceeded for synchronous execution. The job has been aborted. Please use /async endpoint for long-running queries."
+                                : "Query timeout exceeded for synchronous execution. Please use /async endpoint for long-running queries.";
+
+                        String message = VOTableUtil.generateErrorVOTable(errorMessage);
+                        syncOutput.getOutputStream().write(message.getBytes());
+                    } catch (IOException ioe) {
+                        log.error("Failed to write timeout error message to output stream", ioe);
+                    }
+
+                    return;
                 }
 
             } else {
