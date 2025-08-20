@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build and test
         run: scripts/build-war.sh
@@ -38,7 +38,7 @@ jobs:
       || startsWith(github.head_ref, 'tickets/')
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Define the Docker tag
         id: vars
