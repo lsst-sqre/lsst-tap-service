@@ -17,8 +17,12 @@ repositories {
 }
 
 group = 'org.opencadc'
-sourceCompatibility = 11
 version = '1000'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
 
 war {
     archiveFileName = 'tap##' + project.version + '.war'
@@ -101,11 +105,11 @@ sourceSets {
     }
 }
 
-	tasks.withType(Test) {
+tasks.withType(Test) {
+
     // reset the report destinations so that intTests go to their
     // own page
-    //reports.html.destination = file("${reporting.baseDir}/${name}")
-    reports.html.destination = file(reporting.baseDir.getAbsolutePath() + '/' + name)
+    reports.html.outputLocation = layout.buildDirectory.dir("reports/${name}")
 
     // Assign all Java system properties from
     // the command line to the tests
