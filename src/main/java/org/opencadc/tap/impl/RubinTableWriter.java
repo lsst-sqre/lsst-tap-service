@@ -612,7 +612,7 @@ public class RubinTableWriter implements TableWriter
             VOTableField newField = new VOTableField(resultCol.getName(),tt.getDatatype(), tt.arraysize);
             newField.xtype = tt.xtype;
             newField.description = resultCol.description;
-            newField.id = resultCol.id;
+            newField.id = resultCol.columnID;
             newField.utype = resultCol.utype;
             newField.ucd = resultCol.ucd;
             newField.unit = resultCol.unit;
@@ -620,6 +620,11 @@ public class RubinTableWriter implements TableWriter
             return newField;
         }
 
+        return null;
+    }
+    
+    @Override
+    public VOTableDocument generateOutputTable() throws IOException {
         return null;
     }
 }

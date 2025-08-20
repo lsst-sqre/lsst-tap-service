@@ -294,11 +294,7 @@ public class QServQueryRunner implements JobRunner
 
             // start processing the job
             log.debug("invoking TapValidator for REQUEST and VERSION...");
-            TapValidator tapValidator = new TapValidator();
-            tapValidator.validateVersion(paramList);
-            if ("1.0".equals(tapValidator.getVersion()))
-                responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
-            tapValidator.validate(paramList);
+            responseCodeOnUserFail = HttpURLConnection.HTTP_OK; // TAP-1.0
 
             DataSource queryDataSource = getQueryDataSource();
             DataSource tapSchemaDataSource = getTapSchemaDataSource();
