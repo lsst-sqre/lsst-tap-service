@@ -29,6 +29,7 @@ import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 
 import org.opencadc.tap.impl.QServQueryRunner;
+import org.opencadc.tap.impl.logging.TAPLogger;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
 import org.opencadc.tap.kafka.util.JobPhaseManager;
@@ -47,6 +48,7 @@ import org.opencadc.tap.kafka.util.VOTableUtil;
 public class KafkaJobExecutor implements JobExecutor {
 
     private static final Logger log = Logger.getLogger(KafkaJobExecutor.class);
+    private static final TAPLogger tapLog = new TAPLogger(KafkaJobExecutor.class);
 
     private static final String SERVICE_DOWNTIME_STRING = "The TAP service is currently down for maintenance. Please try again later.";
     private JobUpdater jobUpdater;
@@ -189,6 +191,8 @@ public class KafkaJobExecutor implements JobExecutor {
 
                 log.debug("Job " + job.getID() + " is in HELD state, sending to Kafka");
 
+                tapLog.log(job.getID(), "Submitting job to Kafka for execution");
+
                 KafkaJobService.prepareAndSubmitJob(
                         job, jobRunner, createJobEventService, databaseString, bucketURL, bucket, jobUpdater);
             } else if (ExecutionPhase.COMPLETED.equals(updatedPhase) ||
@@ -222,6 +226,8 @@ public class KafkaJobExecutor implements JobExecutor {
         if (syncOutput == null) {
             throw new IllegalArgumentException("syncOutput cannot be null");
         }
+
+        tapLog.log(job.getID(), "Starting synchronous job execution");
 
         AccessControlContext acContext = AccessController.getContext();
         Subject caller = Subject.getSubject(acContext);
@@ -324,6 +330,9 @@ public class KafkaJobExecutor implements JobExecutor {
                     if (!handled) {
                         log.warn("Failed to handle results for job: " + job.getID());
                     }
+
+                    tapLog.log(job.getID(), "Completed synchronous job execution");
+
                 } catch (JobPollingService.JobServiceUnavailableException timeoutEx) {
                     // Timeout occurred, abort the job and write response
                     log.warn("Job " + job.getID() + " timed out during sync execution, aborting job");
