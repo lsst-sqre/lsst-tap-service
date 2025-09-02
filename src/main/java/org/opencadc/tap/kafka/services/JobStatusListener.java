@@ -13,6 +13,8 @@ import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.impl.logging.TAPLogger;
+import org.opencadc.tap.impl.uws.server.KafkaJobExecutor;
 import org.opencadc.tap.kafka.models.JobStatus;
 
 import java.net.URI;
@@ -28,6 +30,7 @@ import java.util.List;
  */
 public class JobStatusListener implements ReadJobStatus.StatusListener {
     private static final Logger log = Logger.getLogger(JobStatusListener.class);
+    private static final TAPLogger tapLog = new TAPLogger(KafkaJobExecutor.class);
 
     // We should probably move this elsewhere
     private static final String baseURL = System.getProperty("base_url");
@@ -89,11 +92,10 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
             jobPersist.put(job);
 
-            log.debug("Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase
-                    + " for user: " + job.getOwnerID());
+            tapLog.log(job.getID(), username, "Query update event received. Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase);
 
             if (isTerminalStatus(status.getStatus())) {
-                log.debug("Job " + status.getJobID() + " reached terminal status: " + status.getStatus());
+                tapLog.log(job.getID(), username, "Job finished with phase: " + newPhase);
             }
         } catch (Exception e) {
             log.error("Error processing status update for job ID: " +
