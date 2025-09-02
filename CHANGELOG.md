@@ -6,6 +6,12 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.7.0'></a>
+##  3.7.0 (2025-09-02)
+
+### Changed
+
+- Changed logging for KafkaJobExecutor and Status updater to use new TAPLogger class to log as JSon
 
 <a id='changelog-3.6.0'></a>
 ## 3.6.0 (2025-08-06)
