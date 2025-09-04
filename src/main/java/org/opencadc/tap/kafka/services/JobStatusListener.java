@@ -207,13 +207,10 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
                 if (status.getResultInfo().getResultLocation() != null) {
                     URL url = new URL(status.getResultInfo().getResultLocation());
-                    String filePath = url.getPath();
-
-                    if (filePath.startsWith("/")) {
-                        filePath = filePath.substring(1);
-                    }
-
-                    URI resultURI = new URI(baseURL + pathPrefix + "/results/" + filePath);
+                    String filePath = url.getPath();                
+                    String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+                
+                    URI resultURI = new URI(baseURL + pathPrefix + "/results/" + fileName);
                     Result res = new Result("result", resultURI);
                     metadata.add(res);
                 }
