@@ -42,15 +42,23 @@ public class KafkaContextListener implements ServletContextListener {
             String statusTopic = getConfigValue("KAFKA_STATUS_TOPIC", "kafka.status.topic", "lsst.tap.job-status");
             String deleteTopic = getConfigValue("KAFKA_DELETE_TOPIC", "kafka.delete.topic", "lsst.tap.job-delete");
 
-            String username = getConfigValue("KAFKA_USERNAME", "kafka.username", "tap");
-            String password = getConfigValue("KAFKA_PASSWORD", "kafka.password", "");
+            String truststorePath = System.getProperty("kafka.ssl.truststore");
+            String keystorePath = System.getProperty("kafka.ssl.keystore");
+            String keyPath = System.getProperty("kafka.ssl.key");
+            
+            if (truststorePath == null || keystorePath == null || keyPath == null) {
+                throw new IllegalStateException("SSL certificates are required but not configured. Missing system properties: kafka.ssl.truststore.location, kafka.ssl.keystore.location, or kafka.ssl.key.location");
+            }
 
             log.debug("Creating Kafka configuration with bootstrap server: " + bootstrapServer +
                     ", query topic: " + queryTopic +
                     ", status topic: " + statusTopic +
                     ", delete topic: " + deleteTopic);
 
-            kafkaConfig = new KafkaConfig(bootstrapServer, queryTopic, statusTopic, deleteTopic, username, password);
+            kafkaConfig = new KafkaConfig(bootstrapServer, queryTopic, statusTopic, deleteTopic,
+                    truststorePath,
+                    keystorePath,
+                    keyPath);
 
             log.debug("Initializing job event producer...");
             createJobEventService = new CreateJobEvent(kafkaConfig);
