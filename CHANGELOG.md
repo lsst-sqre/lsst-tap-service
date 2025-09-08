@@ -6,6 +6,19 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.8.0'></a>
+##  3.8.0 (2025-09-08)
+
+### Added
+
+- Capability of generating S3 signed URLs #176
+
+### Changed
+
+- Redirect Servlet generates redirected URL using GCS URL and bucket
+
+- Change Kafka connection to use certs instead of user/pass #177
+
 <a id='changelog-3.7.0'></a>
 ##  3.7.0 (2025-09-02)
 
