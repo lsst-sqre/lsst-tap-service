@@ -82,7 +82,8 @@ public void setUp() throws Exception {
             bootstrapServers,
             TEST_QUERY_TOPIC,
             TEST_STATUS_TOPIC,
-            TEST_DELETE_TOPIC);
+            TEST_DELETE_TOPIC,
+            true);
 
     readJobStatus = new ReadJobStatus(kafkaConfig, TEST_GROUP_ID);
 }

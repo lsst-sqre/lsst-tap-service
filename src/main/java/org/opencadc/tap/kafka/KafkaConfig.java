@@ -19,54 +19,76 @@ import java.util.Properties;
 public class KafkaConfig {
     private static final Logger log = Logger.getLogger(KafkaConfig.class);
 
+    private final String truststorePath;
+    private final String keystorePath;
+    private final String keyPath;
     private final String bootstrapServer;
     private final String queryTopic;
     private final String statusTopic;
     private final String deleteTopic;
-    private final String username;
-    private final String password;
-    private final boolean useSasl;
 
-    /**
-     * Create a Kafka configuration
-     * 
-     * @param bootstrapServer Kafka bootstrap server addresses
-     * @param queryTopic      Topic for query requests
-     * @param statusTopic     Topic for status updates
-     * @param deleteTopic     Topic for job deletion events
-     */
     public KafkaConfig(String bootstrapServer, String queryTopic, String statusTopic, String deleteTopic) {
-        this(bootstrapServer, queryTopic, statusTopic, deleteTopic, null, null);
+        /**
+         * Constructor without SSL parameters (no authentication
+         * 
+         * @param bootstrapServer Kafka bootstrap server addresses
+         * @param queryTopic      Topic name for query run requests
+         * @param statusTopic     Topic name for status updates
+         * @param deleteTopic     Topic name for job deletion events
+         * 
+         */
+        this(bootstrapServer, queryTopic, statusTopic, deleteTopic, null, null, null);
     }
 
-    /**
-     * Create a Kafka configuration with authentication
-     * 
-     * @param bootstrapServer Kafka bootstrap server addresses
-     * @param queryTopic      Topic for query requests
-     * @param statusTopic     Topic for status updates
-     * @param deleteTopic     Topic for job deletion events
-     * @param username        SASL username (optional)
-     * @param password        SASL password (optional)
-     */
     public KafkaConfig(String bootstrapServer, String queryTopic, String statusTopic, String deleteTopic,
-            String username, String password) {
+            String truststorePath, String keystorePath, String keyPath) {
+        /**
+         * Constructor with SSL parameters (for authentication)
+         * 
+         * @param bootstrapServer Kafka bootstrap server addresses
+         * @param queryTopic      Topic name for query
+         * @param statusTopic     Topic name for status updates
+         * @param deleteTopic     Topic name for job deletion events
+         * @param truststorePath  Path to the truststore file (JKS format)
+         * @param keystorePath    Path to the keystore file (JKS format)
+         * @param keyPath         Path to the private key file (PEM format)
+         * 
+         */
         this.bootstrapServer = bootstrapServer;
         this.queryTopic = queryTopic;
         this.statusTopic = statusTopic;
         this.deleteTopic = deleteTopic;
-        this.username = username;
-        this.password = password;
-        this.useSasl = (username != null && !username.isEmpty() &&
-                password != null && !password.isEmpty());
+        this.truststorePath = truststorePath;
+        this.keystorePath = keystorePath;
+        this.keyPath = keyPath;
 
-        if (useSasl) {
-            log.debug("Kafka SASL authentication enabled with SCRAM-SHA-512, username: " + username);
+    }
+
+    public KafkaConfig(String bootstrapServer, String queryTopic, String statusTopic, String deleteTopic, boolean testMode) {
+        this.bootstrapServer = bootstrapServer;
+        this.queryTopic = queryTopic;
+        this.statusTopic = statusTopic;
+        this.deleteTopic = deleteTopic;
+        
+        if (testMode) {
+            this.truststorePath = null;
+            this.keystorePath = null;
+            this.keyPath = null;
         } else {
-            log.debug("Kafka SASL authentication disabled - no credentials provided");
+            this.truststorePath = System.getProperty("kafka.ssl.truststore.location");
+            this.keystorePath = System.getProperty("kafka.ssl.keystore.location");
+            this.keyPath = System.getProperty("kafka.ssl.key.location");
         }
     }
 
+    private String readFileAsString(String filePath) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(filePath)));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read file: " + filePath, e);
+        }
+    }
+    
     /**
      * Create a producer
      */
@@ -92,15 +114,18 @@ public class KafkaConfig {
         props.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 
-        if (useSasl) {
-            props.put("security.protocol", "SASL_SSL");
-            props.put("sasl.mechanism", "SCRAM-SHA-512");
-            props.put("sasl.jaas.config",
-                    "org.apache.kafka.common.security.scram.ScramLoginModule required " +
-                            "username=\"" + username + "\" " +
-                            "password=\"" + password + "\";");
+        if (truststorePath != null && keystorePath != null && keyPath != null) {
+            props.put("security.protocol", "SSL");
+            props.put("ssl.truststore.type", "PEM");
+            props.put("ssl.truststore.certificates", readFileAsString(truststorePath));
+            props.put("ssl.keystore.type", "PEM");
+            props.put("ssl.keystore.certificate.chain", readFileAsString(keystorePath));
+            props.put("ssl.keystore.key", readFileAsString(keyPath));
+            props.put("ssl.endpoint.identification.algorithm", "");
+            log.debug("Configured SSL authentication for Kafka");
+        } else {
+            log.debug("No SSL configuration - using PLAINTEXT for tests");
         }
-
         log.debug("Creating KafkaProducer instance");
 
         return new KafkaProducer<>(props);
@@ -127,13 +152,17 @@ public class KafkaConfig {
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000);
 
-        if (useSasl) {
-            props.put("security.protocol", "SASL_SSL");
-            props.put("sasl.mechanism", "SCRAM-SHA-512");
-            props.put("sasl.jaas.config",
-                    "org.apache.kafka.common.security.scram.ScramLoginModule required " +
-                            "username=\"" + username + "\" " +
-                            "password=\"" + password + "\";");
+        if (truststorePath != null && keystorePath != null && keyPath != null) {
+            props.put("security.protocol", "SSL");
+            props.put("ssl.truststore.type", "PEM");
+            props.put("ssl.truststore.certificates", readFileAsString(truststorePath));
+            props.put("ssl.keystore.type", "PEM");
+            props.put("ssl.keystore.certificate.chain", readFileAsString(keystorePath));
+            props.put("ssl.keystore.key", readFileAsString(keyPath));
+            props.put("ssl.endpoint.identification.algorithm", "");
+            log.debug("Configured SSL authentication for Kafka");
+        } else {
+            log.debug("No SSL configuration - using PLAINTEXT for tests");
         }
 
         return props;

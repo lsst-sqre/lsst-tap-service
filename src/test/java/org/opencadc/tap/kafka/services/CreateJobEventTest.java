@@ -100,7 +100,9 @@ public class CreateJobEventTest {
                 bootstrapServers,
                 TEST_QUERY_TOPIC,
                 TEST_STATUS_TOPIC,
-                TEST_DELETE_TOPIC);
+                TEST_DELETE_TOPIC,
+                true);
+
 
         TEST_UPLOADS.add(new UploadTable("test-upload-name", "test-upload-source", "test-upload-schema"));
 

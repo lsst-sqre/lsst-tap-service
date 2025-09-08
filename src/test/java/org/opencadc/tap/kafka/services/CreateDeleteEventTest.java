@@ -81,8 +81,8 @@ public class CreateDeleteEventTest {
             bootstrapServers,
             TEST_QUERY_TOPIC,
             TEST_STATUS_TOPIC,
-            TEST_DELETE_TOPIC
-        );
+            TEST_DELETE_TOPIC,
+            true);
     }
 
     @After
