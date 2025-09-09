@@ -35,8 +35,10 @@ public class KafkaContextListener implements ServletContextListener {
         WebAppContext.setServletContext(context);
 
         try {
-            String bootstrapServer = getConfigValue("KAFKA_BOOTSTRAP_SERVER", "kafka.bootstrap.server",
-                    "sasquatch-dev-kafka-1.lsst.cloud:9094");
+            String bootstrapServer = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
+            if (bootstrapServer == null || bootstrapServer.isEmpty()) {
+                throw new IllegalStateException("KAFKA_BOOTSTRAP_SERVERS environment variable is required");
+            }
 
             String queryTopic = getConfigValue("KAFKA_QUERY_TOPIC", "kafka.query.topic", "lsst.tap.job-run");
             String statusTopic = getConfigValue("KAFKA_STATUS_TOPIC", "kafka.status.topic", "lsst.tap.job-status");
