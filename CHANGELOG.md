@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.9.0'></a>
+##  3.9.0 (2025-09-09)
+
+### Changed
+
+- Read Kafka boostrap server from env variable
+
 <a id='changelog-3.8.0'></a>
 ##  3.8.0 (2025-09-08)
 
