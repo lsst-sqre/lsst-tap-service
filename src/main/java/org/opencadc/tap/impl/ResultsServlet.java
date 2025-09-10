@@ -48,10 +48,9 @@ public class ResultsServlet extends HttpServlet {
      */
     private String generateRedirectUrl(String bucketUrlString, String path) {
         String resultsFile = path.substring(1);
-        
+
         if (bucket != null && !bucket.trim().isEmpty()) {
-            String encodedBucket = URLEncoder.encode(bucket, StandardCharsets.UTF_8);
-            return bucketUrlString + "/" + encodedBucket + "/" + resultsFile;
+            return bucketUrlString + "/" + bucket + "/" + resultsFile;
         } else {
             return bucketUrlString + "/" + resultsFile;
         }
