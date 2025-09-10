@@ -102,8 +102,8 @@ public class ResultStoreImpl implements ResultStore {
 
     @Override
     public URL put(final ResultSet resultSet,
-                   final TableWriter<ResultSet> resultSetTableWriter)
-        throws IOException {
+            final TableWriter<ResultSet> resultSetTableWriter)
+            throws IOException {
         OutputStream os = getOutputStream();
         resultSetTableWriter.write(resultSet, os);
         os.close();
@@ -112,7 +112,7 @@ public class ResultStoreImpl implements ResultStore {
 
     @Override
     public URL put(Throwable throwable, TableWriter tableWriter)
-        throws IOException {
+            throws IOException {
         OutputStream os = getOutputStream();
         tableWriter.write(throwable, os);
         os.close();
@@ -121,8 +121,8 @@ public class ResultStoreImpl implements ResultStore {
 
     @Override
     public URL put(final ResultSet resultSet,
-                   final TableWriter<ResultSet> resultSetTableWriter,
-                   final Integer integer) throws IOException {
+            final TableWriter<ResultSet> resultSetTableWriter,
+            final Integer integer) throws IOException {
         OutputStream os = getOutputStream();
 
         if (integer == null) {
@@ -138,22 +138,22 @@ public class ResultStoreImpl implements ResultStore {
     private OutputStream getOutputStream() {
         if (bucketType.equals(new String("S3"))) {
             return getOutputStreamS3();
-        } else{
+        } else {
             return getOutputStreamGCS();
         }
     }
 
     private OutputStream getOutputStreamS3() {
         S3Configuration config = S3Configuration.builder()
-            .pathStyleAccessEnabled(true)
-            .useArnRegionEnabled(true)
-            .build();
+                .pathStyleAccessEnabled(true)
+                .useArnRegionEnabled(true)
+                .build();
 
         S3Client s3Client = S3Client.builder()
-            .endpointOverride(getURI())
-            .serviceConfiguration(config)
-            .region(Region.US_WEST_2)
-            .build();
+                .endpointOverride(getURI())
+                .serviceConfiguration(config)
+                .region(Region.US_WEST_2)
+                .build();
 
         return new S3OutputStream(s3Client, filename, bucket);
     }
@@ -166,14 +166,14 @@ public class ResultStoreImpl implements ResultStore {
         return Channels.newOutputStream(blob.writer());
     }
 
+    /**
+     * Constructs the URL to the results file.
+     * 
+     * @return the URL to the results file.
+     * @throws MalformedURLException
+     */
     private URL getURL() throws MalformedURLException {
-        String filepath = ""; 
-        if (bucketType.equals(new String("S3"))) {
-            filepath = "/" + bucket + "/" + filename;
-        } else {
-            filepath = filename;
-        }
-        return new URL(baseURL + pathPrefix + "/results/" + filepath);
+        return new URL(baseURL + pathPrefix + "/results/" + filename);
     }
 
     private URI getURI() {
@@ -181,7 +181,7 @@ public class ResultStoreImpl implements ResultStore {
             return new URI(bucketURL);
         } catch (URISyntaxException e) {
             // Raise an unchecked exception here to avoid having to change
-            // method definitions.  This reflects an error in the TAP server
+            // method definitions. This reflects an error in the TAP server
             // configuration and is realistically unrecoverable.
             throw new IllegalArgumentException(e);
         }
