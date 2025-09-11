@@ -180,7 +180,22 @@ public class KafkaJobService {
 
         try {
             if (executionId == null || executionId.trim().isEmpty()) {
-                throw new IllegalArgumentException("ExecutionID cannot be null or empty");
+                log.warn("No executionId found for job " + jobId + ", skipping Kafka deletion request");
+                if (jobId != null && !jobId.trim().isEmpty() && jobUpdater != null) {
+                    try {
+                        ExecutionPhase currentPhase = jobUpdater.getPhase(jobId);
+                        if (ExecutionPhase.EXECUTING.equals(currentPhase)) {
+                            boolean transitioned = JobPhaseManager.transitionJobPhase(
+                                    jobId, ExecutionPhase.EXECUTING, ExecutionPhase.ABORTED, jobUpdater);
+                            if (!transitioned) {
+                                log.warn("Failed to set job " + jobId + " to ABORTED, phase may have changed");
+                            }
+                        }
+                    } catch (Exception ex) {
+                        log.error("Failed to update job phase after deletion request: " + jobId, ex);
+                    }
+                }
+                return true;
             }
 
             if (createDeleteEventService == null) {

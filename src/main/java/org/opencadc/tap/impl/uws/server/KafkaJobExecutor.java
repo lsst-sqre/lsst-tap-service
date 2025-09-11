@@ -6,17 +6,10 @@ import java.io.IOException;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Date;
-import java.util.Set;
-
 import javax.security.auth.Subject;
-
-import ca.nrc.cadc.auth.AuthMethod;
-import ca.nrc.cadc.auth.AuthenticationUtil;
-import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.auth.RunnableAction;
 import ca.nrc.cadc.net.TransientException;
 import ca.nrc.cadc.rest.SyncOutput;
-import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
@@ -28,7 +21,6 @@ import ca.nrc.cadc.uws.server.JobPhaseException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
 
-import org.opencadc.tap.impl.QServQueryRunner;
 import org.opencadc.tap.impl.logging.TAPLogger;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
