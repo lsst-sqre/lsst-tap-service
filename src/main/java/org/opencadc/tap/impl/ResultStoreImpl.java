@@ -100,30 +100,59 @@ public class ResultStoreImpl implements ResultStore {
     private static final String baseURL = System.getProperty("base_url");
     private static final String pathPrefix = System.getProperty("path_prefix");
 
+    /**
+     * Store the ResultSet using the specified TableWriter.
+     * 
+     * @param resultSet the ResultSet to store.
+     * @param resultSetTableWriter the TableWriter to use to write the ResultSet.
+     * 
+     * @return the URL to the stored ResultSet.
+     * 
+     */
     @Override
     public URL put(final ResultSet resultSet,
             final TableWriter<ResultSet> resultSetTableWriter)
             throws IOException {
-        OutputStream os = getOutputStream();
+        OutputStream os = getOutputStream(resultSetTableWriter.getContentType());
         resultSetTableWriter.write(resultSet, os);
         os.close();
         return getURL();
     }
 
+    /**
+     * Store the Throwable using the specified TableWriter.
+     * 
+     * @param throwable the Throwable to store.
+     * 
+     * @return the URL to the stored Throwable.
+     * @throws IOException
+     * 
+     */
     @Override
     public URL put(Throwable throwable, TableWriter tableWriter)
             throws IOException {
-        OutputStream os = getOutputStream();
+        OutputStream os = getOutputStream(tableWriter.getContentType());
         tableWriter.write(throwable, os);
         os.close();
         return getURL();
     }
 
+    /**
+     * Store the ResultSet using the specified TableWriter
+     * 
+     * @param resultSet the ResultSet to store.
+     * @param resultSetTableWriter the TableWriter to use to write the ResultSet.
+     * 
+     * @param integer the maximum number of rows to write.
+     * @return the URL to the stored ResultSet.
+     * @throws IOException
+     * 
+     */
     @Override
     public URL put(final ResultSet resultSet,
             final TableWriter<ResultSet> resultSetTableWriter,
             final Integer integer) throws IOException {
-        OutputStream os = getOutputStream();
+        OutputStream os = getOutputStream(resultSetTableWriter.getContentType());
 
         if (integer == null) {
             resultSetTableWriter.write(resultSet, os);
@@ -135,14 +164,25 @@ public class ResultStoreImpl implements ResultStore {
         return getURL();
     }
 
-    private OutputStream getOutputStream() {
+    /**
+     * Get an OutputStream to write to the results file.
+     * 
+     * @param contentType
+     * @return the OutputStream to write to the results file.
+     */
+    private OutputStream getOutputStream(String contentType) {
         if (bucketType.equals(new String("S3"))) {
             return getOutputStreamS3();
         } else {
-            return getOutputStreamGCS();
+            return getOutputStreamGCS(contentType);
         }
     }
 
+    /**
+     * Get an OutputStream to write to the results file in S3.
+     * 
+     * @return the OutputStream to write to the results file.
+     */
     private OutputStream getOutputStreamS3() {
         S3Configuration config = S3Configuration.builder()
                 .pathStyleAccessEnabled(true)
@@ -158,10 +198,16 @@ public class ResultStoreImpl implements ResultStore {
         return new S3OutputStream(s3Client, filename, bucket);
     }
 
-    private OutputStream getOutputStreamGCS() {
+    /**
+     * Get an OutputStream to write to the results file in GCS.
+     * 
+     * @param contentType
+     * @return the OutputStream to write to the results file.
+     */
+    private OutputStream getOutputStreamGCS(String contentType) {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         BlobId blobId = BlobId.of(bucket, filename);
-        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("application/x-votable+xml").build();
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType(contentType).build();
         Blob blob = storage.create(blobInfo);
         return Channels.newOutputStream(blob.writer());
     }
@@ -176,6 +222,11 @@ public class ResultStoreImpl implements ResultStore {
         return new URL(baseURL + pathPrefix + "/results/" + filename);
     }
 
+    /**
+     * Get the URI for the S3 endpoint.
+     * 
+     * @return the URI for the S3 endpoint.
+     */
     private URI getURI() {
         try {
             return new URI(bucketURL);
@@ -187,10 +238,21 @@ public class ResultStoreImpl implements ResultStore {
         }
     }
 
+    /**
+     * Set the content type for the results file. This is a no-op as the content
+     * type is set when the OutputStream is created.
+     * 
+     * @param contentType the content type for the results file.
+     */
     @Override
     public void setContentType(String contentType) {
     }
 
+    /**
+     * Set the Job associated with this ResultStore. This is a no-op as the Job
+     * 
+     * @param _job the Job associated with this ResultStore.
+     */
     @Override
     public void setJob(Job _job) {
     }
