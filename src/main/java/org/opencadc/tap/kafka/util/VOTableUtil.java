@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
-
+import org.opencadc.tap.kafka.models.OutputFormat;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,12 +37,14 @@ public class VOTableUtil {
      * 
      * @param jobId     Job identifier
      * @param jobRunner QueryRunner instance with result template
+     * @param format    OutputFormat for the job
+     * 
      * @return ResultFormat with proper configuration
      */
-    public static ResultFormat createResultFormat(String jobId, QueryRunner jobRunner) {
-        JobRun.ResultFormat.Format format = new JobRun.ResultFormat.Format("VOTable", "BINARY2");
-
-        String[] headerFooter = extractEnvelope(jobRunner);
+    public static ResultFormat createResultFormat(String jobId, QueryRunner jobRunner, OutputFormat format) {
+        JobRun.ResultFormat.Format resultformat = new JobRun.ResultFormat.Format(format.getName(), format.getSerialization());
+        
+        String[] headerFooter = extractEnvelope(jobRunner, format);
         String header = headerFooter[0];
         String footer = headerFooter[1];
         String footerOverflow = headerFooter[2];
@@ -51,7 +53,7 @@ public class VOTableUtil {
 
         List<ColumnType> columnTypes = convertSelectListToColumnTypes(jobRunner.selectList);
 
-        return new ResultFormat(format, envelope, columnTypes, BASE_URL);
+        return new ResultFormat(resultformat, envelope, columnTypes, BASE_URL);
     }
 
     /**
@@ -59,53 +61,64 @@ public class VOTableUtil {
      * The current implementation assumes binary2 encoding.
      * 
      * @param jobRunner QueryRunner containing the result template
+     * @param format    OutputFormat for the job
+     * 
      * @return String array with header and footer
      */
-    private static String[] extractEnvelope(QueryRunner jobRunner) {
-        // Hard coded comment marker
+    private static String[] extractEnvelope(QueryRunner jobRunner, OutputFormat format) {
         String commentMarker = "<!--data goes here-->";
         String header = "";
         String footer = "";
         String footerOverflow = "";
-
+    
         try {
             VOTableWriter w = new VOTableWriter();
             StringWriter sw = new StringWriter();
             w.write(jobRunner.resultTemplate, sw);
             String xmlInput = sw.toString();
             int splitPoint = xmlInput.indexOf(commentMarker);
-
+    
             if (splitPoint == -1) {
                 throw new IllegalArgumentException("Cannot find data placeholder in XML input");
             }
-
+    
             header = xmlInput.substring(0, splitPoint);
-            header += "<DATA>\n      <BINARY2>\n        <STREAM encoding='base64'>\n";
-
             String rawFooter = xmlInput.substring(splitPoint + commentMarker.length());
-
-            int tableCloseIndex = rawFooter.indexOf("</TABLE>");
-            if (tableCloseIndex != -1) {
-                String beforeTableClose = "        </STREAM>\n      </BINARY2>\n    </DATA>\n";
-                String afterTableClose = rawFooter.substring(tableCloseIndex + "</TABLE>".length());
-
-                footer = beforeTableClose + "</TABLE>" + afterTableClose;
-
-                footerOverflow = beforeTableClose + "</TABLE>\n        <INFO name=\"QUERY_STATUS\" value=\"OVERFLOW\"/>"
-                        + afterTableClose;
-            } else {
-                footer = "        </STREAM>\n      </BINARY2>\n    </DATA>\n" + rawFooter;
-                footerOverflow = "        </STREAM>\n      </BINARY2>\n    </DATA>\n" +
+    
+            if (format.getName().equalsIgnoreCase("parquet")) {
+                // VOParquet metadata only — no DATA block
+                footer = rawFooter;
+                footerOverflow =
                         "<INFO name=\"QUERY_STATUS\" value=\"OVERFLOW\"/>" + rawFooter;
+            } else {
+                // Normal VOTable binary2
+                header += "<DATA>\n      <BINARY2>\n        <STREAM encoding='base64'>\n";
+    
+                int tableCloseIndex = rawFooter.indexOf("</TABLE>");
+                if (tableCloseIndex != -1) {
+                    String beforeTableClose = "        </STREAM>\n      </BINARY2>\n    </DATA>\n";
+                    String afterTableClose = rawFooter.substring(tableCloseIndex + "</TABLE>".length());
+    
+                    footer = beforeTableClose + "</TABLE>" + afterTableClose;
+    
+                    footerOverflow = beforeTableClose + "</TABLE>\n"
+                            + "        <INFO name=\"QUERY_STATUS\" value=\"OVERFLOW\"/>"
+                            + afterTableClose;
+                } else {
+                    footer = "        </STREAM>\n      </BINARY2>\n    </DATA>\n" + rawFooter;
+                    footerOverflow = "        </STREAM>\n      </BINARY2>\n    </DATA>\n"
+                            + "<INFO name=\"QUERY_STATUS\" value=\"OVERFLOW\"/>" + rawFooter;
+                }
             }
-
+    
         } catch (Exception e) {
             log.error("Error generating VOTable XML", e);
             throw new RuntimeException("Failed to generate VOTable XML: " + e.getMessage());
         }
-
+    
         return new String[] { header, footer, footerOverflow };
     }
+    
 
     /**
      * Convert TapSelectItem list to ColumnType list.
