@@ -12,11 +12,15 @@ import ca.nrc.cadc.uws.server.impl.PostgresJobPersistence;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.IdentityManager;
 import ca.nrc.cadc.uws.server.RandomStringGenerator;
+import ca.nrc.cadc.tap.PluginFactoryImpl;
+import ca.nrc.cadc.tap.ResultStore;
+import ca.nrc.cadc.tap.TableWriter;
 import org.apache.log4j.Logger;
 import org.opencadc.tap.impl.logging.TAPLogger;
 import org.opencadc.tap.impl.uws.server.KafkaJobExecutor;
 import org.opencadc.tap.kafka.models.JobStatus;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -40,8 +44,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
     private final JobUpdater jobUpdater;
 
     public JobStatusListener() {
-        IdentityManager im = AuthenticationUtil.getIdentityManager();
-        this.jobPersist = new PostgresJobPersistence(new RandomStringGenerator(16), im, true);
+        this.jobPersist = new PostgresJobPersistence();
         this.jobUpdater = (JobUpdater) jobPersist;
     }
 
@@ -67,7 +70,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             // Now update with additional metadata
             JobInfo jobInfo = getJobInfo(status, job);
             List<Result> diagnostics = getJobMetadata(status, job);
-            ErrorSummary errorSummary = getErrorInfo(status);
+            ErrorSummary errorSummary = getErrorInfo(status, job);
 
             job.setExecutionPhase(newPhase);
             job.setOwnerID(username);
@@ -106,7 +109,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
     /**
      * Get job error information if present
      */
-    private ErrorSummary getErrorInfo(JobStatus status) {
+    private ErrorSummary getErrorInfo(JobStatus status, Job job) {
         if (status == null || status.getJobID() == null) {
             return null;
         }
@@ -121,12 +124,58 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
                 // This is a temporary workaround
                 ErrorType errorType = ErrorType.FATAL;
-                return new ErrorSummary(errorMessage, errorType);
+
+
+                URL errorURL = createErrorDocument(job, errorMessage, status);
+                
+                if (errorURL != null) {
+                    return new ErrorSummary(errorMessage, errorType, errorURL);
+                } else {
+                    return new ErrorSummary(errorMessage, errorType);
+                }
             }
         } catch (Exception e) {
             log.error("Error updating error info for job: " + status.getJobID(), e);
         }
         return null;
+    }
+
+    /**
+     * Create error document and upload to result store
+     * 
+     * @param job
+     * @param errorMessage
+     * @param status
+     * @return URL of the error document or null if creation failed
+     */
+    private URL createErrorDocument(Job job, String errorMessage, JobStatus status) {
+        try {
+            log.debug("creating TableWriter for error...");
+            
+            PluginFactoryImpl pfac = new PluginFactoryImpl(job);
+            ResultStore rs = pfac.getResultStore();
+            
+            TableWriter ewriter = pfac.getErrorWriter();
+            
+            String exceptionMessage = "Job execution failed: " + errorMessage;
+            Exception errorException = new RuntimeException(exceptionMessage);
+            
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ewriter.write(errorException, bos);
+            String filename = "error_" + job.getID() + "." + ewriter.getExtension();
+            
+            rs.setJob(job);
+            rs.setFilename(filename);
+            rs.setContentType(ewriter.getContentType());
+            URL errorURL = rs.put(errorException, ewriter);
+            
+            log.debug("Error URL: " + errorURL);
+            return errorURL;
+            
+        } catch (Exception e) {
+            log.error("Failed to create error document for job: " + job.getID(), e);
+            return null;
+        }
     }
 
     /**
