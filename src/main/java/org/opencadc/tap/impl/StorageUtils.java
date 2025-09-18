@@ -8,6 +8,7 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.HttpMethod;
 import org.apache.log4j.Logger;
 import org.apache.solr.s3.S3OutputStream;
+import org.opencadc.tap.kafka.models.OutputFormat;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -25,7 +26,6 @@ import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -164,10 +164,12 @@ public class StorageUtils {
      * @param jobId        Job identifier to create object name
      * @param contentType  The content type of the file
      * @param validMinutes How long the signed URL should be valid for
+     * @param format       The output format for the job results
+     * 
      * @return Destination URL for result storage with write access
      */
-    public static String generateJobResultSignedUrl(String jobId, String contentType, int validMinutes) {
-        String objectName = "result_" + jobId + ".xml";
+    public static String generateJobResultSignedUrl(String jobId, String contentType, int validMinutes, OutputFormat format) {
+        String objectName = "result_" + jobId + "." + format.getExtension();
 
         if (isS3Storage()) {
             // Convert validMinutes to hours fraction
@@ -202,8 +204,8 @@ public class StorageUtils {
      * @param jobId Job identifier
      * @return URL to the job results
      */
-    public static String generateResultLocation(String jobId) {
-        return getStorageUrl("result_" + jobId + ".xml");
+    public static String generateResultLocation(String jobId, OutputFormat format) {
+        return getStorageUrl("result_" + jobId + "." + format.getExtension());
 
     }
 
