@@ -1,0 +1,46 @@
+#!/bin/bash
+SELF=cadc-tomcat-start-readonly
+CONFDIR=/config
+USER=$(whoami 2>/dev/null || echo "tomcat")
+TS=$(date)
+
+if [ -f $CONFDIR/catalina.properties ]; then
+    cat $CONFDIR/catalina.properties >> /var/lib/tomcat/conf/catalina.properties
+fi
+
+if [ -f $CONFDIR/war-rename.conf ]; then
+    while read -r line
+    do
+        MV=$(echo "$line" | awk '{print $1}')
+        if [ "$MV" != "mv" ]; then
+            echo "war-rename: $line SKIPPED"
+        else
+            echo "war-rename: $line"
+            cd /var/lib/tomcat/webapps && $line
+        fi
+    done < $CONFDIR/war-rename.conf
+fi
+
+if [ -f $CONFDIR/tomcat.conf ]; then
+    cat $CONFDIR/tomcat.conf >> /var/lib/tomcat/conf/tomcat.conf
+fi
+
+if [ -e $CONFDIR/cacerts ]; then
+    cp -v $CONFDIR/cacerts/* /etc/pki/ca-trust/source/anchors/ 2>/dev/null || echo "No CA certs to copy"
+fi
+
+mkdir -p "$HOME/.ssl"
+chmod 700 "$HOME/.ssl"
+for pcf in $CONFDIR/*.pem; do
+    if [ -f "$pcf" ]; then
+        echo "Link proxy certificate: $pcf"
+        ln -sf "$pcf" "$HOME/.ssl/"
+    fi
+done
+
+ln -sf /config "$HOME/config"
+
+export CATALINA_BASE=/var/lib/tomcat
+export CATALINA_TMPDIR=/tmp
+export CATALINA_HOME=/usr/share/tomcat
+exec /usr/libexec/tomcat/server start

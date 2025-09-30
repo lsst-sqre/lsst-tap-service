@@ -2,14 +2,20 @@ FROM images.opencadc.org/library/cadc-tomcat:1
 
 LABEL org.opencontainers.image.source="https://github.com/lsst-sqre/lsst-tap-service"
 
-RUN dnf update -y && dnf install -y zip unzip
+RUN dnf update -y && dnf install -y zip unzip \
+    && dnf clean all
 
-# Copy start into container and set permissions
-ADD docker/start.sh /usr/local/bin/
+RUN chmod -R go+rX /etc/tomcat
+
+# Copy start wrapper script
+ADD docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
-# Copy war into tomcat webapps
-ADD docker/*.war /usr/share/tomcat/webapps/
+ADD docker/cadc-tomcat-start-readonly /usr/bin/cadc-tomcat-start-readonly
+RUN chmod +x /usr/bin/cadc-tomcat-start-readonly
 
-# Run the start script to handle the datalink task
+# Create a directory for WAR files
+RUN mkdir -p /opt/tomcat-wars
+ADD docker/*.war /opt/tomcat-wars/
+
 ENTRYPOINT ["/usr/local/bin/start.sh"]
