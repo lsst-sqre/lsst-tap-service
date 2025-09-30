@@ -6,6 +6,21 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.10.0'></a>
+## 3.10.0 (2025-09-30)
+
+### Added
+
+- Capability of generating S3 signed URLs #176
+
+### Changed
+
+- Change Kafka connection to use certs instead of user/pass #177
+
+- Change Dockerfile and scripts so that container is created as read-only
+
+- Fix capabilities so that we only advertise votable/binary2 as the output format
+
 <a id='changelog-3.9.2'></a>
 ##  3.9.2 (2025-09-10)
 
