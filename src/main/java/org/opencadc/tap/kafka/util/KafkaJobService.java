@@ -34,6 +34,7 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import org.opencadc.tap.impl.QServQueryRunner;
 import org.opencadc.tap.impl.StorageUtils;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
+import org.opencadc.tap.kafka.models.OutputFormat;
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.util.DatabaseNameUtil;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
@@ -269,11 +270,12 @@ public class KafkaJobService {
             QServQueryRunner qRunner = (QServQueryRunner) jobRunner;
             QueryRunner queryRunner = (QueryRunner) jobRunner;
             info.sql = qRunner.internalSQL;
+            OutputFormat format = extractFormat(job);
 
             info.resultDestination = StorageUtils.generateJobResultSignedUrl(
-                    job.getID(), "application/x-votable+xml", DEFAULT_JOB_RESULT_EXPIRATION_MINUTES);
-            info.resultLocation = StorageUtils.generateResultLocation(job.getID());
-            info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner);
+                    job.getID(), format.getMimeType(), DEFAULT_JOB_RESULT_EXPIRATION_MINUTES, format);
+            info.resultLocation = StorageUtils.generateResultLocation(job.getID(), format);
+            info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner, format);
             info.maxrec = queryRunner.maxRows;
 
             try {
@@ -297,6 +299,25 @@ public class KafkaJobService {
         }
 
         return info;
+    }
+    
+    /**
+     * Extract the desired output format from job parameters.
+     * 
+     * @param job The job
+     * @return The output format string, or null if not specified
+     */
+    private static OutputFormat extractFormat(Job job) {
+        List<Parameter> params = job.getParameterList();
+        if (params != null) {
+            for (Parameter param : params) {
+                if ("RESPONSEFORMAT".equalsIgnoreCase(param.getName()) ||
+                    "FORMAT".equalsIgnoreCase(param.getName())) {
+                    return OutputFormat.fromString(param.getValue());
+                }
+            }
+        }
+        return OutputFormat.VOTABLE;
     }
 
     /**

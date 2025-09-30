@@ -602,8 +602,10 @@ public class JobStatus {
                     format.setType(json.getString("type"));
                 }
 
-                if (json.has("serialization")) {
+                if (json.has("serialization") && !json.isNull("serialization")) {
                     format.setSerialization(json.getString("serialization"));
+                } else {
+                    format.setSerialization(null);
                 }
 
                 return format;
