@@ -7,6 +7,9 @@ RUN dnf update -y && dnf install -y zip unzip \
 
 RUN chmod -R go+rX /etc/tomcat
 
+# This removes logging of the system properties at startup
+RUN echo "org.apache.catalina.startup.VersionLoggerListener.level = OFF" >> /etc/tomcat/logging.properties
+
 # Copy start wrapper script
 ADD docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
