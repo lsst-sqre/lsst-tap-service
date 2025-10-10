@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-2.14.0'></a>
+## 2.14.0 (2025-10-10)
+
+### Changed
+
+- Make TAP service container read-only
+
 <a id='changelog-2.13.1'></a>
 ## 2.13.1 (2025-04-16)
 
