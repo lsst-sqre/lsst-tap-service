@@ -84,6 +84,10 @@ jobs:
            images="${dh_img},${gh_img}"
            echo "images=${images}" >> ${GITHUB_OUTPUT}
 
+      - name: Install Gradle
+        id: install_gradle
+        uses: gradle/actions/setup-gradle@v3
+        
       - name: Build and test
         run: scripts/build-war.sh
 
