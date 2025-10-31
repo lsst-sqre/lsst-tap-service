@@ -76,6 +76,7 @@ jobs:
           tags: |
             lsstdax/lsst-tap-service:${{ steps.vars.outputs.tag }}
             ghcr.io/lsst-sqre/lsst-tap-service:${{ steps.vars.outputs.tag }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha,scope=tap
           cache-to: type=gha,mode=max,scope=tap
 
@@ -88,6 +89,7 @@ jobs:
           tags: |
             lsstdax/uws-db:${{ steps.vars.outputs.tag }}
             ghcr.io/lsst-sqre/lsst-tap-uws-db:${{ steps.vars.outputs.tag }}
+          platforms: linux/amd64,linux/arm64            
           cache-from: type=gha,scope=uws-db
           cache-to: type=gha,mode=max,scope=uws-db
 
@@ -100,5 +102,6 @@ jobs:
           tags: |
             lsstdax/mock-qserv:${{ steps.vars.outputs.tag }}
             ghcr.io/lsst-sqre/lsst-tap-mock-qserv:${{ steps.vars.outputs.tag }}
+          platforms: linux/amd64,linux/arm64            
           cache-from: type=gha,scope=mock-qserv
           cache-to: type=gha,mode=max,scope=mock-qserv
