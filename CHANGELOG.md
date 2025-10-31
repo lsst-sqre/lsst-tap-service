@@ -6,6 +6,15 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.10.1'></a>
+## 3.10.1 (2025-10-31)
+
+### Changed
+
+- Remove jobID suffix from uploaded table name
+
+- Added registry dependency to gradle configuration
+
 <a id='changelog-3.10.0'></a>
 ## 3.10.0 (2025-09-30)
 
