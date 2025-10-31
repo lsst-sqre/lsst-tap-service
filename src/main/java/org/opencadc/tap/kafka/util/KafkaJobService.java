@@ -2,11 +2,9 @@ package org.opencadc.tap.kafka.util;
 
 import org.apache.log4j.Logger;
 
-import java.net.URI;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +14,6 @@ import javax.security.auth.Subject;
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
 import ca.nrc.cadc.uws.Job;
-import ca.nrc.cadc.uws.JobInfo;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.Result;
 import ca.nrc.cadc.uws.server.JobNotFoundException;
@@ -28,7 +25,6 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.tap.QueryRunner;
-import ca.nrc.cadc.tap.UploadManager;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
 import org.opencadc.tap.impl.QServQueryRunner;

@@ -100,9 +100,7 @@ public class DatabaseNameUtil {
         } else {
             sb.append("job_").append(sanitizedJobID).append(".");
         }
-        sb.append(tableName);
-        sb.append("_");
-        sb.append(sanitizedJobID);
+        sb.append(tableName);;
         return sb.toString();
     }
 
