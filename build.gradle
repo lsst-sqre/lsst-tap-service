@@ -65,6 +65,7 @@ dependencies {
     implementation 'org.slf4j:slf4j-log4j12:1.7.36'
     
     implementation 'org.opencadc:cadc-access-control-identity:[1.0.7,)'
+    implementation 'org.opencadc:cadc-registry:[1.7.7,)'
     implementation 'org.opencadc:cadc-adql:1.1.15'
     implementation 'org.opencadc:cadc-dali-pg:0.3.1'
     implementation 'org.opencadc:cadc-log:[1.2.1,)'
