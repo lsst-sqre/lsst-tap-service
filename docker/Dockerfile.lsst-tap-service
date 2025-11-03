@@ -1,4 +1,4 @@
-FROM images.opencadc.org/library/cadc-tomcat:1
+FROM images.opencadc.org/library/cadc-tomcat:1.5
 
 LABEL org.opencontainers.image.source="https://github.com/lsst-sqre/lsst-tap-service"
 
