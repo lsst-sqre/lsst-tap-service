@@ -67,6 +67,12 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             ExecutionPhase previousPhase = jobUpdater.getPhase(status.getJobID());
             ExecutionPhase newPhase = JobStatus.ExecutionStatus.toExecutionPhase(status.getStatus());
 
+            // Check if previous phase was ABORTED
+            if (previousPhase == ExecutionPhase.ABORTED) {
+                log.info("Job " + status.getJobID() + " is already ABORTED. Ignoring update to " + newPhase);
+                return;
+            }
+
             // Now update with additional metadata
             JobInfo jobInfo = getJobInfo(status, job);
             List<Result> diagnostics = getJobMetadata(status, job);
