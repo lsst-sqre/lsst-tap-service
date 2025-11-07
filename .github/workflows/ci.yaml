@@ -41,8 +41,7 @@ jobs:
     needs: [tag]
     runs-on: ${{ matrix.platform.runs_on }}
     env:
-      tag:
-        ${{ needs.tag.outputs.tag }}
+      tag: ${{ needs.tag.outputs.tag }}
     strategy:
       matrix:
         platform:
@@ -52,11 +51,11 @@ jobs:
             runs_on: "ubuntu-24.04-arm"
         product:
           - name: "lsst-tap-service"
-            ghcr: "ghcr.io/lsst-tap-service"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-service"
           - name: "uws-db"
-            ghcr: "ghcr.io/lsst-tap-uws-db"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-uws-db"
           - name: "mock-qserv"
-            ghcr: "ghcr.io/lsst-tap-mock-qserv"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-mock-qserv"
     # Only do Docker builds of tagged releases and pull requests from ticket
     # branches.  This will still trigger on pull requests from untrusted
     # repositories whose branch names match our tickets/* branch convention,
@@ -79,8 +78,8 @@ jobs:
           product_name: ${{ matrix.product.name }}
           ghcr: ${{ matrix.product.ghcr }}
         run: |
-           dh_img="lsstdax/${{ env.product_name }}:${{ env.tag }}-${{ matrix.platform.arch }}
-           gh_img="ghcr.io/lsst-sqre/${{ env.ghcr }}:${{ env.tag }}-${{ matrix.platform.arch }}
+           dh_img="lsstdax/${{ env.product_name }}:${{ env.tag }}-${{ matrix.platform.arch }}"
+           gh_img="${{ env.ghcr }}:${{ env.tag }}-${{ matrix.platform.arch }}"
            images="${dh_img},${gh_img}"
            echo "images=${images}" >> ${GITHUB_OUTPUT}
 
@@ -118,30 +117,30 @@ jobs:
   manifest:
     needs: [tag, build]
     runs-on: "ubuntu-latest"
-    env:
-      tag: ${{ needs.tag.outputs.tag }}
     strategy:
       matrix:
         product:
           - name: "lsst-tap-service"
-            ghcr: "ghcr.io/lsst-tap-service"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-service"
           - name: "uws-db"
-            ghcr: "ghcr.io/lsst-tap-uws-db"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-uws-db"
           - name: "mock-qserv"
-            ghcr: "ghcr.io/lsst-tap-mock-qserv"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-mock-qserv"
     steps:
       - name: Construct the image tags
         id: img_tag
         env:
           product_name: ${{ matrix.product.name }}
           ghcr: ${{ matrix.product.ghcr }}
+          tag: ${{ needs.tag.outputs.tag }}
+
         run: |
-           dh_img="lsstdax/${{ env.product_name }}:${{ env.tag }}-${{ matrix.platform.arch }}"
-           gh_img="ghcr.io/lsst-sqre/${{ env.ghcr }}:${{ env.tag }}-${{ matrix.platform.arch }}"
+           dh_img="lsstdax/${{ env.product_name }}:${{ env.tag }}-amd64,lsstdax/${{ env.product_name }}:${{ env.tag }}-arm64"
+           gh_img="${{ env.ghcr }}:${{ env.tag }}-amd64,${{ env.ghcr }}:${{ env.tag }}-arm64"
            images="${dh_img},${gh_img}"
            echo "inp_images=${images}" >> ${GITHUB_OUTPUT}
            dh_out="lsstdax/${{ env.product_name }}:${{ env.tag }}"
-           gh_out="ghcr.io/lsst-sqre/${{ env.ghcr }}:${{env.tag }}"
+           gh_out="${{ env.ghcr }}:${{env.tag }}"
            echo "out_images=${dh_out},${gh_out}" >> ${GITHUB_OUTPUT}
 
       - name: Print the tags
