@@ -25,9 +25,37 @@ jobs:
       - name: Build and test
         run: scripts/build-war.sh
 
-  build:
-    runs-on: ubuntu-latest
+  tag:
+    runs-on: "ubuntu-latest"
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
 
+      - id: vars
+        run: |
+          tag=$(scripts/docker-tag.sh)
+          echo tag="${tag}" >> ${GITHUB_OUTPUT}
+
+  build:
+    needs: [tag]
+    runs-on: ${{ matrix.platform.runs_on }}
+    env:
+      tag: ${{ needs.tag.outputs.tag }}
+    strategy:
+      matrix:
+        platform:
+          - arch: "amd64"
+            runs_on: "ubuntu-latest"
+          - arch: "arm64"
+            runs_on: "ubuntu-24.04-arm"
+        product:
+          - name: "lsst-tap-service"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-service"
+          - name: "uws-db"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-uws-db"
+          - name: "mock-qserv"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-mock-qserv"
     # Only do Docker builds of tagged releases and pull requests from ticket
     # branches.  This will still trigger on pull requests from untrusted
     # repositories whose branch names match our tickets/* branch convention,
@@ -40,65 +68,101 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Define the Docker tag
-        id: vars
-        run: echo ::set-output name=tag::$(scripts/docker-tag.sh)
-
       - name: Print the tag
         id: print
-        run: echo ${{ steps.vars.outputs.tag }}
+        run: echo ${{ env.tag }}
 
+      - name: Construct the image tags
+        id: img_tag
+        env:
+          product_name: ${{ matrix.product.name }}
+          ghcr: ${{ matrix.product.ghcr }}
+        run: |
+           dh_img="lsstdax/${{ env.product_name }}:${{ env.tag }}-${{ matrix.platform.arch }}"
+           gh_img="${{ env.ghcr }}:${{ env.tag }}-${{ matrix.platform.arch }}"
+           images="${dh_img},${gh_img}"
+           echo "images=${images}" >> ${GITHUB_OUTPUT}
+
+      - name: Install Gradle
+        id: install_gradle
+        uses: gradle/actions/setup-gradle@v3
+        
       - name: Build and test
         run: scripts/build-war.sh
 
+      - name: Login
+        id: login
+        uses: lsst-sqre/multi-repository-login@v2
+        with:
+          images: ${{ steps.img_tag.outputs.images }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          name: builder-${{ matrix.product.name }}-${{ matrix.platform.arch }}
+          platforms: linux/${{ matrix.platform.arch }}
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push the TAP server image
+      - name: Build and push platform-specific image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          file: docker/Dockerfile.lsst-tap-service
-          tags: |
-            lsstdax/lsst-tap-service:${{ steps.vars.outputs.tag }}
-            ghcr.io/lsst-sqre/lsst-tap-service:${{ steps.vars.outputs.tag }}
-          cache-from: type=gha,scope=tap
-          cache-to: type=gha,mode=max,scope=tap
+          file: docker/Dockerfile.${{ matrix.product.name }}
+          tags: ${{ steps.img_tag.outputs.images }}
+          builder: builder-${{ matrix.product.name }}-${{ matrix.platform.arch }}
+          platforms: linux/${{ matrix.platform.arch }}
 
-      - name: Build and push the UWS database image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          file: docker/Dockerfile.uws-db
-          tags: |
-            lsstdax/uws-db:${{ steps.vars.outputs.tag }}
-            ghcr.io/lsst-sqre/lsst-tap-uws-db:${{ steps.vars.outputs.tag }}
-          cache-from: type=gha,scope=uws-db
-          cache-to: type=gha,mode=max,scope=uws-db
+  manifest:
+    needs: [tag, build]
+    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        product:
+          - name: "lsst-tap-service"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-service"
+          - name: "uws-db"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-uws-db"
+          - name: "mock-qserv"
+            ghcr: "ghcr.io/lsst-sqre/lsst-tap-mock-qserv"
+    steps:
+      - name: Construct the image tags
+        id: img_tag
+        env:
+          product_name: ${{ matrix.product.name }}
+          ghcr: ${{ matrix.product.ghcr }}
+          tag: ${{ needs.tag.outputs.tag }}
 
-      - name: Build and push the mock qserv image
-        uses: docker/build-push-action@v6
+        run: |
+           dh_img="lsstdax/${{ env.product_name }}:${{ env.tag }}-amd64,lsstdax/${{ env.product_name }}:${{ env.tag }}-arm64"
+           gh_img="${{ env.ghcr }}:${{ env.tag }}-amd64,${{ env.ghcr }}:${{ env.tag }}-arm64"
+           images="${dh_img},${gh_img}"
+           echo "inp_images=${images}" >> ${GITHUB_OUTPUT}
+           dh_out="lsstdax/${{ env.product_name }}:${{ env.tag }}"
+           gh_out="${{ env.ghcr }}:${{env.tag }}"
+           echo "out_images=${dh_out},${gh_out}" >> ${GITHUB_OUTPUT}
+
+      - name: Print the tags
+        id: print
+        env:
+          in_img: ${{ steps.img_tag.outputs.inp_images }}
+          out_img: ${{ steps.img_tag.outputs.out_images }}
+        run: |
+          echo in: ${{ env.in_img }}
+          echo out: ${{ env.out_img }}
+
+      - name: Login
+        id: login
+        uses: lsst-sqre/multi-repository-login@v2
         with:
-          context: .
+          images: ${{ steps.img_tag.outputs.out_images }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build multi-platform manifest
+        uses: Noelware/docker-manifest-action@v1
+        with:
+          inputs: ${{ steps.img_tag.outputs.inp_images }}
+          tags: ${{ steps.img_tag.outputs.out_images }}
           push: true
-          file: docker/Dockerfile.mock-qserv
-          tags: |
-            lsstdax/mock-qserv:${{ steps.vars.outputs.tag }}
-            ghcr.io/lsst-sqre/lsst-tap-mock-qserv:${{ steps.vars.outputs.tag }}
-          cache-from: type=gha,scope=mock-qserv
-          cache-to: type=gha,mode=max,scope=mock-qserv
