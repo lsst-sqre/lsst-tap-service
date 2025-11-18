@@ -380,11 +380,8 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
                 for (int i = 0; i < row.size(); i++) {
                     Object o = row.get(i);
-                    Format<Object> fmt = new DefaultFormat();
-                    if (!fields.isEmpty()) {
-                        fmt = formats.get(i);
-                    }
-                    csvWriter.write(fmt.format(o));
+                    String value = formatValue(o, i, fields, formats);
+                    csvWriter.write(value);
                 }
                 csvWriter.endRecord();
             }
@@ -393,6 +390,65 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
         } finally {
             csvWriter.flush();
         }
+    }
+
+    /**
+     * Format a value for CSV output
+     * 
+     * @param value      The value to format
+     * @param fieldIndex The index of the field in the row
+     * @param fields     The list of VOTableField definitions
+     * @param formats    The list of Format objects for each field
+     * @return A string representation
+     */
+    private String formatValue(Object value, int fieldIndex, List<VOTableField> fields,
+            List<Format<Object>> formats) {
+        if (value == null) {
+            return "\\N";
+        }
+
+        if (value instanceof String) {
+            String strValue = (String) value;
+            if (isSpecialNumericValue(strValue)) {
+                return "\\N";
+            }
+            return strValue;
+        }
+
+        if (value instanceof Double || value instanceof Float) {
+            double dval = ((Number) value).doubleValue();
+            if (Double.isNaN(dval) || Double.isInfinite(dval)) {
+                return "\\N";
+            }
+        }
+
+        Format<Object> fmt = new DefaultFormat();
+        if (!fields.isEmpty() && fieldIndex < formats.size()) {
+            fmt = formats.get(fieldIndex);
+        }
+        return fmt.format(value);
+    }
+
+    /**
+     * Check if a string represents a special/invalid numeric value that should be
+     * converted to NULL for database ingestion.
+     * 
+     * @param str The string to check
+     * @return true if the string represents NaN or Infinity
+     */
+    private boolean isSpecialNumericValue(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+
+        String lower = str.toLowerCase().trim();
+        return lower.equals("nan") ||
+                lower.equals("inf") ||
+                lower.equals("+inf") ||
+                lower.equals("-inf") ||
+                lower.equals("infinity") ||
+                lower.equals("+infinity") ||
+                lower.equals("-infinity");
     }
 
     /**
