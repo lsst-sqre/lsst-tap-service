@@ -6,6 +6,18 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.10.2'></a>
+## 3.10.2 (2025-11-20)
+
+### Changed
+
+- Removed avro dependencies which are no longer needed
+- Add gradle wrapper to ensure we are always using gradle version 8.5 in our builds
+
+### Fixed
+
+- Add check for JobStatus change to ensure we dont change from aborted to completed"
+
 <a id='changelog-3.10.1'></a>
 ## 3.10.1 (2025-10-31)
 
