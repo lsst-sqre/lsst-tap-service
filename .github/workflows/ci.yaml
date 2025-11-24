@@ -85,7 +85,7 @@ jobs:
 
       - name: Install Gradle
         id: install_gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v5
         
       - name: Build and test
         run: scripts/build-war.sh
