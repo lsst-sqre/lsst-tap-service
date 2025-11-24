@@ -361,11 +361,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             if (fields != null && !fields.isEmpty()) {
                 for (VOTableField field : fields) {
                     Format<Object> format = null;
-                    if (field.getFormat() == null) {
-                        format = formatFactory.getFormat(field);
-                    } else {
-                        format = field.getFormat();
-                    }
+                    format = formatFactory.getFormat(field);
                     formats.add(format);
                 }
             }
