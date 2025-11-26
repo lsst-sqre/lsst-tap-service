@@ -89,8 +89,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             }
 
             if (jobInfo != null) {
-                // job.setJobInfo(jobInfo);
-                // TODO: Add the jobInfo once pyvo can handle it properly
+                job.setJobInfo(jobInfo);
             }
 
             if (diagnostics != null && !diagnostics.isEmpty()) {
