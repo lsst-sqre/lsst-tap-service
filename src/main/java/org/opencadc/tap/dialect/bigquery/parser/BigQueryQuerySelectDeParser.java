@@ -62,41 +62,39 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
- package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.bigquery.parser;
 
- import ca.nrc.cadc.tap.MaxRecValidator;
- import org.apache.log4j.Logger;
+import org.opencadc.tap.dialect.bigquery.expression.BigQueryColumnAliasSelectItem;
+import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
  
  
- /**
-  * Sample implementation with hard-coded default and maximum row limits.
-  *
-  * @author pdowler
-  */
- public class MaxRecValidatorImpl extends MaxRecValidator {
-     private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
- 
- 
-     public MaxRecValidatorImpl() {
-         super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
+ public class BigQueryQuerySelectDeParser extends QuerySelectDeParser {
+     @Override
+     public void visit(PlainSelect plainSelect) {
+         super.visit(plainSelect);
      }
  
- 
      @Override
-     public Integer validate() {
-         LOGGER.debug("");
-         // async uses limits as above
-         Integer ret = super.validate();
-         LOGGER.debug("final MAXREC: " + ret);
-         return ret;
+     public void visit(SelectExpressionItem selectExpressionItem) {
+         Expression selectExpression = selectExpressionItem.getExpression();
+ 
+         if (selectExpression instanceof Column) {
+             String normalizedColumnName = ((Column) selectExpression).getColumnName().replaceAll("\"", "");
+             ((Column) selectExpression).setColumnName(normalizedColumnName);
+         }
+ 
+         if (selectExpressionItem instanceof BigQueryColumnAliasSelectItem) {
+             getBuffer().append(selectExpressionItem);
+         } else {
+             super.visit(selectExpressionItem);
+         }
      }
  }

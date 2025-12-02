@@ -81,6 +81,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.tap.dialect.qserv.QServAdqlQueryImpl;
 
 /**
  *
@@ -113,7 +114,7 @@ public class AdqlQueryImplTest
         {
             job.getParameterList().add(new Parameter("QUERY", "select * from test.foo as t"));
             
-            AdqlQueryImpl q = new AdqlQueryImpl();
+            QServAdqlQueryImpl q = new QServAdqlQueryImpl();
             q.setJob(job);
             q.setTapSchema(mockTapSchema());
             
@@ -148,7 +149,7 @@ public class AdqlQueryImplTest
         {
             job.getParameterList().add(new Parameter("QUERY", "select top 5 * from test.foo"));
             
-            AdqlQueryImpl q = new AdqlQueryImpl();
+            QServAdqlQueryImpl q = new QServAdqlQueryImpl();
             q.setJob(job);
             q.setTapSchema(mockTapSchema());
             

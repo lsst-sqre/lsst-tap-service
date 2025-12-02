@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,41 +62,94 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
- package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.bigquery.parser.region.function;
 
- import ca.nrc.cadc.tap.MaxRecValidator;
- import org.apache.log4j.Logger;
- 
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.opencadc.tap.dialect.bigquery.expression.BigQueryKeywordExpression;
  
  /**
-  * Sample implementation with hard-coded default and maximum row limits.
-  *
-  * @author pdowler
+  * Abstract class for an Bq Geometric Function.
   */
- public class MaxRecValidatorImpl extends MaxRecValidator {
-     private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
+ abstract class BigQueryGeometricFunction extends Function {
  
+     private static final String POINT_FUNCTION_NAME = "ST_GEOGPOINT";
+     private static final String CIRCLE_FUNCTION_NAME = "CIRCLE";
+     private static final String POLYGON_FUNCTION_NAME = "ST_MAKEPOLYGON";
+     private static final String LINE_FUNCTION_NAME = "ST_MAKELINE";
+     private static final String ARRAY = "ARRAY";
  
-     public MaxRecValidatorImpl() {
-         super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
+     final List<Expression> vertices = new ArrayList<>();
+ 
+     BigQueryGeometricFunction(Expression ra, Expression dec) {
+         setName(POINT_FUNCTION_NAME);
+ 
+         ExpressionList parameters = new ExpressionList(new ArrayList<>());
+         parameters.getExpressions().add(ra);
+         parameters.getExpressions().add(dec);
+ 
+         setParameters(parameters);
      }
  
+     BigQueryGeometricFunction(Expression ra, Expression dec, Expression radius) {
+         setName(CIRCLE_FUNCTION_NAME);
  
-     @Override
-     public Integer validate() {
-         LOGGER.debug("");
-         // async uses limits as above
-         Integer ret = super.validate();
-         LOGGER.debug("final MAXREC: " + ret);
-         return ret;
+         Function pointFunction = new Function();
+         pointFunction.setName(POINT_FUNCTION_NAME);
+         pointFunction.setParameters(new ExpressionList(Arrays.asList(ra, dec)));
+ 
+         ExpressionList parameters = new ExpressionList(new ArrayList<>());
+         parameters.getExpressions().add(pointFunction);
+         parameters.getExpressions().add(radius);
+ 
+         setParameters(parameters);
      }
+ 
+     BigQueryGeometricFunction(List<Expression> verticeExpressions) {
+         if (verticeExpressions != null) {
+             List<Expression> verticeValues = verticeExpressions.stream().skip(1).collect(Collectors.toList());
+             vertices.addAll(verticeValues);
+         }
+     }
+ 
+     private Function getMakeLineFunction() {
+         Function makeLineFunction = new Function();
+         makeLineFunction.setName(LINE_FUNCTION_NAME);
+ 
+         return makeLineFunction;
+     }
+ 
+     /**
+      * For Polygon shapes (i.e. non-point shapes), convert the values to be used as function parameters.  Point
+      * Functions can omit this call.
+      */
+     void processVerticesParameters() {
+         setName(POLYGON_FUNCTION_NAME);
+ 
+         Function makeLineFunction = getMakeLineFunction();
+ 
+         ExpressionList verticesArrayFunctionParameters = new ExpressionList(new ArrayList<>());
+         String geoText = String.format("%s%s", ARRAY, mapValues(verticesArrayFunctionParameters));
+ 
+         makeLineFunction.setParameters(new ExpressionList(Arrays.asList(new BigQueryKeywordExpression(geoText))));
+ 
+         setParameters(new ExpressionList(Arrays.asList(makeLineFunction)));
+     }
+ 
+     /**
+      * Map this shape's values to BQ function parameters.
+      *
+      * @param parameterList The ExpressionList to add parameters to.
+      */
+     abstract String mapValues(ExpressionList parameterList);
  }

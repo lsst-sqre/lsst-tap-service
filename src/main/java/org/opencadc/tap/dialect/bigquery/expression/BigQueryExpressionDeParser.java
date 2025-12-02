@@ -62,41 +62,21 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
- package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.bigquery.expression;
 
- import ca.nrc.cadc.tap.MaxRecValidator;
- import org.apache.log4j.Logger;
- 
- 
- /**
-  * Sample implementation with hard-coded default and maximum row limits.
-  *
-  * @author pdowler
-  */
- public class MaxRecValidatorImpl extends MaxRecValidator {
-     private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
- 
- 
-     public MaxRecValidatorImpl() {
-         super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
-     }
- 
- 
-     @Override
-     public Integer validate() {
-         LOGGER.debug("");
-         // async uses limits as above
-         Integer ret = super.validate();
-         LOGGER.debug("final MAXREC: " + ret);
-         return ret;
-     }
- }
+import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
+import net.sf.jsqlparser.statement.select.SelectVisitor;
+
+public class BigQueryExpressionDeParser extends BaseExpressionDeParser {
+    public BigQueryExpressionDeParser(SelectVisitor selectVisitor, StringBuffer buffer) {
+        super(selectVisitor, buffer);
+    }
+
+    void visit(BigQueryKeywordExpression expression) {
+        buffer.append(expression.toString());
+    }
+}

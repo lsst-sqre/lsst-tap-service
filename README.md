@@ -36,3 +36,16 @@ will create a set of containers with the tag `new_feature_test`.  These can
 then be used in a k8s environment with the Helm chart located here:
 
 https://github.com/lsst-sqre/charts/tree/master/cadc-tap
+
+## Configuration
+
+### BigQuery Backend
+
+When using the BigQuery backend, the following system properties must be configured:
+
+- `tap.bigquery.project` - BigQuery project ID (required)
+- `tap.bigquery.dataset` - BigQuery dataset name (required)
+- `tap.bigquery.schema` - Schema name for ADQL table mappings (optional, default: `ppdb`)
+
+The `tap.bigquery.schema` property determines how table names in ADQL queries are mapped to BigQuery tables. 
+For example, if set to `ppdb_lsstcam`, then queries using `ppdb_lsstcam.DiaSource` will be mapped to the `DiaSource` table in the configured BigQuery dataset.

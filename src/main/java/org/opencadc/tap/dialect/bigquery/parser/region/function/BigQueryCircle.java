@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,41 +62,24 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
- package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.bigquery.parser.region.function;
 
- import ca.nrc.cadc.tap.MaxRecValidator;
- import org.apache.log4j.Logger;
- 
- 
- /**
-  * Sample implementation with hard-coded default and maximum row limits.
-  *
-  * @author pdowler
-  */
- public class MaxRecValidatorImpl extends MaxRecValidator {
-     private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
- 
- 
-     public MaxRecValidatorImpl() {
-         super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
-     }
- 
- 
-     @Override
-     public Integer validate() {
-         LOGGER.debug("");
-         // async uses limits as above
-         Integer ret = super.validate();
-         LOGGER.debug("final MAXREC: " + ret);
-         return ret;
-     }
- }
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+
+
+public class BigQueryCircle extends BigQueryGeometricFunction {
+    public BigQueryCircle(Expression ra, Expression dec, Expression radius) {
+        super(ra, dec, radius);
+    }
+
+    @Override
+    String mapValues(ExpressionList parameterList) {
+        // Do nothing.
+        return null;
+    }
+}

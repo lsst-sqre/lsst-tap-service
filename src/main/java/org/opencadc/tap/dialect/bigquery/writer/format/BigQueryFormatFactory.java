@@ -62,41 +62,30 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
- package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.bigquery.writer.format;
 
- import ca.nrc.cadc.tap.MaxRecValidator;
- import org.apache.log4j.Logger;
- 
- 
- /**
-  * Sample implementation with hard-coded default and maximum row limits.
-  *
-  * @author pdowler
-  */
- public class MaxRecValidatorImpl extends MaxRecValidator {
-     private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
- 
- 
-     public MaxRecValidatorImpl() {
-         super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
-     }
- 
- 
-     @Override
-     public Integer validate() {
-         LOGGER.debug("");
-         // async uses limits as above
-         Integer ret = super.validate();
-         LOGGER.debug("final MAXREC: " + ret);
-         return ret;
-     }
- }
+import ca.nrc.cadc.dali.util.Format;
+import ca.nrc.cadc.tap.TapSelectItem;
+import ca.nrc.cadc.tap.writer.format.DefaultFormatFactory;
+
+public class BigQueryFormatFactory extends DefaultFormatFactory {
+
+    @Override
+    protected Format<Object> getPointFormat(TapSelectItem columnDesc) {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+
+    @Override
+    protected Format<Object> getPolygonFormat(TapSelectItem columnDesc) {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+
+    @Override
+    protected Format<Object> getRegionFormat(TapSelectItem columnDesc) {
+        throw new UnsupportedOperationException("no formatter for column " + columnDesc.getName());
+    }
+}
