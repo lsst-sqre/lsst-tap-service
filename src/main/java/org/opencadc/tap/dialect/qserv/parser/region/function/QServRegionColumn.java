@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.qserv.parser.region.function;
 
 import java.util.ArrayList;
 import java.util.List;

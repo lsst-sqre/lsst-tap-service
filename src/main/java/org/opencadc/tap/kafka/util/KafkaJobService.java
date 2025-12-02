@@ -27,7 +27,7 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
-import org.opencadc.tap.impl.QServQueryRunner;
+import org.opencadc.tap.impl.RubinQueryRunner;
 import org.opencadc.tap.impl.StorageUtils;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.OutputFormat;
@@ -262,8 +262,8 @@ public class KafkaJobService {
         JobSubmissionInfo info = new JobSubmissionInfo();
         info.ownerID = job.getOwnerID();
 
-        if (jobRunner instanceof QServQueryRunner) {
-            QServQueryRunner qRunner = (QServQueryRunner) jobRunner;
+        if (jobRunner instanceof RubinQueryRunner) {
+            RubinQueryRunner qRunner = (RubinQueryRunner) jobRunner;
             QueryRunner queryRunner = (QueryRunner) jobRunner;
             info.sql = qRunner.internalSQL;
             OutputFormat format = extractFormat(job);

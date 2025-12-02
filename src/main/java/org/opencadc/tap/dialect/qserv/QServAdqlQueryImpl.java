@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2009.                            (c) 2009.
+*  (c) 2011.                            (c) 2011.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,49 +62,78 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
-*  $Revision: 4 $
+*  $Revision: 5 $
 *
 ************************************************************************
 */
 
-package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.qserv;
+
+import ca.nrc.cadc.tap.AdqlQuery;
+import ca.nrc.cadc.tap.parser.PgsphereDeParser;
+import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
+import ca.nrc.cadc.tap.parser.converter.TableNameReferenceConverter;
+import ca.nrc.cadc.tap.parser.converter.TopConverter;
+import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
+import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
+import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
+import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
 import org.apache.log4j.Logger;
-import ca.nrc.cadc.tap.QueryRunner;
+import org.opencadc.tap.dialect.qserv.parser.converter.QServRegionConverter;
 
 /**
- * Implementation of the JobRunner interface from the cadcUWS framework. This is the
- * main class that implements TAP semantics; it is usable with both the async and sync
- * servlet configurations from cadcUWS.
- * This class dynamically loads and uses implementation classes as described in the
- * package documentation. This allows one to control the behavior of several key components:
- * query processing, upload support, and writing the result-set to the output file format.
- * In addition, this class uses JDNI to find java.sql.DataSource instances for
- * executing database statements.
- * A datasource named jdbc/tapuser is required; this datasource
- * is used to query the TAP_SCHEMA and to run user-queries. The connection(s) provided by this
- * datasource must have read permission to the TAP_SCHEMA and all tables described within the
- * TAP_SCHEMA.
- * A datasource named jdbc/tapuploadadm is optional; this datasource is used to create tables
- * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
- * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
- * the connection(s) provided by the datasource must have create table permission in the current database and
- * TAP_UPLOAD schema.
+ * TAP service implementors must implement this class and add customisations of the 
+ * navigatorlist as shown below. Custom query visitors can be used to validate or modify
+ * the query; the base class runs all the visitors in the navigatorlist once before 
+ * converting the result into SQL for execution.
  *
- * @author stvoutsin
+ * @author pdowler
  */
-public class QServQueryRunner extends QueryRunner
+public class QServAdqlQueryImpl extends AdqlQuery
 {
-    private static final Logger log = Logger.getLogger(QServQueryRunner.class);
+    private static Logger log = Logger.getLogger(QServAdqlQueryImpl.class);
 
-    public QServQueryRunner() { 
-        super(true);
+    /**
+     * Default constructor for AdqlQueryImpl.
+     * 
+     */
+    public QServAdqlQueryImpl()
+    {
+        super();
+        setDeparserImpl(PgsphereDeParser.class);
     }
 
     @Override
-    public void run() {
-        log.debug("QservQueryRunner starting execution");
-        super.run();
-        log.debug("QServQueryRunner finished execution");
+    protected void init()
+    {
+        super.init();
+
+        // example: for postgresql we have to convert TOP to LIMIT
+        super.navigatorList.add(new TopConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
+
+        // TAP-1.1 tap_schema version is encoded in table names
+        TableNameConverter tnc = new TableNameConverter(true);
+        tnc.put("tap_schema.schemas", "tap_schema.schemas11");
+        tnc.put("tap_schema.tables", "tap_schema.tables11");
+        tnc.put("tap_schema.columns", "tap_schema.columns11");
+        tnc.put("tap_schema.keys", "tap_schema.keys11");
+        tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
+
+        /* [DM-17021] Don't remap table names when connecting directly.
+         * This only needs to happen when we use presto.
+        tnc.put("uws.job", "uws.uws.job");
+        tnc.put("wise_00.allsky_2band_p1bm_frm", "qserv.wise_00.allsky_2band_p1bm_frm");
+        tnc.put("wise_00.allsky_3band_p1bm_frm", "qserv.wise_00.allsky_3band_p1bm_frm");
+        tnc.put("wise_00.allsky_4band_p1bm_frm", "qserv.wise_00.allsky_4band_p1bm_frm");
+        tnc.put("wise_00.allwise_p3am_cdd", "qserv.wise_00.allwise_p3am_cdd");
+        tnc.put("wise_00.allwise_p3as_cdd", "qserv.wise_00.allwise_p3as_cdd");
+        tnc.put("wise_00.allwise_p3as_mep", "qserv.wise_00.allwise_p3as_mep");
+        tnc.put("wise_00.allwise_p3as_psd", "qserv.wise_00.allwise_p3as_psd");
+         */
+
+        TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
+        super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
+        super.navigatorList.add(new QServRegionConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
     }
 
 }

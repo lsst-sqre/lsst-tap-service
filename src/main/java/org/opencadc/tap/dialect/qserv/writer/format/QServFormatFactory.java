@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.qserv.writer.format;
 
 import ca.nrc.cadc.dali.util.Format;
 import ca.nrc.cadc.tap.TapSelectItem;
@@ -8,11 +8,11 @@ import org.apache.log4j.Logger;
 import org.opencadc.tap.impl.RubinURLFormat;
 
 
-public class RubinFormatFactory extends OracleFormatFactory {
+public class QServFormatFactory extends OracleFormatFactory {
 
-    private static Logger log = Logger.getLogger(RubinFormatFactory.class);
+    private static Logger log = Logger.getLogger(QServFormatFactory.class);
 
-    public RubinFormatFactory() {
+    public QServFormatFactory() {
     	super();
     }
 

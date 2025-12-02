@@ -13,6 +13,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.tap.dialect.qserv.QServAdqlQueryImpl;
 
 /**
  *
@@ -74,7 +75,7 @@ public class QServAdqlTest
             log.debug("ADQL: " + adql);
             job.getParameterList().add(new Parameter("QUERY", adql));
 
-            AdqlQueryImpl q = new AdqlQueryImpl();
+            QServAdqlQueryImpl q = new QServAdqlQueryImpl();
             q.setJob(job);
             q.setTapSchema(mockTapSchema());
 

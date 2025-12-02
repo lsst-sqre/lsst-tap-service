@@ -1,8 +1,6 @@
-package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.qserv.parser.region.function;
 
 import net.sf.jsqlparser.expression.Expression;
-
-import org.opencadc.tap.impl.QServPoint;
 
 /**
  * QServRegion interface

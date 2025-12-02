@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,41 +62,52 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
- package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.bigquery.parser.region.function;
 
- import ca.nrc.cadc.tap.MaxRecValidator;
- import org.apache.log4j.Logger;
- 
- 
- /**
-  * Sample implementation with hard-coded default and maximum row limits.
-  *
-  * @author pdowler
-  */
- public class MaxRecValidatorImpl extends MaxRecValidator {
-     private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
-     private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
- 
- 
-     public MaxRecValidatorImpl() {
-         super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
-     }
- 
- 
-     @Override
-     public Integer validate() {
-         LOGGER.debug("");
-         // async uses limits as above
-         Integer ret = super.validate();
-         LOGGER.debug("final MAXREC: " + ret);
-         return ret;
-     }
- }
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+public class BigQueryPolygon extends BigQueryGeometricFunction {
+
+    public BigQueryPolygon(List<Expression> verticeExpressions) {
+        super(verticeExpressions);
+
+        if (!vertices.isEmpty()) {
+            processVerticesParameters();
+        }
+    }
+
+    /**
+     * Map this shape's values to BQ function parameters.
+     *
+     * @param parameterList The ExpressionList to add parameters to.
+     */
+    @Override
+    String mapValues(ExpressionList parameterList) {
+        ExpressionList points = new ExpressionList(
+                IntStream
+                        .range(0, vertices.size())
+                        .filter(i -> i % 2 == 0)
+                        .mapToObj(i -> pointBuilder(i))
+                        .collect(Collectors.toList())
+        );
+
+        points.getExpressions().add(pointBuilder(0));
+
+        return points.getExpressions().toString();
+    }
+
+    private BigQueryPoint pointBuilder(int i) {
+        Expression ra = vertices.get(i);
+        Expression dec = vertices.get(i + 1);
+
+        return new BigQueryPoint(ra, dec);
+    }
+}

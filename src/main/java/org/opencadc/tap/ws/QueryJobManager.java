@@ -2,7 +2,7 @@
 package org.opencadc.tap.ws;
 
 
-import org.opencadc.tap.impl.QServQueryRunner;
+import org.opencadc.tap.impl.RubinQueryRunner;
 import org.opencadc.tap.impl.uws.server.KafkaJobExecutorFactory;
 
 import ca.nrc.cadc.uws.server.JobExecutor;
@@ -33,7 +33,7 @@ public class QueryJobManager extends SimpleJobManager {
         // max threads: 6 == number of simultaneously running async queries (per
         // web server), plus sync queries, plus VOSI-tables queries
         
-        final JobExecutor jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, QServQueryRunner.class, jobPersist);
+        final JobExecutor jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, RubinQueryRunner.class, jobPersist);
 
         super.setJobPersistence(jobPersist);
         super.setJobExecutor(jobExec);

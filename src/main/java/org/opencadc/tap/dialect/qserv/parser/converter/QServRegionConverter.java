@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl;
+package org.opencadc.tap.dialect.qserv.parser.converter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +15,11 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 
 import org.apache.log4j.Logger;
-
-import org.opencadc.tap.impl.QServCircle;
-import org.opencadc.tap.impl.QServPoint;
-import org.opencadc.tap.impl.QServRegionColumn;
+import org.opencadc.tap.dialect.qserv.parser.region.function.QServCircle;
+import org.opencadc.tap.dialect.qserv.parser.region.function.QServPoint;
+import org.opencadc.tap.dialect.qserv.parser.region.function.QServPolygon;
+import org.opencadc.tap.dialect.qserv.parser.region.function.QServRegion;
+import org.opencadc.tap.dialect.qserv.parser.region.function.QServRegionColumn;
 
 /**
  * This class implements the rewriting of all ADQL geometry constructs
