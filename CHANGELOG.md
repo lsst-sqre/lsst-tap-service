@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.12.0'></a>
+## 3.12.0 (2026-01-13)
+
+### Changed
+
+- Separate context configuration to allow separate tapadm and tapuser connections
+
 <a id='changelog-3.11.0'></a>
 ## 3.11.0 (2025-11-24)
 
