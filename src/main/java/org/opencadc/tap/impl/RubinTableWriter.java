@@ -388,8 +388,6 @@ public class RubinTableWriter implements TableWriter
         for (TapSelectItem resultCol : selectList)
         {
             VOTableField newField = createVOTableField(resultCol);
-            Format<Object> format = formats.get(listIndex);
-            newField.setFormat(format);
             newField.id = "col_" + listIndex;
             resultsTable.getFields().add(newField);
 
