@@ -212,7 +212,8 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
     /**
      * Get job information, mainly used for progress information at this time.
-     * 
+     * Supports both chunk-based progress (Qserv) and byte-based progress (BigQuery).
+     *
      * @param status
      * @param job
      * @return
@@ -225,15 +226,30 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
         int completedChunks = 0;
         int totalChunks = 0;
+        Long bytesProcessed = null;
+        Long bytesBilled = null;
+        Boolean cached = null;
+        boolean hasProgress = false;
+
         try {
             if (status.getQueryInfo() != null) {
+                // Chunk-based progress (Qserv)
                 if (status.getQueryInfo().getCompletedChunks() != null
                         && status.getQueryInfo().getTotalChunks() != null) {
                     completedChunks = status.getQueryInfo().getCompletedChunks();
                     totalChunks = status.getQueryInfo().getTotalChunks();
                     if (totalChunks > 0) {
                         pctComplete = String.format("%.0f", (completedChunks / (double) totalChunks) * 100);
+                        hasProgress = true;
                     }
+                }
+
+                // Byte-based progress (BigQuery)
+                bytesProcessed = status.getQueryInfo().getBytesProcessed();
+                bytesBilled = status.getQueryInfo().getBytesBilled();
+                cached = status.getQueryInfo().getCached();
+                if (bytesProcessed != null) {
+                    hasProgress = true;
                 }
             }
         } catch (Exception e) {
@@ -241,16 +257,32 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             return null;
         }
 
-        if (pctComplete == null) {
+        if (!hasProgress) {
             log.debug("Job " + status.getJobID() + " has no progress information available.");
             return null;
         }
 
         try {
             StringBuilder xmlBuilder = new StringBuilder();
-            xmlBuilder.append("<pct_complete>").append(pctComplete).append("</pct_complete>\n");
-            xmlBuilder.append("<tap_chunks_processed>").append(completedChunks).append("</tap_chunks_processed>\n");
-            xmlBuilder.append("<tap_total_chunks>").append(totalChunks).append("</tap_total_chunks>\n");
+
+            // Chunk-based progress (Qserv)
+            if (pctComplete != null) {
+                xmlBuilder.append("<pct_complete>").append(pctComplete).append("</pct_complete>\n");
+                xmlBuilder.append("<tap_chunks_processed>").append(completedChunks).append("</tap_chunks_processed>\n");
+                xmlBuilder.append("<tap_total_chunks>").append(totalChunks).append("</tap_total_chunks>\n");
+            }
+
+            // Byte-based progress (BigQuery)
+            if (bytesProcessed != null) {
+                xmlBuilder.append("<bytes_processed>").append(bytesProcessed).append("</bytes_processed>\n");
+            }
+            if (bytesBilled != null) {
+                xmlBuilder.append("<bytes_billed>").append(bytesBilled).append("</bytes_billed>\n");
+            }
+            if (cached != null) {
+                xmlBuilder.append("<cached>").append(cached).append("</cached>\n");
+            }
+
             content = xmlBuilder.toString();
         } catch (Exception e) {
             log.warn("Error generating job info for job: " + status.getJobID(), e);
