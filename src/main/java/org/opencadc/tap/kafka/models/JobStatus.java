@@ -14,7 +14,7 @@ import ca.nrc.cadc.uws.ExecutionPhase;
 
 /**
  * Model for job status updates
- * 
+ *
  * @author stvoutsin
  */
 public class JobStatus {
@@ -376,10 +376,7 @@ public class JobStatus {
     public static class QueryInfo {
         private Long startTime;
         private Long endTime;
-        private Integer duration;
-        private Integer totalChunks;
-        private Integer completedChunks;
-        private Integer estimatedTimeRemaining;
+        private Progress progress;
 
         public QueryInfo() {
         }
@@ -395,20 +392,8 @@ public class JobStatus {
                 queryInfo.setEndTime(json.getLong("endTime"));
             }
 
-            if (json.has("duration") && !json.isNull("duration")) {
-                queryInfo.setDuration(json.getInt("duration"));
-            }
-
-            if (json.has("totalChunks") && !json.isNull("totalChunks")) {
-                queryInfo.setTotalChunks(json.getInt("totalChunks"));
-            }
-
-            if (json.has("completedChunks") && !json.isNull("completedChunks")) {
-                queryInfo.setCompletedChunks(json.getInt("completedChunks"));
-            }
-
-            if (json.has("estimatedTimeRemaining") && !json.isNull("estimatedTimeRemaining")) {
-                queryInfo.setEstimatedTimeRemaining(json.getInt("estimatedTimeRemaining"));
+            if (json.has("progress") && !json.isNull("progress")) {
+                queryInfo.setProgress(Progress.fromJson(json.getJSONObject("progress")));
             }
 
             return queryInfo;
@@ -425,20 +410,8 @@ public class JobStatus {
                 json.put("endTime", endTime);
             }
 
-            if (duration != null) {
-                json.put("duration", duration);
-            }
-
-            if (totalChunks != null) {
-                json.put("totalChunks", totalChunks);
-            }
-
-            if (completedChunks != null) {
-                json.put("completedChunks", completedChunks);
-            }
-
-            if (estimatedTimeRemaining != null) {
-                json.put("estimatedTimeRemaining", estimatedTimeRemaining);
+            if (progress != null) {
+                json.put("progress", progress.toJson());
             }
 
             return json;
@@ -460,36 +433,34 @@ public class JobStatus {
             this.endTime = endTime;
         }
 
-        public Integer getDuration() {
-            return duration;
+        public Progress getProgress() {
+            return progress;
         }
 
-        public void setDuration(Integer duration) {
-            this.duration = duration;
+        public void setProgress(Progress progress) {
+            this.progress = progress;
         }
 
+        // Convenience methods for chunk-based progress (Qserv)
         public Integer getTotalChunks() {
-            return totalChunks;
-        }
-
-        public void setTotalChunks(Integer totalChunks) {
-            this.totalChunks = totalChunks;
+            return progress != null ? progress.getTotalChunks() : null;
         }
 
         public Integer getCompletedChunks() {
-            return completedChunks;
+            return progress != null ? progress.getCompletedChunks() : null;
         }
 
-        public void setCompletedChunks(Integer completedChunks) {
-            this.completedChunks = completedChunks;
+        // Convenience methods for byte-based progress (BigQuery)
+        public Long getBytesProcessed() {
+            return progress != null ? progress.getBytesProcessed() : null;
         }
 
-        public Integer getEstimatedTimeRemaining() {
-            return estimatedTimeRemaining;
+        public Long getBytesBilled() {
+            return progress != null ? progress.getBytesBilled() : null;
         }
 
-        public void setEstimatedTimeRemaining(Integer estimatedTimeRemaining) {
-            this.estimatedTimeRemaining = estimatedTimeRemaining;
+        public Boolean getCached() {
+            return progress != null ? progress.getCached() : null;
         }
 
         @Override
@@ -497,11 +468,132 @@ public class JobStatus {
             return "QueryInfo{" +
                     "startTime='" + startTime + '\'' +
                     ", endTime='" + endTime + '\'' +
-                    ", duration=" + duration +
-                    ", totalChunks=" + totalChunks +
-                    ", completedChunks=" + completedChunks +
-                    ", estimatedTimeRemaining=" + estimatedTimeRemaining +
+                    ", progress=" + progress +
                     '}';
+        }
+
+        /**
+         * Progress inner class - supports both chunk-based (Qserv) and byte-based (BigQuery) progress
+         */
+        public static class Progress {
+            // Chunk-based progress fields (Qserv)
+            private Integer totalChunks;
+            private Integer completedChunks;
+
+            // Byte-based progress fields (BigQuery)
+            private Long bytesProcessed;
+            private Long bytesBilled;
+            private Boolean cached;
+
+            public Progress() {
+            }
+
+            public static Progress fromJson(JSONObject json) {
+                Progress progress = new Progress();
+
+                // Chunk-based progress (Qserv)
+                if (json.has("totalChunks") && !json.isNull("totalChunks")) {
+                    progress.setTotalChunks(json.getInt("totalChunks"));
+                }
+
+                if (json.has("completedChunks") && !json.isNull("completedChunks")) {
+                    progress.setCompletedChunks(json.getInt("completedChunks"));
+                }
+
+                // Byte-based progress (BigQuery)
+                if (json.has("bytesProcessed") && !json.isNull("bytesProcessed")) {
+                    progress.setBytesProcessed(json.getLong("bytesProcessed"));
+                }
+
+                if (json.has("bytesBilled") && !json.isNull("bytesBilled")) {
+                    progress.setBytesBilled(json.getLong("bytesBilled"));
+                }
+
+                if (json.has("cached") && !json.isNull("cached")) {
+                    progress.setCached(json.getBoolean("cached"));
+                }
+
+                return progress;
+            }
+
+            public JSONObject toJson() {
+                JSONObject json = new JSONObject();
+
+                // Chunk-based progress
+                if (totalChunks != null) {
+                    json.put("totalChunks", totalChunks);
+                }
+
+                if (completedChunks != null) {
+                    json.put("completedChunks", completedChunks);
+                }
+
+                // Byte-based progress
+                if (bytesProcessed != null) {
+                    json.put("bytesProcessed", bytesProcessed);
+                }
+
+                if (bytesBilled != null) {
+                    json.put("bytesBilled", bytesBilled);
+                }
+
+                if (cached != null) {
+                    json.put("cached", cached);
+                }
+
+                return json;
+            }
+
+            public Integer getTotalChunks() {
+                return totalChunks;
+            }
+
+            public void setTotalChunks(Integer totalChunks) {
+                this.totalChunks = totalChunks;
+            }
+
+            public Integer getCompletedChunks() {
+                return completedChunks;
+            }
+
+            public void setCompletedChunks(Integer completedChunks) {
+                this.completedChunks = completedChunks;
+            }
+
+            public Long getBytesProcessed() {
+                return bytesProcessed;
+            }
+
+            public void setBytesProcessed(Long bytesProcessed) {
+                this.bytesProcessed = bytesProcessed;
+            }
+
+            public Long getBytesBilled() {
+                return bytesBilled;
+            }
+
+            public void setBytesBilled(Long bytesBilled) {
+                this.bytesBilled = bytesBilled;
+            }
+
+            public Boolean getCached() {
+                return cached;
+            }
+
+            public void setCached(Boolean cached) {
+                this.cached = cached;
+            }
+
+            @Override
+            public String toString() {
+                return "Progress{" +
+                        "totalChunks=" + totalChunks +
+                        ", completedChunks=" + completedChunks +
+                        ", bytesProcessed=" + bytesProcessed +
+                        ", bytesBilled=" + bytesBilled +
+                        ", cached=" + cached +
+                        '}';
+            }
         }
     }
 

@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.opencadc.tap.kafka.KafkaConfig;
 import org.opencadc.tap.kafka.models.JobStatus;
 import org.opencadc.tap.kafka.models.JobStatus.QueryInfo;
+import org.opencadc.tap.kafka.models.JobStatus.QueryInfo.Progress;
 import org.opencadc.tap.kafka.models.JobStatus.ResultInfo;
 import org.opencadc.tap.kafka.models.JobStatus.Metadata;
 import org.opencadc.tap.kafka.services.ReadJobStatus.StatusListener;
@@ -128,8 +129,10 @@ public void testReceiveStatusUpdate() throws Exception {
 
     QueryInfo queryInfo = new QueryInfo();
     queryInfo.setStartTime(System.currentTimeMillis());
-    queryInfo.setTotalChunks(10);
-    queryInfo.setCompletedChunks(0);
+    Progress progress = new Progress();
+    progress.setTotalChunks(10);
+    progress.setCompletedChunks(0);
+    queryInfo.setProgress(progress);
     statusUpdate.setQueryInfo(queryInfo);
 
     Metadata metadata = new Metadata();
@@ -251,25 +254,27 @@ public void testMultipleStatusUpdatesForSameJob() throws Exception {
         .setTimestampNow()
         .build();
         
-    QueryInfo queryInfo = new QueryInfo();
-    queryInfo.setStartTime(System.currentTimeMillis());
-    queryInfo.setTotalChunks(10);
-    queryInfo.setCompletedChunks(5);
-    queryInfo.setEstimatedTimeRemaining(30);
-    executing.setQueryInfo(queryInfo);
-    
+    QueryInfo executingQueryInfo = new QueryInfo();
+    executingQueryInfo.setStartTime(System.currentTimeMillis());
+    Progress executingProgress = new Progress();
+    executingProgress.setTotalChunks(10);
+    executingProgress.setCompletedChunks(5);
+    executingQueryInfo.setProgress(executingProgress);
+    executing.setQueryInfo(executingQueryInfo);
+
     JobStatus completed = JobStatus.newBuilder()
         .setJobID(TEST_JOB_ID)
         .setStatus(JobStatus.ExecutionStatus.COMPLETED)
         .setTimestampNow()
         .build();
-        
+
     QueryInfo finalQueryInfo = new QueryInfo();
     finalQueryInfo.setStartTime(System.currentTimeMillis() - 60000);
     finalQueryInfo.setEndTime(System.currentTimeMillis());
-    finalQueryInfo.setDuration(60);
-    finalQueryInfo.setTotalChunks(10);
-    finalQueryInfo.setCompletedChunks(10);
+    Progress finalProgress = new Progress();
+    finalProgress.setTotalChunks(10);
+    finalProgress.setCompletedChunks(10);
+    finalQueryInfo.setProgress(finalProgress);
     
     ResultInfo resultInfo = new ResultInfo();
     resultInfo.setTotalRows(1000);
