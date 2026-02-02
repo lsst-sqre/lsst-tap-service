@@ -27,7 +27,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.URI;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -153,11 +152,31 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             signedUrls.put(schemaFilename, schemaSignedUrl);
 
             // Write CSV version of the data
+            log.info("Starting CSV upload for " + csvFilename + " with " + fields.size() + " fields");
             OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
+            log.debug("GCS OutputStream obtained: " + csvOs.getClass().getName());
+
+            long writeStartTime = System.currentTimeMillis();
             writeDataWithoutHeaders(fields, originalData, csvOs);
+            long writeEndTime = System.currentTimeMillis();
+            log.info("CSV data written in " + (writeEndTime - writeStartTime) + "ms, starting GCS flush/close");
+
             csvOs.flush();
-            csvOs.close();
-            log.debug("CSV file written to: " + csvFilename);
+            log.debug("GCS OutputStream flushed, starting close");
+
+            try {
+                csvOs.close();
+            } catch (Exception closeEx) {
+                log.warn("Exception during GCS stream close for " + csvFilename +
+                        ", verifying upload: " + closeEx.getMessage());
+                if (!StorageUtils.blobExists(csvFilename)) {
+                    throw new IOException("GCS upload failed: blob does not exist after close error", closeEx);
+                }
+                log.info("Blob verified to exist despite close exception: " + csvFilename);
+            }
+            long closeEndTime = System.currentTimeMillis();
+            log.info("CSV upload complete: " + csvFilename + " (flush and close took " +
+                    (closeEndTime - writeEndTime) + "ms)");
 
             // Generate and store signed URL for CSV file
             String csvSignedUrl = StorageUtils.getSignedUrl(csvFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
@@ -170,7 +189,16 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             VOTableWriter voWriterEmpty = new VOTableWriter();
             voWriterEmpty.write(doc, xmlOsEmpty);
             xmlOsEmpty.flush();
-            xmlOsEmpty.close();
+            try {
+                xmlOsEmpty.close();
+            } catch (Exception closeEx) {
+                log.warn("Exception during GCS stream close for " + xmlEmptyFilename +
+                        ", verifying upload: " + closeEx.getMessage());
+                if (!StorageUtils.blobExists(xmlEmptyFilename)) {
+                    throw new IOException("GCS upload failed - blob does not exist after close error", closeEx);
+                }
+                log.info("Blob verified to exist despite close exception: " + xmlEmptyFilename);
+            }
             log.debug("Empty VOTable file written to: " + xmlEmptyFilename);
 
             // Generate and store signed URL for empty XML file
@@ -267,7 +295,16 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
         writer.write("\n]");
         writer.flush();
-        writer.close();
+        try {
+            writer.close();
+        } catch (Exception closeEx) {
+            log.warn("Exception during GCS stream close for schema file " + schemaFilename +
+                    ", verifying upload: " + closeEx.getMessage());
+            if (!StorageUtils.blobExists(schemaFilename)) {
+                throw new IOException("GCS upload failed - blob does not exist after close error", closeEx);
+            }
+            log.info("Blob verified to exist despite close exception: " + schemaFilename);
+        }
     }
 
     /**
@@ -348,12 +385,22 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     }
 
     /**
-     * Write CSV data without the header row
+     * Write CSV data without the header row.
+     *
+     * Note: We deliberately don't close the writers as the caller manages the underlying stream.
+     * We must ensure all data is flushed through the entire buffer chain to avoid leaving
+     * data in intermediate buffers that could cause issues with the GCS BlobWriteChannel.
      */
     private void writeDataWithoutHeaders(List<VOTableField> fields, TableData tableData, OutputStream out)
             throws IOException {
-        Writer writer = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
-        CsvWriter csvWriter = new CsvWriter(writer, CSV_DELI);
+        log.debug("writeDataWithoutHeaders: starting with " +
+                (fields != null ? fields.size() : 0) + " fields, tableData=" +
+                (tableData != null ? "present" : "null"));
+
+        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
+        CsvWriter csvWriter = new CsvWriter(bufferedWriter, CSV_DELI);
+        int rowCount = 0;
+
         try {
             FormatFactory formatFactory = new FormatFactory();
 
@@ -380,11 +427,22 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
                     csvWriter.write(value);
                 }
                 csvWriter.endRecord();
+                rowCount++;
             }
+
+            log.info("writeDataWithoutHeaders: wrote " + rowCount + " rows");
+
         } catch (Exception ex) {
+            log.error("writeDataWithoutHeaders: error after writing " + rowCount + " rows", ex);
             throw new IOException("error while writing CSV data", ex);
         } finally {
+            // Flush both writers to ensure all data propagates through the buffer chain
+            // to the underlying GCS stream before the caller closes it
+            log.debug("writeDataWithoutHeaders: flushing CsvWriter");
             csvWriter.flush();
+            log.debug("writeDataWithoutHeaders: flushing BufferedWriter");
+            bufferedWriter.flush();
+            log.info("writeDataWithoutHeaders: buffer flush complete for " + rowCount + " rows");
         }
     }
 
