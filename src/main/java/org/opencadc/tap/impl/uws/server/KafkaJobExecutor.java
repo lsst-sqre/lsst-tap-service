@@ -167,7 +167,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
                 // Check if service is available
                 if (!isServiceAvailable()) {
-                    log.warn("TAP service is not available, rejecting job: " + job.getID());
+                    tapLog.logWarn(job.getID(), job.getOwnerID(), "TAP service unavailable, rejecting job");
                     try {
                         JobPhaseManager.setErrorPhase(
                                 job.getID(),
@@ -175,7 +175,7 @@ public class KafkaJobExecutor implements JobExecutor {
                                 ErrorType.FATAL,
                                 jobUpdater);
                     } catch (Exception e) {
-                        log.error("Failed to set job " + job.getID() + " to ERROR state", e);
+                        tapLog.logError(job.getID(), job.getOwnerID(), "Failed to set job to ERROR state: " + e.getMessage());
                     }
                     return;
                 }
@@ -193,7 +193,7 @@ public class KafkaJobExecutor implements JobExecutor {
                 log.warn("Job " + job.getID() + " in unexpected phase: " + updatedPhase);
             }
         } catch (Exception ex) {
-            log.error("Failed to execute job: " + job.getID(), ex);
+            tapLog.logError(job.getID(), job.getOwnerID(), "Failed to execute job: " + ex.getMessage());
             try {
                 JobPhaseManager.setErrorPhase(
                         job.getID(),
@@ -201,7 +201,7 @@ public class KafkaJobExecutor implements JobExecutor {
                         ErrorType.FATAL,
                         jobUpdater);
             } catch (Exception e) {
-                log.error("Failed to set job " + job.getID() + " to ERROR state", e);
+                tapLog.logError(job.getID(), job.getOwnerID(), "Failed to set job to ERROR state: " + e.getMessage());
             }
             throw new JobPersistenceException("Failed to execute job: " + ex.getMessage());
         }
@@ -277,7 +277,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
                 // Check if service is available
                 if (!isServiceAvailable()) {
-                    log.warn("TAP service is not available  reject sync job: " + job.getID());
+                    tapLog.logWarn(job.getID(), job.getOwnerID(), "TAP service unavailable, rejecting sync job");
                     try {
                         JobPhaseManager.setErrorPhase(
                                 job.getID(),
@@ -293,7 +293,7 @@ public class KafkaJobExecutor implements JobExecutor {
                         String errorVOTable = generateServiceUnavailableVOTableError();
                         syncOutput.getOutputStream().write(errorVOTable.getBytes("UTF-8"));
                     } catch (Exception e) {
-                        log.error("Failed to write service unavailable error for job " + job.getID(), e);
+                        tapLog.logError(job.getID(), job.getOwnerID(), "Failed to write service unavailable error: " + e.getMessage());
                     }
                     return;
                 }
@@ -326,7 +326,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
                 } catch (JobPollingService.JobServiceUnavailableException timeoutEx) {
                     // Timeout occurred, abort the job and write response
-                    log.warn("Job " + job.getID() + " timed out during sync execution, aborting job");
+                    tapLog.logWarn(job.getID(), job.getOwnerID(), "Job timed out during sync execution, aborting");
 
                     boolean jobAborted = false;
                     try {
@@ -384,7 +384,7 @@ public class KafkaJobExecutor implements JobExecutor {
             log.debug("Synchronous job execution completed: " + job.getID());
 
         } catch (Exception ex) {
-            log.error("Failed to execute job: " + job.getID(), ex);
+            tapLog.logError(job.getID(), job.getOwnerID(), "Failed to execute sync job: " + ex.getMessage());
 
             try {
                 JobPhaseManager.setErrorPhase(
@@ -399,10 +399,10 @@ public class KafkaJobExecutor implements JobExecutor {
                     String message = "Job execution failed: " + ex.getMessage();
                     syncOutput.getOutputStream().write(message.getBytes());
                 } catch (Exception e) {
-                    log.error("Failed to write error message to output stream", e);
+                    tapLog.logError(job.getID(), job.getOwnerID(), "Failed to write error to output stream: " + e.getMessage());
                 }
             } catch (Exception e) {
-                log.error("Failed to set job " + job.getID() + " to ERROR state", e);
+                tapLog.logError(job.getID(), job.getOwnerID(), "Failed to set job to ERROR state: " + e.getMessage());
             }
 
             if (ex instanceof JobPhaseException) {
@@ -451,7 +451,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
                         log.debug("Abort event sent to Kafka for job: " + job.getID());
                     } catch (Exception e) {
-                        log.error("Failed to send abort event to Kafka for job: " + job.getID(), e);
+                        tapLog.logError(job.getID(), job.getOwnerID(), "Failed to send abort event to Kafka: " + e.getMessage());
                     }
                 }
 
@@ -460,7 +460,7 @@ public class KafkaJobExecutor implements JobExecutor {
                 log.debug("Job " + job.getID() + " already in terminal state: " + current);
             }
         } catch (Exception ex) {
-            log.error("Failed to abort job: " + job.getID(), ex);
+            tapLog.logError(job.getID(), job.getOwnerID(), "Failed to abort job: " + ex.getMessage());
             throw new JobPersistenceException("Failed to abort job: " + ex.getMessage());
         }
     }
