@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class JobStatusListener implements ReadJobStatus.StatusListener {
     private static final Logger log = Logger.getLogger(JobStatusListener.class);
-    private static final TAPLogger tapLog = new TAPLogger(KafkaJobExecutor.class);
+    private static final TAPLogger tapLog = new TAPLogger(JobStatusListener.class);
 
     // We should probably move this elsewhere
     private static final String baseURL = System.getProperty("base_url");
@@ -62,16 +62,19 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             jobPersist.getDetails(job);
 
             // Log user
-            String username = job.getOwnerID() != null ? job.getOwnerID() : "";
+            String username = job.getOwnerID() != null ? job.getOwnerID() : null;
 
             ExecutionPhase previousPhase = jobUpdater.getPhase(status.getJobID());
             ExecutionPhase newPhase = JobStatus.ExecutionStatus.toExecutionPhase(status.getStatus());
 
             // Check if previous phase was ABORTED
             if (previousPhase == ExecutionPhase.ABORTED) {
-                log.info("Job " + status.getJobID() + " is already ABORTED. Ignoring update to " + newPhase);
+                log.debug("Job " + status.getJobID() + " is already ABORTED. Ignoring update to " + newPhase);
                 return;
             }
+
+            // Skip logging if phase hasn't changed
+            boolean phaseChanged = !previousPhase.equals(newPhase);
 
             // Now update with additional metadata
             JobInfo jobInfo = getJobInfo(status, job);
@@ -101,10 +104,33 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
             jobPersist.put(job);
 
-            tapLog.log(job.getID(), username, "Query update event received. Updated phase for job " + status.getJobID() + ": " + previousPhase + " -> " + newPhase);
+            // Only log phase transitions when the phase actually changes
+            if (phaseChanged) {
+                tapLog.logPhaseTransition(job.getID(), username, previousPhase.toString(), newPhase.toString());
+            }
 
             if (isTerminalStatus(status.getStatus())) {
-                tapLog.log(job.getID(), username, "Job finished with phase: " + newPhase);
+                // Calculate duration from job start time
+                Long duration = null;
+                if (job.getStartTime() != null && job.getEndTime() != null) {
+                    duration = job.getEndTime().getTime() - job.getStartTime().getTime();
+                }
+
+                // Get row count from result info
+                Long rowCount = null;
+                if (status.getResultInfo() != null && status.getResultInfo().getTotalRows() != null) {
+                    rowCount = status.getResultInfo().getTotalRows().longValue();
+                }
+
+                if (status.getStatus() == JobStatus.ExecutionStatus.ERROR) {
+                    String errorMessage = "Job failed";
+                    if (status.getErrorInfo() != null && status.getErrorInfo().getErrorMessage() != null) {
+                        errorMessage = status.getErrorInfo().getErrorMessage();
+                    }
+                    tapLog.logError(job.getID(), username, errorMessage);
+                } else {
+                    tapLog.logJobComplete(job.getID(), username, newPhase.toString(), duration, rowCount);
+                }
             }
         } catch (Exception e) {
             log.error("Error processing status update for job ID: " +
