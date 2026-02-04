@@ -48,7 +48,7 @@ import com.google.cloud.storage.HttpMethod;
  * URLs for accessing
  * the uploaded files. It also handles generating the JSON schema for the
  * uploaded tables.
- * 
+ *
  * @author stvoutsin
  */
 public class RubinUploadManagerImpl extends BasicUploadManager {
@@ -129,66 +129,126 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             return;
         }
 
+        final int maxRetries = 3;
+        final long[] backoffMs = {100, 500, 1000};  // Exponential backoff delays
+        Exception lastException = null;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                if (attempt > 1) {
+                    tapLog.logUpload(table.getTableName(), "Retry attempt " + attempt + " of " + maxRetries);
+                }
+
+                doStoreTable(table, vot);
+                return;  // Success
+
+            } catch (Exception e) {
+                lastException = e;
+                tapLog.logUploadWarn(table.getTableName(),
+                        "Upload attempt " + attempt + " failed: " + e.getMessage());
+
+                if (attempt < maxRetries) {
+                    long delay = backoffMs[attempt - 1];
+                    tapLog.logUpload(table.getTableName(), "Waiting " + delay + "ms before retry");
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Upload interrupted during retry", ie);
+                    }
+                }
+            }
+        }
+
+        // All retries exhausted
+        tapLog.logUploadError(table.getTableName(),
+                "Failed to store table after " + maxRetries + " attempts: " + lastException.getMessage());
+        throw new RuntimeException("Failed to store table in cloud storage after " + maxRetries + " attempts",
+                lastException);
+    }
+
+    /**
+     * Internal method that performs the actual table storage.
+     * Called by storeTable with retry logic.
+     */
+    private void doStoreTable(TableDesc table, VOTableTable vot) throws Exception {
+        String baseFileName = table.getTableName();
+        String xmlEmptyFilename = baseFileName + ".empty.xml";
+        String csvFilename = baseFileName + ".csv";
+        String schemaFilename = baseFileName + ".schema.json";
+
+        VOTableDocument doc = new VOTableDocument();
+        VOTableResource resource = new VOTableResource("results");
+        resource.setTable(vot);
+        doc.getResources().add(resource);
+
+        VOTableTable votable = resource.getTable();
+        TableData originalData = votable.getTableData();
+        List<VOTableField> fields = votable.getFields();
+
+        // Write JSON Schema file
+        writeSchemaFile(votable.getFields(), schemaFilename);
+        log.debug("Schema file written to: " + schemaFilename);
+
+        // Generate and store signed URL for schema file
+        String schemaSignedUrl = StorageUtils.getSignedUrl(schemaFilename, HttpMethod.GET,
+                DEFAULT_URL_EXPIRATION_HOURS);
+        signedUrls.put(schemaFilename, schemaSignedUrl);
+
+        // Write CSV version of the data
+        tapLog.logUpload(csvFilename, "Starting CSV upload with " + fields.size() + " fields");
+        OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
+        tapLog.logUpload(csvFilename, "GCS OutputStream obtained: " + csvOs.getClass().getName());
+
+        long writeStartTime = System.currentTimeMillis();
+        long writeEndTime;
         try {
-            String baseFileName = table.getTableName();
-            String xmlEmptyFilename = baseFileName + ".empty.xml";
-            String csvFilename = baseFileName + ".csv";
-            String schemaFilename = baseFileName + ".schema.json";
-
-            VOTableDocument doc = new VOTableDocument();
-            VOTableResource resource = new VOTableResource("results");
-            resource.setTable(vot);
-            doc.getResources().add(resource);
-
-            VOTableTable votable = resource.getTable();
-            TableData originalData = votable.getTableData();
-            List<VOTableField> fields = votable.getFields();
-
-            // Write JSON Schema file
-            writeSchemaFile(votable.getFields(), schemaFilename);
-            log.debug("Schema file written to: " + schemaFilename);
-
-            // Generate and store signed URL for schema file
-            String schemaSignedUrl = StorageUtils.getSignedUrl(schemaFilename, HttpMethod.GET,
-                    DEFAULT_URL_EXPIRATION_HOURS);
-            signedUrls.put(schemaFilename, schemaSignedUrl);
-
-            // Write CSV version of the data
-            tapLog.logUpload(csvFilename, "Starting CSV upload with " + fields.size() + " fields");
-            OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
-            log.debug("GCS OutputStream obtained: " + csvOs.getClass().getName());
-
-            long writeStartTime = System.currentTimeMillis();
             writeDataWithoutHeaders(fields, originalData, csvOs);
-            long writeEndTime = System.currentTimeMillis();
-            log.debug("CSV data written, starting GCS flush/close");
+            writeEndTime = System.currentTimeMillis();
+            tapLog.logUpload(csvFilename, "CSV data written in " + (writeEndTime - writeStartTime) + "ms, starting GCS flush/close");
 
             csvOs.flush();
-            log.debug("GCS OutputStream flushed, starting close");
-
+            tapLog.logUpload(csvFilename, "GCS OutputStream flushed, starting close");
+        } catch (Exception writeEx) {
             try {
                 csvOs.close();
-            } catch (Exception closeEx) {
-                tapLog.logUploadWarn(csvFilename, "Exception during GCS stream close, verifying upload: " + closeEx.getMessage());
-                if (!StorageUtils.blobExists(csvFilename)) {
-                    throw new IOException("GCS upload failed: blob does not exist after close error", closeEx);
-                }
-                log.debug("Blob verified to exist despite close exception: " + csvFilename);
+            } catch (Exception ignored) {
             }
-            long closeEndTime = System.currentTimeMillis();
-            tapLog.logUploadComplete(csvFilename, closeEndTime - writeStartTime, null, "CSV upload complete");
+            throw writeEx;
+        }
 
-            // Generate and store signed URL for CSV file
-            String csvSignedUrl = StorageUtils.getSignedUrl(csvFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
-            signedUrls.put(csvFilename, csvSignedUrl);
+        try {
+            csvOs.close();
+        } catch (Exception closeEx) {
+            tapLog.logUploadWarn(csvFilename, "Exception during GCS stream close, verifying upload: " + closeEx.getMessage());
+            if (!StorageUtils.blobExists(csvFilename)) {
+                throw new IOException("GCS upload failed: blob does not exist after close error", closeEx);
+            }
+            tapLog.logUpload(csvFilename, "Blob verified to exist despite close exception");
+        }
+        long closeEndTime = System.currentTimeMillis();
+        tapLog.logUploadComplete(csvFilename, closeEndTime - writeStartTime, null, "CSV upload complete");
 
-            // Empty the table data for metadata-only version
-            votable.setTableData(null);
+        // Generate and store signed URL for CSV file
+        String csvSignedUrl = StorageUtils.getSignedUrl(csvFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
+        signedUrls.put(csvFilename, csvSignedUrl);
 
+        // Empty the table data for metadata-only version
+        votable.setTableData(null);
+        try {
             OutputStream xmlOsEmpty = StorageUtils.getOutputStream(xmlEmptyFilename, "application/x-votable+xml");
-            VOTableWriter voWriterEmpty = new VOTableWriter();
-            voWriterEmpty.write(doc, xmlOsEmpty);
-            xmlOsEmpty.flush();
+            try {
+                VOTableWriter voWriterEmpty = new VOTableWriter();
+                voWriterEmpty.write(doc, xmlOsEmpty);
+                xmlOsEmpty.flush();
+            } catch (Exception writeEx) {
+                try {
+                    xmlOsEmpty.close();
+                } catch (Exception ignored) {
+                }
+                throw writeEx;
+            }
+
             try {
                 xmlOsEmpty.close();
             } catch (Exception closeEx) {
@@ -204,26 +264,23 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
             String xmlSignedUrl = StorageUtils.getSignedUrl(xmlEmptyFilename, HttpMethod.GET,
                     DEFAULT_URL_EXPIRATION_HOURS);
             signedUrls.put(xmlEmptyFilename, xmlSignedUrl);
-            // This isn't currently used, but could be useful for debugging?
-
+        } finally {
+            // Always restore the original data for potential retries
             votable.setTableData(originalData);
-
-            // Store the signed URL for the CSV file and it's schema as the data location
-            // and schema location
-            table.dataLocation = new TableDesc.TableLocationInfo();
-            table.dataLocation.map.put("data", new URI(signedUrls.get(csvFilename)));
-            table.dataLocation.map.put("schema", new URI(signedUrls.get(schemaFilename)));
-            table.dataLocation.map.put("metadata", new URI(signedUrls.get(xmlEmptyFilename)));
-
-        } catch (Exception e) {
-            tapLog.logUploadError(table.getTableName(), "Failed to store table in cloud storage: " + e.getMessage());
-            throw new RuntimeException("Failed to store table in cloud storage", e);
         }
+
+        // Store the signed URL for the CSV file and its schema as the data location
+        // and schema location.
+        TableDesc.TableLocationInfo location = new TableDesc.TableLocationInfo();
+        location.map.put("data", new URI(signedUrls.get(csvFilename)));
+        location.map.put("schema", new URI(signedUrls.get(schemaFilename)));
+        location.map.put("metadata", new URI(signedUrls.get(xmlEmptyFilename)));
+        table.dataLocation = location;
     }
 
     /**
      * Get all generated signed URLs
-     * 
+     *
      * @return Map of filenames to signed URLs
      */
     public Map<String, String> getSignedUrls() {
@@ -232,7 +289,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
 
     /**
      * Get signed URL for a specific file
-     * 
+     *
      * @param filename The name of the file
      * @return The signed URL or null if not found
      */
@@ -250,50 +307,59 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
         OutputStream schemaOs = StorageUtils.getOutputStream(schemaFilename, "application/json");
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(schemaOs, "UTF-8"));
 
-        writer.write("[");
-        boolean first = true;
+        try {
+            writer.write("[");
+            boolean first = true;
 
-        for (VOTableField field : fields) {
-            if (!first) {
-                writer.write(",");
-            }
-            first = false;
+            for (VOTableField field : fields) {
+                if (!first) {
+                    writer.write(",");
+                }
+                first = false;
 
-            writer.write("\n  { ");
-            writer.write("\"name\": \"" + escapeJsonString(field.getName()) + "\", ");
-            String datatype = field.getDatatype().toLowerCase();
-            String typeString = convertVOTableTypeToMySQL(datatype);
+                writer.write("\n  { ");
+                writer.write("\"name\": \"" + escapeJsonString(field.getName()) + "\", ");
+                String datatype = field.getDatatype().toLowerCase();
+                String typeString = convertVOTableTypeToMySQL(datatype);
 
-            if (field.getArraysize() != null && !field.getArraysize().trim().isEmpty()) {
-                String arraysize = field.getArraysize().trim();
-                if ("*".equals(arraysize)) {
-                    if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
-                        typeString = "VARCHAR(255)";
-                    } else if ("bit".equals(datatype)) {
-                        typeString = "BIT(64)";
+                if (field.getArraysize() != null && !field.getArraysize().trim().isEmpty()) {
+                    String arraysize = field.getArraysize().trim();
+                    if ("*".equals(arraysize)) {
+                        if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
+                            typeString = "VARCHAR(255)";
+                        } else if ("bit".equals(datatype)) {
+                            typeString = "BIT(64)";
+                        } else {
+                            log.debug("Array type detected for " + datatype + " with arraysize=*, converting to TEXT");
+                            typeString = "TEXT";
+                        }
                     } else {
-                        log.debug("Array type detected for " + datatype + " with arraysize=*, converting to TEXT");
-                        typeString = "TEXT";
-                    }
-                } else {
-                    if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
-                        typeString += "(" + arraysize + ")";
-                    } else if ("bit".equals(datatype)) {
-                        typeString += "(" + arraysize + ")";
-                    } else {
-                        log.debug("Array type detected for " + datatype + " with arraysize=" + arraysize
-                                + ", converting to TEXT");
-                        typeString = "TEXT";
+                        if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
+                            typeString += "(" + arraysize + ")";
+                        } else if ("bit".equals(datatype)) {
+                            typeString += "(" + arraysize + ")";
+                        } else {
+                            log.debug("Array type detected for " + datatype + " with arraysize=" + arraysize
+                                    + ", converting to TEXT");
+                            typeString = "TEXT";
+                        }
                     }
                 }
-            }
-            writer.write("\"type\": \"" + escapeJsonString(typeString) + "\"");
+                writer.write("\"type\": \"" + escapeJsonString(typeString) + "\"");
 
-            writer.write(" }");
+                writer.write(" }");
+            }
+
+            writer.write("\n]");
+            writer.flush();
+        } catch (IOException writeEx) {
+            try {
+                writer.close();
+            } catch (Exception ignored) {
+            }
+            throw writeEx;
         }
 
-        writer.write("\n]");
-        writer.flush();
         try {
             writer.close();
         } catch (Exception closeEx) {
@@ -385,15 +451,11 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     /**
      * Write CSV data without the header row.
      *
-     * Note: We deliberately don't close the writers as the caller manages the underlying stream.
-     * We must ensure all data is flushed through the entire buffer chain to avoid leaving
-     * data in intermediate buffers that could cause issues with the GCS BlobWriteChannel.
      */
     private void writeDataWithoutHeaders(List<VOTableField> fields, TableData tableData, OutputStream out)
             throws IOException {
-        log.debug("writeDataWithoutHeaders: starting with " +
-                (fields != null ? fields.size() : 0) + " fields, tableData=" +
-                (tableData != null ? "present" : "null"));
+        int fieldCount = fields != null ? fields.size() : 0;
+        tapLog.logUpload(null, "writeDataWithoutHeaders starting with " + fieldCount + " fields");
 
         BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
         CsvWriter csvWriter = new CsvWriter(bufferedWriter, CSV_DELI);
@@ -428,25 +490,22 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
                 rowCount++;
             }
 
-            log.debug("writeDataWithoutHeaders: wrote " + rowCount + " rows");
+            tapLog.logUpload(null, "writeDataWithoutHeaders wrote " + rowCount + " rows");
 
         } catch (Exception ex) {
             tapLog.logUploadError(null, "Error writing CSV data after " + rowCount + " rows: " + ex.getMessage());
             throw new IOException("error while writing CSV data", ex);
         } finally {
-            // Flush both writers to ensure all data propagates through the buffer chain
-            // to the underlying GCS stream before the caller closes it
-            log.debug("writeDataWithoutHeaders: flushing CsvWriter");
+            tapLog.logUpload(null, "writeDataWithoutHeaders flushing buffers");
             csvWriter.flush();
-            log.debug("writeDataWithoutHeaders: flushing BufferedWriter");
             bufferedWriter.flush();
-            tapLog.logUploadComplete(null, null, (long) rowCount, "CSV data write complete");
+            tapLog.logUploadComplete(null, null, (long) rowCount, "CSV data write and flush complete");
         }
     }
 
     /**
      * Format a value for CSV output
-     * 
+     *
      * @param value      The value to format
      * @param fieldIndex The index of the field in the row
      * @param fields     The list of VOTableField definitions
@@ -484,7 +543,7 @@ public class RubinUploadManagerImpl extends BasicUploadManager {
     /**
      * Check if a string represents a special/invalid numeric value that should be
      * converted to NULL for database ingestion.
-     * 
+     *
      * @param str The string to check
      * @return true if the string represents NaN or Infinity
      */
