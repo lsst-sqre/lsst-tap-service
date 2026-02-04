@@ -6,6 +6,16 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.13.0'></a>
+## 3.13.0 (2026-02-04)
+
+### Changed
+
+- Improve logging
+- Upgrade gcs library to version 2.36+
+- Fix stream handling (proper close / flush order)
+- Remove vosi and and rest info logging
+
 <a id='changelog-3.12.0'></a>
 ## 3.12.0 (2026-01-13)
 
