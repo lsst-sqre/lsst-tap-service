@@ -308,6 +308,8 @@ public class StorageUtils {
 
     /**
      * Helper method to create an output stream for GCS storage.
+     * Uses storage.writer() directly instead of create() + blob.writer() to avoid
+     * potential timing issues where the channel could be closed prematurely.
      */
     private static OutputStream getOutputStreamGCS(String filename, String contentType) {
         try {
@@ -315,8 +317,7 @@ public class StorageUtils {
             BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, filename))
                     .setContentType(contentType)
                     .build();
-            Blob blob = storage.create(blobInfo);
-            return Channels.newOutputStream(blob.writer());
+            return Channels.newOutputStream(storage.writer(blobInfo));
         } catch (Exception e) {
             throw new RuntimeException("Failed to create GCS output stream", e);
         }
