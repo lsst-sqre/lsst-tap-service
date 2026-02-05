@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.14.0'></a>
+## 3.14.0 (2026-02-05)
+
+### Changed
+
+- Add retry mechanism for table uploads
+
 <a id='changelog-3.13.0'></a>
 ## 3.13.0 (2026-02-04)
 
