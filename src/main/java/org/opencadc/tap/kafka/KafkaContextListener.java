@@ -25,8 +25,6 @@ public class KafkaContextListener implements ServletContextListener {
     private CreateJobEvent createJobEventService;
     private ReadJobStatus readJobStatusService;
     private CreateDeleteEvent createDeleteEventService;
-    private String groupId = "tap";
-
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         log.debug("Initializing Kafka configuration");
@@ -40,6 +38,7 @@ public class KafkaContextListener implements ServletContextListener {
                 throw new IllegalStateException("KAFKA_BOOTSTRAP_SERVERS environment variable is required");
             }
 
+            String groupId = getConfigValue("KAFKA_GROUP_ID", "kafka.group.id", "tap");
             String queryTopic = getConfigValue("KAFKA_QUERY_TOPIC", "kafka.query.topic", "lsst.tap.job-run");
             String statusTopic = getConfigValue("KAFKA_STATUS_TOPIC", "kafka.status.topic", "lsst.tap.job-status");
             String deleteTopic = getConfigValue("KAFKA_DELETE_TOPIC", "kafka.delete.topic", "lsst.tap.job-delete");
