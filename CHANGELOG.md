@@ -6,6 +6,18 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.15.0'></a>
+## 3.15.0 (2026-02-09)
+
+### New features
+
+- Add BigQuery TAP implementation
+
+### Changed
+
+- Change consumer group ID to be configurable via env vars
+- Change progress handling based on change to qserv-kafka event model restructuring
+
 <a id='changelog-3.14.0'></a>
 ## 3.14.0 (2026-02-05)
 
