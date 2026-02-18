@@ -1,10 +1,14 @@
 package org.opencadc.tap.kafka.util;
 
+import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableWriter;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.impl.votable.CoordSysMetadata;
+import org.opencadc.tap.impl.votable.RubinVOTableWriter;
+import org.opencadc.tap.impl.votable.UcdCoordDetector;
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat;
 import org.opencadc.tap.kafka.models.JobRun.ResultFormat.ColumnType;
@@ -72,7 +76,12 @@ public class VOTableUtil {
         String footerOverflow = "";
     
         try {
-            VOTableWriter w = new VOTableWriter();
+            VOTableResource resultsRes = jobRunner.resultTemplate.getResourceByType("results");
+            CoordSysMetadata coordMeta = (resultsRes != null && resultsRes.getTable() != null)
+                    ? UcdCoordDetector.detect(resultsRes.getTable().getFields())
+                    : null;
+            RubinVOTableWriter w = new RubinVOTableWriter();
+            w.setCoordSysMetadata(coordMeta);
             StringWriter sw = new StringWriter();
             w.write(jobRunner.resultTemplate, sw);
             String xmlInput = sw.toString();
