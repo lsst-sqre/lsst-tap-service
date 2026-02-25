@@ -92,7 +92,7 @@ create table uws.Job
     requestPath             varchar,
     remoteIP                varchar,
 
-    jobInfo_content         varchar,
+    jobInfo_content         text[],
     jobInfo_contentType     varchar,
     jobInfo_valid           smallint,
 
