@@ -681,7 +681,7 @@ public class JobRun {
             }
             
             if (json.has("schemaUrl")) {
-                uploadTable.setSourceUrl(json.getString("schemaUrl"));
+                uploadTable.setSchemaUrl(json.getString("schemaUrl"));
             }
             
             return uploadTable;
