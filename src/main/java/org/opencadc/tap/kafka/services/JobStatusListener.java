@@ -89,8 +89,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             }
 
             if (jobInfo != null) {
-                // job.setJobInfo(jobInfo);
-                // TODO: Add the jobInfo once pyvo can handle it properly
+                job.setJobInfo(jobInfo);
             }
 
             if (diagnostics != null && !diagnostics.isEmpty()) {
@@ -264,24 +263,30 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
         try {
             StringBuilder xmlBuilder = new StringBuilder();
+            xmlBuilder.append("<progress>\n");
 
-            // Chunk-based progress (Qserv)
             if (pctComplete != null) {
-                xmlBuilder.append("<pct_complete>").append(pctComplete).append("</pct_complete>\n");
-                xmlBuilder.append("<tap_chunks_processed>").append(completedChunks).append("</tap_chunks_processed>\n");
-                xmlBuilder.append("<tap_total_chunks>").append(totalChunks).append("</tap_total_chunks>\n");
+                xmlBuilder.append("  <percentComplete>").append(pctComplete).append("</percentComplete>\n");
+                xmlBuilder.append("  <itemsProcessed>").append(completedChunks).append("</itemsProcessed>\n");
+                xmlBuilder.append("  <totalItems>").append(totalChunks).append("</totalItems>\n");
             }
 
-            // Byte-based progress (BigQuery)
+            // Build statusMessage with BigQuery byte-based info if available
+            StringBuilder statusMsg = new StringBuilder();
             if (bytesProcessed != null) {
-                xmlBuilder.append("<bytes_processed>").append(bytesProcessed).append("</bytes_processed>\n");
+                statusMsg.append("Bytes processed: ").append(bytesProcessed);
             }
             if (bytesBilled != null) {
-                xmlBuilder.append("<bytes_billed>").append(bytesBilled).append("</bytes_billed>\n");
+                if (statusMsg.length() > 0) statusMsg.append(", ");
+                statusMsg.append("Bytes billed: ").append(bytesBilled);
             }
             if (cached != null) {
-                xmlBuilder.append("<cached>").append(cached).append("</cached>\n");
+                if (statusMsg.length() > 0) statusMsg.append(", ");
+                statusMsg.append("Cached: ").append(cached);
             }
+
+            xmlBuilder.append("  <message>").append(statusMsg).append("</message>\n");
+            xmlBuilder.append("</progress>");
 
             content = xmlBuilder.toString();
         } catch (Exception e) {
