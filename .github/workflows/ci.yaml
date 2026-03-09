@@ -99,7 +99,7 @@ jobs:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           name: builder-${{ matrix.product.name }}-${{ matrix.platform.arch }}
           platforms: linux/${{ matrix.platform.arch }}
