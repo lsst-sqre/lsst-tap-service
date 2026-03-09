@@ -105,7 +105,7 @@ jobs:
           platforms: linux/${{ matrix.platform.arch }}
 
       - name: Build and push platform-specific image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
