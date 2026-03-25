@@ -39,7 +39,7 @@
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
 *  the GNU Affero General Public        la “GNU Affero General Public
-*  License as published by the          License” telle que publiée
+*  License as published by the          License“ telle que publiée
 *  Free Software Foundation,            par la Free Software Foundation
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
@@ -67,44 +67,18 @@
 ************************************************************************
 */
 
-package org.opencadc.tap.impl;
-import org.apache.log4j.Logger;
+package org.opencadc.tap.impl.runner;
+
 import ca.nrc.cadc.tap.QueryRunner;
 
 /**
- * Implementation of the JobRunner interface from the cadcUWS framework. This is the
- * main class that implements TAP semantics; it is usable with both the async and sync
- * servlet configurations from cadcUWS.
- * This class dynamically loads and uses implementation classes as described in the
- * package documentation. This allows one to control the behavior of several key components:
- * query processing, upload support, and writing the result-set to the output file format.
- * In addition, this class uses JDNI to find java.sql.DataSource instances for
- * executing database statements.
- * A datasource named jdbc/tapuser is required; this datasource
- * is used to query the TAP_SCHEMA and to run user-queries. The connection(s) provided by this
- * datasource must have read permission to the TAP_SCHEMA and all tables described within the
- * TAP_SCHEMA.
- * A datasource named jdbc/tapuploadadm is optional; this datasource is used to create tables
- * in the TAP_UPLOAD schema and to populate these tables with content from uploaded tables. If this
- * datasource is provided, it is passed to the UploadManager implementation. For uploads to actually work,
- * the connection(s) provided by the datasource must have create table permission in the current database and
- * TAP_UPLOAD schema.
- *
- * @author stvoutsin
+ * QueryRunner for Kafka-based async execution (QServ and BigQuery backends).
+ * Sets the job to HELD state after query planning so the Kafka executor can
+ * pick it up and dispatch it to an external worker.
  */
-public class RubinQueryRunner extends QueryRunner
-{
-    private static final Logger log = Logger.getLogger(RubinQueryRunner.class);
-
-    public RubinQueryRunner() { 
-        super(true);
-    }
-
-    @Override
-    public void run() {
-        log.debug("RubinQueryRunner starting execution");
-        super.run();
-        log.debug("RubinQueryRunner finished execution");
+public class KafkaQueryRunner extends QueryRunner {
+    public KafkaQueryRunner() {
+        super(true);  // returnHELD=true: set job HELD for Kafka dispatch
     }
 
 }

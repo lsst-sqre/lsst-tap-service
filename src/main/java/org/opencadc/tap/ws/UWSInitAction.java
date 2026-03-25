@@ -65,7 +65,7 @@
 ************************************************************************
 */
 
-package org.opencadc.tap.impl;
+package org.opencadc.tap.ws;
 
 import ca.nrc.cadc.db.DBUtil;
 import ca.nrc.cadc.rest.InitAction;

@@ -12,6 +12,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opencadc.tap.ws.ResultsServlet;
 import static org.junit.Assert.assertEquals;
 import java.lang.reflect.Method;
 

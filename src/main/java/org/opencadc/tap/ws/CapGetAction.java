@@ -65,7 +65,7 @@
 ************************************************************************
 */
 
-package org.opencadc.tap.impl;
+package org.opencadc.tap.ws;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -89,7 +89,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Set;
 import java.util.TreeSet;
-import org.opencadc.tap.impl.CapInitAction;
+
 import org.apache.log4j.Logger;
 
 /**

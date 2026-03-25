@@ -1,17 +1,16 @@
-package org.opencadc.tap.impl.uws.server;
+package org.opencadc.tap.kafka.executor;
 
 import org.apache.log4j.Logger;
+import org.opencadc.tap.kafka.context.WebAppContext;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
 
 import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobUpdater;
 
-import org.opencadc.tap.impl.context.WebAppContext;
-
 /**
  * Factory class to create and configure KafkaJobExecutor instances.
- * 
+ *
  * @author stvoutsin
  */
 public class KafkaJobExecutorFactory {
@@ -23,7 +22,7 @@ public class KafkaJobExecutorFactory {
 
     /**
      * Create a new KafkaJobExecutor instance with the given parameters.
-     * 
+     *
      * @param jobUpdater     The JobUpdater implementation
      * @param jobRunnerClass The JobRunner implementation class
      * @param jobPersistence The JobPersistence implementation
@@ -50,7 +49,7 @@ public class KafkaJobExecutorFactory {
 
     /**
      * Get the Kafka job create event service from the web application context
-     * 
+     *
      * @return The CreateJobEvent service or null if not available
      */
     private static CreateJobEvent getJobEventService() {
@@ -72,10 +71,9 @@ public class KafkaJobExecutorFactory {
 
     /**
      * Get the Kafka job delete event service from the web application context
-     * 
+     *
      * @return The CreateDeleteEvent service or null if not available
      */
-
     private static CreateDeleteEvent getJobDeleteService() {
         try {
             log.debug("Retrieving Kafka services from WebAppContext...");
@@ -93,10 +91,9 @@ public class KafkaJobExecutorFactory {
         return null;
     }
 
-
     /**
      * Get the bucket URL from configuration
-     * 
+     *
      * @return The configured bucket URL or a default
      */
     private static String getBucketURL() {
@@ -115,8 +112,8 @@ public class KafkaJobExecutorFactory {
 
     /**
      * Get the bucket name from configuration
-     * 
-     * @return
+     *
+     * @return The configured bucket name
      */
     private static String getBucket() {
         String bucket = System.getenv("GCS_BUCKET");
@@ -134,7 +131,7 @@ public class KafkaJobExecutorFactory {
 
     /**
      * Get the database name from configuration
-     * 
+     *
      * @return The configured database name or a default
      */
     private static String getDatabase() {
