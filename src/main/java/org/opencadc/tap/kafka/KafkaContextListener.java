@@ -6,7 +6,7 @@ import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
 import org.apache.log4j.Logger;
-import org.opencadc.tap.impl.context.WebAppContext;
+import org.opencadc.tap.kafka.context.WebAppContext;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
 import org.opencadc.tap.kafka.services.JobStatusListener;
@@ -33,6 +33,12 @@ public class KafkaContextListener implements ServletContextListener {
         WebAppContext.setServletContext(context);
 
         try {
+            String backend = System.getenv("BACKEND");
+            if ("pg".equals(backend)) {
+                log.info("PostgreSQL backend detected, skipping Kafka initialization");
+                return;
+            }
+
             String bootstrapServer = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
             if (bootstrapServer == null || bootstrapServer.isEmpty()) {
                 throw new IllegalStateException("KAFKA_BOOTSTRAP_SERVERS environment variable is required");

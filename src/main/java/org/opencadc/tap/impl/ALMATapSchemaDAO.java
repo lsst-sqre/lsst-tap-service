@@ -67,7 +67,7 @@
  ************************************************************************
  */
 
-package org.opencadc.tap.schema;
+package org.opencadc.tap.impl;
 
 import ca.nrc.cadc.tap.schema.FunctionDesc;
 import ca.nrc.cadc.tap.schema.TapDataType;

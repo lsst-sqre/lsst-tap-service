@@ -2,10 +2,12 @@
 package org.opencadc.tap.ws;
 
 
-import org.opencadc.tap.impl.RubinQueryRunner;
-import org.opencadc.tap.impl.uws.server.KafkaJobExecutorFactory;
+import org.opencadc.tap.impl.runner.KafkaQueryRunner;
+import org.opencadc.tap.impl.runner.PostgresQueryRunner;
+import org.opencadc.tap.kafka.executor.KafkaJobExecutorFactory;
 
 import ca.nrc.cadc.uws.server.JobExecutor;
+import ca.nrc.cadc.uws.server.ThreadPoolExecutor;
 import ca.nrc.cadc.uws.server.impl.PostgresJobPersistence;
 import ca.nrc.cadc.uws.server.SimpleJobManager;
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -29,6 +31,7 @@ public class QueryJobManager extends SimpleJobManager {
             System.getProperty("tap.maxDestruction", String.valueOf(DEFAULT_MAX_DESTRUCTION)));
     private static final long MAX_QUOTE = Long.parseLong(
             System.getProperty("tap.maxQuote", String.valueOf(DEFAULT_MAX_QUOTE)));
+    private static final int PG_THREAD_POOL_SIZE = 6;
 
     public QueryJobManager() {
         super();
@@ -37,10 +40,15 @@ public class QueryJobManager extends SimpleJobManager {
         // persist UWS jobs to PostgreSQL using default jdbc/uws connection pool
         JobPersistence jobPersist = new PostgresJobPersistence(new RandomStringGenerator(16), im, true);
 
-        // max threads: 6 == number of simultaneously running async queries (per
-        // web server), plus sync queries, plus VOSI-tables queries
-
-        final JobExecutor jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, RubinQueryRunner.class, jobPersist);
+        final JobExecutor jobExec;
+        String backend = System.getenv("BACKEND");
+        if ("pg".equals(backend)) {
+            // Direct JDBC execution for PostgreSQL backend
+            jobExec = new ThreadPoolExecutor(jobPersist, PostgresQueryRunner.class, PG_THREAD_POOL_SIZE);
+        } else {
+            // Kafka-based async execution for QServ and BigQuery backends
+            jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, KafkaQueryRunner.class, jobPersist);
+        }
 
         super.setJobPersistence(jobPersist);
         super.setJobExecutor(jobExec);

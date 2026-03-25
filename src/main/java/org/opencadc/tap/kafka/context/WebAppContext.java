@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl.context;
+package org.opencadc.tap.kafka.context;
 
 import javax.servlet.ServletContext;
 import org.apache.log4j.Logger;
@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 /**
  * Singleton class that holds the ServletContext and provides application-wide
  * access to it
- * 
+ *
  * @author stvoutsin
  */
 public class WebAppContext {
@@ -16,7 +16,7 @@ public class WebAppContext {
 
     /**
      * Set the ServletContext for the application
-     * 
+     *
      * @param context The ServletContext to store
      */
     public static void setServletContext(ServletContext context) {
@@ -28,7 +28,7 @@ public class WebAppContext {
 
     /**
      * Get the stored ServletContext
-     * 
+     *
      * @return The stored ServletContext, or null if not set
      */
     public static ServletContext getServletContext() {
@@ -37,7 +37,7 @@ public class WebAppContext {
 
     /**
      * Retrieve an attribute from the ServletContext
-     * 
+     *
      * @param attributeName The name of the attribute to retrieve
      * @return The attribute value, or null if not found or ServletContext is not
      *         set

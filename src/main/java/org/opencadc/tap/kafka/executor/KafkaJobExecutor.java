@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl.uws.server;
+package org.opencadc.tap.kafka.executor;
 
 import org.apache.log4j.Logger;
 
@@ -33,7 +33,7 @@ import org.opencadc.tap.kafka.util.VOTableUtil;
  *
  * This executor handles the job state transitions but delegates the
  * execution to the workers that consume from the queue.
- * 
+ *
  * @author stvoutsin
  */
 public class KafkaJobExecutor implements JobExecutor {
@@ -92,7 +92,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
     /**
      * Check if the TAP service is available based on system property.
-     * 
+     *
      * @return true if service is available, false otherwise
      */
     private boolean isServiceAvailable() {
@@ -102,7 +102,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
     /**
      * Generate a VOTable error response for service unavailable.
-     * 
+     *
      * @return VOTable XML error content
      */
     private String generateServiceUnavailableVOTableError() {
@@ -117,7 +117,7 @@ public class KafkaJobExecutor implements JobExecutor {
     /**
      * Execute async job. This method transitions the job to QUEUED state,
      * initializes it and then runs the JobRunner.
-     * 
+     *
      * It finally sends it to Kafka for execution if in HELD state.
      *
      * @param job the job to execute
@@ -467,7 +467,7 @@ public class KafkaJobExecutor implements JobExecutor {
 
     /**
      * Create a new JobRunner instance.
-     * 
+     *
      * @return A new JobRunner instance
      * @throws Exception if the JobRunner cannot be created
      */
