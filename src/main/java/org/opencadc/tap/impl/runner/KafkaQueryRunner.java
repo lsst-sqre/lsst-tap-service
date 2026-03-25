@@ -3,7 +3,7 @@
 *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 *
-*  (c) 2022.                            (c) 2022.
+*  (c) 2009.                            (c) 2009.
 *  Government of Canada                 Gouvernement du Canada
 *  National Research Council            Conseil national de recherches
 *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -38,8 +38,8 @@
 *  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 *  you can redistribute it and/or       vous pouvez le redistribuer ou le
 *  modify it under the terms of         modifier suivant les termes de
-*  the GNU Affero General Public        la "GNU Affero General Public
-*  License as published by the          License" telle que publiée
+*  the GNU Affero General Public        la “GNU Affero General Public
+*  License as published by the          License“ telle que publiée
 *  Free Software Foundation,            par la Free Software Foundation
 *  either version 3 of the              : soit la version 3 de cette
 *  License, or (at your option)         licence, soit (à votre gré)
@@ -62,95 +62,23 @@
 *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 *                                       <http://www.gnu.org/licenses/>.
 *
+*  $Revision: 4 $
+*
 ************************************************************************
 */
 
-package org.opencadc.tap.impl;
+package org.opencadc.tap.impl.runner;
 
-import ca.nrc.cadc.db.DBUtil;
-import ca.nrc.cadc.rest.InitAction;
-import ca.nrc.cadc.uws.server.impl.InitDatabaseUWS;
-import javax.sql.DataSource;
-import org.apache.log4j.Logger;
-
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import ca.nrc.cadc.tap.QueryRunner;
 
 /**
- *
- * @author pdowler
+ * QueryRunner for Kafka-based async execution (QServ and BigQuery backends).
+ * Sets the job to HELD state after query planning so the Kafka executor can
+ * pick it up and dispatch it to an external worker.
  */
-public class UWSInitAction extends InitAction {
-    private static final Logger log = Logger.getLogger(UWSInitAction.class);
-
-    public UWSInitAction() {
+public class KafkaQueryRunner extends QueryRunner {
+    public KafkaQueryRunner() {
+        super(true);  // returnHELD=true: set job HELD for Kafka dispatch
     }
 
-    @Override
-    public void doInit() {
-        DataSource uws = null;
-         try {
-            uws = DBUtil.findJNDIDataSource("jdbc/uws");
-            if (!schemaExists(uws, "uws")) {
-                log.debug("uws schema does not exist, creating...");
-                createSchema(uws, "uws");
-                log.debug("uws schema created");
-                // Continue with initialization only if the schema was just created
-                InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
-                uwsi.doInit();
-                log.debug("init uws: OK");
-            } else {
-                log.debug("uws schema already exists");
-                return; // Exit the method early if the schema already exists
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException("INIT FAIL", ex);
-        } 
-    }
-
-    private boolean schemaExists(DataSource uws, String schemaName) throws SQLException {
-        Connection conn = null;
-        try {
-            conn = uws.getConnection();
-            DatabaseMetaData dbMetaData = conn.getMetaData();
-            ResultSet rs = dbMetaData.getSchemas();
-            while (rs.next()) {
-                if (schemaName.equalsIgnoreCase(rs.getString("TABLE_SCHEM").trim())) {
-                    return true;
-                }
-            }
-        } catch (Exception ex) {
-              throw new RuntimeException("Failed to check if schema exists", ex);
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    log.error("Failed to close connection", e);
-                }
-            }
-        }
-        return false;
-    }
-
-    private void createSchema(DataSource uws, String schemaName) throws SQLException {
-        Connection conn = null;
-        try {
-            conn = uws.getConnection();
-            java.sql.Statement stmt = conn.createStatement();
-            stmt.execute("CREATE SCHEMA " + schemaName);
-        } catch (Exception ex) {
-            throw new RuntimeException("Create Schema failed", ex);
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    log.error("Failed to close connection", e);
-                }
-            }
-        }
-    }
 }

@@ -1,4 +1,4 @@
-package org.opencadc.tap.impl;
+package org.opencadc.tap.ws;
 
 import org.apache.log4j.Logger;
 import javax.servlet.ServletException;

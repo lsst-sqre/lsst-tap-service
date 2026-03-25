@@ -54,7 +54,7 @@
         </init-param>
         <init-param>
             <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
-            <param-value>org.opencadc.tap.impl.RubinUWSContentHandler</param-value>
+            <param-value>org.opencadc.tap.ws.RubinUWSContentHandler</param-value>
         </init-param>
     </servlet>
 
@@ -75,7 +75,7 @@
         <servlet-class>ca.nrc.cadc.uws.server.JobServlet</servlet-class>
         <init-param>
             <param-name>init</param-name>
-            <param-value>org.opencadc.tap.impl.UWSInitAction</param-value>
+            <param-value>org.opencadc.tap.ws.UWSInitAction</param-value>
         </init-param>
         <init-param>
             <param-name>get</param-name>
@@ -91,7 +91,7 @@
         </init-param>
         <init-param>
             <param-name>ca.nrc.cadc.rest.InlineContentHandler</param-name>
-            <param-value>org.opencadc.tap.impl.RubinUWSContentHandler</param-value>
+            <param-value>org.opencadc.tap.ws.RubinUWSContentHandler</param-value>
         </init-param>
     </servlet>
     
@@ -101,7 +101,7 @@
         <servlet-class>ca.nrc.cadc.rest.RestServlet</servlet-class>
         <init-param>
             <param-name>init</param-name>
-            <param-value>org.opencadc.tap.impl.CapInitAction</param-value>
+            <param-value>org.opencadc.tap.ws.CapInitAction</param-value>
         </init-param>
         <init-param>
             <param-name>head</param-name>
@@ -109,7 +109,7 @@
         </init-param>
         <init-param>
             <param-name>get</param-name>
-            <param-value>org.opencadc.tap.impl.CapGetAction</param-value>
+            <param-value>org.opencadc.tap.ws.CapGetAction</param-value>
         </init-param>
         <init-param>
             <param-name>input</param-name>
@@ -133,7 +133,7 @@
          This implementation uses the TAP_SCHEMA to find the required metadata -->
     <servlet>
         <servlet-name>ResultsServlet</servlet-name>
-        <servlet-class>org.opencadc.tap.impl.ResultsServlet</servlet-class>
+        <servlet-class>org.opencadc.tap.ws.ResultsServlet</servlet-class>
     </servlet>
 
     <servlet-mapping>
