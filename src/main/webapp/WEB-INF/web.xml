@@ -25,7 +25,6 @@
                 ca.nrc.cadc.net
                 ca.nrc.cadc.auth
                 ca.nrc.cadc.reg
-                org.opencadc.tap.kafka
             </param-value>
         </init-param>
         <load-on-startup>1</load-on-startup>

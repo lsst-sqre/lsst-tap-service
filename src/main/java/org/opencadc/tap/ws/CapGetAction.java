@@ -67,6 +67,8 @@
 
 package org.opencadc.tap.ws;
 
+import org.opencadc.tap.config.TapConfig;
+
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
@@ -98,8 +100,8 @@ import org.apache.log4j.Logger;
  */
 public class CapGetAction extends RestAction {
     private static final Logger log = Logger.getLogger(CapGetAction.class);
-    private static final String baseURL = System.getProperty("base_url");
-    private static final String pathPrefix = System.getProperty("path_prefix");
+    private static final String baseURL = TapConfig.baseUrl();
+    private static final String pathPrefix = TapConfig.pathPrefix();
 
     /**
      * Enable transformation of the capabilities template (default: true). Subclasses

@@ -69,6 +69,8 @@
 
 package org.opencadc.tap.ws;
 
+import org.opencadc.tap.config.TapConfig;
+
 import ca.nrc.cadc.util.StringUtil;
 import ca.nrc.cadc.vosi.AvailabilityPlugin;
 import ca.nrc.cadc.vosi.Availability;
@@ -88,7 +90,7 @@ public class TAPWebService implements AvailabilityPlugin {
             "The TAP service is temporarily down for maintenance");
     private static final boolean available = parseAvailableProperty();
 
-    private final static String TAPDS_NAME = "jdbc/tapuser";
+    private final static String TAPDS_NAME = "jdbc/tapschemauser";
     // note tap_schema table names
     private final static String TAPDS_TEST = "select SCHEMA_NAME from tap_schema.schemas11 where SCHEMA_NAME='TAP_SCHEMA'";
 
@@ -114,13 +116,12 @@ public class TAPWebService implements AvailabilityPlugin {
      * @return true if the property is "true", false otherwise
      */
     private static boolean parseAvailableProperty() {
-        String availableProperty = System.getProperty("tap.service.available", "true");
         try {
-            boolean result = Boolean.parseBoolean(availableProperty);
+            boolean result = TapConfig.serviceAvailable();
             log.debug("Available system property parsed as: " + result);
             return result;
         } catch (Exception e) {
-            log.debug("Error parsing 'available' system property '" + availableProperty + "', defaulting to true", e);
+            log.debug("Error parsing 'available' system property, defaulting to true", e);
             return true;
         }
     }
