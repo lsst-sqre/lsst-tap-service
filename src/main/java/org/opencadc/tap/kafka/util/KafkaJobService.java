@@ -27,8 +27,8 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
-import org.opencadc.tap.impl.runner.KafkaQueryRunner;
-import org.opencadc.tap.impl.StorageUtils;
+import org.opencadc.tap.runner.KafkaQueryRunner;
+import org.opencadc.tap.util.StorageUtils;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.OutputFormat;
 import org.opencadc.tap.kafka.models.JobRun;

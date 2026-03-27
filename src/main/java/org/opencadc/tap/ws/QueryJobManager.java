@@ -2,8 +2,8 @@
 package org.opencadc.tap.ws;
 
 
-import org.opencadc.tap.impl.runner.KafkaQueryRunner;
-import org.opencadc.tap.impl.runner.PostgresQueryRunner;
+import org.opencadc.tap.runner.KafkaQueryRunner;
+import org.opencadc.tap.runner.PostgresQueryRunner;
 import org.opencadc.tap.kafka.executor.KafkaJobExecutorFactory;
 
 import ca.nrc.cadc.uws.server.JobExecutor;

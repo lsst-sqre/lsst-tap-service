@@ -20,7 +20,7 @@ import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobPhaseException;
 import ca.nrc.cadc.uws.server.JobRunner;
 import ca.nrc.cadc.uws.server.JobUpdater;
-import org.opencadc.tap.impl.logging.TAPLogger;
+import org.opencadc.tap.util.logging.TAPLogger;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
 import org.opencadc.tap.kafka.util.JobPhaseManager;

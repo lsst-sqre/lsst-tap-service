@@ -16,7 +16,7 @@ import ca.nrc.cadc.tap.PluginFactoryImpl;
 import ca.nrc.cadc.tap.ResultStore;
 import ca.nrc.cadc.tap.TableWriter;
 import org.apache.log4j.Logger;
-import org.opencadc.tap.impl.logging.TAPLogger;
+import org.opencadc.tap.util.logging.TAPLogger;
 import org.opencadc.tap.kafka.executor.KafkaJobExecutor;
 import org.opencadc.tap.kafka.models.JobStatus;
 

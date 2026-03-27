@@ -62,109 +62,39 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.tap.ws;
+package org.opencadc.tap.query.bigquery.parser;
 
-import ca.nrc.cadc.util.StringUtil;
-import ca.nrc.cadc.vosi.AvailabilityPlugin;
-import ca.nrc.cadc.vosi.Availability;
-import ca.nrc.cadc.vosi.avail.CheckDataSource;
-import ca.nrc.cadc.vosi.avail.CheckException;
-import org.apache.log4j.Logger;
-
-/**
- * VOSI Plugin interface for the AvailabilityServlet.
- *
- * @author jenkinsd
- */
-public class TAPWebService implements AvailabilityPlugin {
-    private static final Logger log = Logger.getLogger(TAPWebService.class);
-
-    private static final Availability STATUS_DOWN = new Availability(false,
-            "The TAP service is temporarily down for maintenance");
-    private static final boolean available = parseAvailableProperty();
-
-    private final static String TAPDS_NAME = "jdbc/tapschemauser";
-    // note tap_schema table names
-    private final static String TAPDS_TEST = "select SCHEMA_NAME from tap_schema.schemas11 where SCHEMA_NAME='TAP_SCHEMA'";
-
-    private String applicationName;
-
-    public TAPWebService() {
-
-    }
-
-    /**
-     * Set application name. The appName is a string unique to this application.
-     *
-     * @param appName unique application name
-     */
-    @Override
-    public void setAppName(String appName) {
-        this.applicationName = appName;
-    }
-
-    /**
-     * Parse the 'available' system property with proper error handling.
-     * 
-     * @return true if the property is "true", false otherwise
-     */
-    private static boolean parseAvailableProperty() {
-        String availableProperty = System.getProperty("tap.service.available", "true");
-        try {
-            boolean result = Boolean.parseBoolean(availableProperty);
-            log.debug("Available system property parsed as: " + result);
-            return result;
-        } catch (Exception e) {
-            log.debug("Error parsing 'available' system property '" + availableProperty + "', defaulting to true", e);
-            return true;
-        }
-    }
-
-    @Override
-    public boolean heartbeat() {
-        // currently no-op: the most that makes sense here is to maybe
-        // borrow and return a connection from the tapuser connection pool
-        // see: context.xml
-        return true;
-    }
-
-    @Override
-    public Availability getStatus() {
-        boolean isGood = true;
-        String note = String.format("The%s service is accepting queries",
-                StringUtil.hasText(applicationName) ? " " + applicationName : "");
-
-        if (!available) {
-            return STATUS_DOWN;
-        }
-
-        try {
-            // Test query using standard TAP data source
-            check(TAPDS_TEST);
-        } catch (CheckException ce) {
-            // tests determined that the resource is not working
-            isGood = false;
-            note = ce.getMessage();
-        } catch (Throwable t) {
-            // the test itself failed
-            log.error("web service status test failed", t);
-            isGood = false;
-            note = "test failed, reason: " + t;
-        }
-        return new Availability(isGood, note);
-    }
-
-    private void check(final String query) throws CheckException {
-        new CheckDataSource(TAPDS_NAME, query).check();
-    }
-
-    @Override
-    public void setState(String string) {
-        throw new UnsupportedOperationException();
-    }
-}
+import org.opencadc.tap.query.bigquery.expression.BigQueryColumnAliasSelectItem;
+import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+ 
+ 
+ public class BigQueryQuerySelectDeParser extends QuerySelectDeParser {
+     @Override
+     public void visit(PlainSelect plainSelect) {
+         super.visit(plainSelect);
+     }
+ 
+     @Override
+     public void visit(SelectExpressionItem selectExpressionItem) {
+         Expression selectExpression = selectExpressionItem.getExpression();
+ 
+         if (selectExpression instanceof Column) {
+             String normalizedColumnName = ((Column) selectExpression).getColumnName().replaceAll("\"", "");
+             ((Column) selectExpression).setColumnName(normalizedColumnName);
+         }
+ 
+         if (selectExpressionItem instanceof BigQueryColumnAliasSelectItem) {
+             getBuffer().append(selectExpressionItem);
+         } else {
+             super.visit(selectExpressionItem);
+         }
+     }
+ }
