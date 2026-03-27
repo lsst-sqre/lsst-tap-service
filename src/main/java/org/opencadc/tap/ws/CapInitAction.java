@@ -67,6 +67,8 @@
 
 package org.opencadc.tap.ws;
 
+import org.opencadc.tap.config.TapConfig;
+
 import ca.nrc.cadc.reg.Capabilities;
 import ca.nrc.cadc.reg.CapabilitiesReader;
 import ca.nrc.cadc.rest.InitAction;
@@ -89,10 +91,6 @@ import org.apache.log4j.Logger;
  */
 public class CapInitAction extends InitAction {
     private static final Logger log = Logger.getLogger(CapInitAction.class);
-    private static final String DEFAULT_OUTPUT_LIMIT = "100000000";
-    private static final String DEFAULT_OUTPUT_LIMIT_UNIT = "row";
-    // Must match QueryJobManager's default for the same "tap.maxExecutionDuration"
-    private static final String DEFAULT_MAX_EXECUTION_DURATION = String.valueOf(4 * 3600L);
     /**
      * Default constructor for CapInitAction.
      * 
@@ -161,19 +159,18 @@ public class CapInitAction extends InitAction {
             URL resURL = super.getResource(str);
             String tmpl = StringUtil.readFromInputStream(resURL.openStream(), "UTF-8");
 
-            String outputLimit = System.getProperty("tap.outputLimit", DEFAULT_OUTPUT_LIMIT);
-            String outputLimitUnit = System.getProperty("tap.outputLimitUnit", DEFAULT_OUTPUT_LIMIT_UNIT);
+            String outputLimit = TapConfig.outputLimit();
+            String outputLimitUnit = TapConfig.outputLimitUnit();
             tmpl = tmpl.replace("${tap.outputLimit}", outputLimit);
             tmpl = tmpl.replace("${tap.outputLimitUnit}", outputLimitUnit);
             log.debug("doInit: tap.outputLimit=" + outputLimit + " tap.outputLimitUnit=" + outputLimitUnit);
 
-            String maxExecutionDuration = System.getProperty(
-                    "tap.maxExecutionDuration", DEFAULT_MAX_EXECUTION_DURATION);
+            String maxExecutionDuration = String.valueOf(TapConfig.maxExecutionDurationSeconds());
             tmpl = tmpl.replace("${tap.maxExecutionDuration}", maxExecutionDuration);
             log.debug("doInit: tap.maxExecutionDuration=" + maxExecutionDuration);
 
-            String enableVOParquet = System.getProperty("tap.enableVOParquet", "false");
-            if ("true".equalsIgnoreCase(enableVOParquet)) {
+            boolean enableVOParquet = TapConfig.voParquetEnabled();
+            if (enableVOParquet) {
                 String voparquetFormat = "<outputFormat>\n"
                     + "      <mime>application/vnd.apache.parquet</mime>\n"
                     + "      <alias>parquet</alias>\n"

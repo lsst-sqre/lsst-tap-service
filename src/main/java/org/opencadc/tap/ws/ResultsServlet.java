@@ -1,13 +1,13 @@
 package org.opencadc.tap.ws;
 
+import org.opencadc.tap.config.TapConfig;
+
 import org.apache.log4j.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 /**
  * A servlet that handles redirecting to specific job results.
@@ -17,9 +17,9 @@ import java.nio.charset.StandardCharsets;
  */
 public class ResultsServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(ResultsServlet.class);
-    private static final String bucket = System.getProperty("gcs_bucket");
-    private static final String bucketURL = System.getProperty("gcs_bucket_url");
-    private static final String bucketType = System.getProperty("gcs_bucket_type");
+    private static final String bucket = TapConfig.gcsBucket();
+    private static final String bucketURL = TapConfig.gcsBucketUrl();
+    private static final String bucketType = TapConfig.gcsBucketType();
     /**
      * Processes GET requests by extracting the result filename from the request path and redirecting to the corresponding results URL.
      * The filename is assumed to be the path info of the request URL, following the first '/' character.
