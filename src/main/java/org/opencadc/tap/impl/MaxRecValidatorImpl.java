@@ -81,13 +81,13 @@
  public class MaxRecValidatorImpl extends MaxRecValidator {
      private static final Logger LOGGER = Logger.getLogger(MaxRecValidatorImpl.class);
      private static final Integer DEFAULT_LIMIT = 100000000;
-     private static final Integer MAX_LIMIT = 100000000;
- 
- 
+
+
      public MaxRecValidatorImpl() {
          super();
-         setDefaultValue(DEFAULT_LIMIT);
-         setMaxValue(MAX_LIMIT);
+         Integer limit = Integer.parseInt(System.getProperty("tap.maxRec", DEFAULT_LIMIT.toString()));
+         setDefaultValue(limit);
+         setMaxValue(limit);
      }
  
  
