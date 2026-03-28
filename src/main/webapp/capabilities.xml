@@ -91,10 +91,9 @@
       <default>600</default>
       <hard>600</hard>
     </executionDuration>
-    <!-- outputLimit for async queries: 128MB -->
     <outputLimit>
-      <default unit="byte">134217728</default>
-      <hard unit="byte">134217728</hard>
+      <default unit="${tap.outputLimitUnit}">${tap.outputLimit}</default>
+      <hard unit="${tap.outputLimitUnit}">${tap.outputLimit}</hard>
     </outputLimit>
     <!-- outputLimit for sync queries: no limit -->
     <uploadLimit>
