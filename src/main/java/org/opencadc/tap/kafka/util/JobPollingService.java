@@ -18,7 +18,7 @@ import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import org.apache.log4j.Logger;
-import org.opencadc.tap.impl.StorageUtils;
+import org.opencadc.tap.util.StorageUtils;
 
 /**
  * Service for polling jobs until completion and handling results.

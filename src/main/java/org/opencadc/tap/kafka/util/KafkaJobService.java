@@ -27,15 +27,15 @@ import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.schema.TableDesc;
 
-import org.opencadc.tap.impl.RubinQueryRunner;
-import org.opencadc.tap.impl.StorageUtils;
+import org.opencadc.tap.runner.KafkaQueryRunner;
+import org.opencadc.tap.util.StorageUtils;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.OutputFormat;
 import org.opencadc.tap.kafka.models.JobRun;
 import org.opencadc.tap.kafka.util.DatabaseNameUtil;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
-import org.opencadc.tap.impl.context.WebAppContext;
+import org.opencadc.tap.kafka.context.WebAppContext;
 
 /**
  * Service class for Kafka job operations.
@@ -262,8 +262,8 @@ public class KafkaJobService {
         JobSubmissionInfo info = new JobSubmissionInfo();
         info.ownerID = job.getOwnerID();
 
-        if (jobRunner instanceof RubinQueryRunner) {
-            RubinQueryRunner qRunner = (RubinQueryRunner) jobRunner;
+        if (jobRunner instanceof KafkaQueryRunner) {
+            KafkaQueryRunner qRunner = (KafkaQueryRunner) jobRunner;
             QueryRunner queryRunner = (QueryRunner) jobRunner;
             info.sql = qRunner.internalSQL;
             OutputFormat format = extractFormat(job);

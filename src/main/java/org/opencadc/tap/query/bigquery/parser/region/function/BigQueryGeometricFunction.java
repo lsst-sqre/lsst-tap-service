@@ -3,7 +3,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2018.                            (c) 2018.
+ *  (c) 2019.                            (c) 2019.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,109 +62,94 @@
  *  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
  *                                       <http://www.gnu.org/licenses/>.
  *
- *  $Revision: 5 $
  *
  ************************************************************************
  */
 
-package org.opencadc.tap.ws;
+package org.opencadc.tap.query.bigquery.parser.region.function;
 
-import ca.nrc.cadc.util.StringUtil;
-import ca.nrc.cadc.vosi.AvailabilityPlugin;
-import ca.nrc.cadc.vosi.Availability;
-import ca.nrc.cadc.vosi.avail.CheckDataSource;
-import ca.nrc.cadc.vosi.avail.CheckException;
-import org.apache.log4j.Logger;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * VOSI Plugin interface for the AvailabilityServlet.
- *
- * @author jenkinsd
- */
-public class TAPWebService implements AvailabilityPlugin {
-    private static final Logger log = Logger.getLogger(TAPWebService.class);
-
-    private static final Availability STATUS_DOWN = new Availability(false,
-            "The TAP service is temporarily down for maintenance");
-    private static final boolean available = parseAvailableProperty();
-
-    private final static String TAPDS_NAME = "jdbc/tapschemauser";
-    // note tap_schema table names
-    private final static String TAPDS_TEST = "select SCHEMA_NAME from tap_schema.schemas11 where SCHEMA_NAME='TAP_SCHEMA'";
-
-    private String applicationName;
-
-    public TAPWebService() {
-
-    }
-
-    /**
-     * Set application name. The appName is a string unique to this application.
-     *
-     * @param appName unique application name
-     */
-    @Override
-    public void setAppName(String appName) {
-        this.applicationName = appName;
-    }
-
-    /**
-     * Parse the 'available' system property with proper error handling.
-     * 
-     * @return true if the property is "true", false otherwise
-     */
-    private static boolean parseAvailableProperty() {
-        String availableProperty = System.getProperty("tap.service.available", "true");
-        try {
-            boolean result = Boolean.parseBoolean(availableProperty);
-            log.debug("Available system property parsed as: " + result);
-            return result;
-        } catch (Exception e) {
-            log.debug("Error parsing 'available' system property '" + availableProperty + "', defaulting to true", e);
-            return true;
-        }
-    }
-
-    @Override
-    public boolean heartbeat() {
-        // currently no-op: the most that makes sense here is to maybe
-        // borrow and return a connection from the tapuser connection pool
-        // see: context.xml
-        return true;
-    }
-
-    @Override
-    public Availability getStatus() {
-        boolean isGood = true;
-        String note = String.format("The%s service is accepting queries",
-                StringUtil.hasText(applicationName) ? " " + applicationName : "");
-
-        if (!available) {
-            return STATUS_DOWN;
-        }
-
-        try {
-            // Test query using standard TAP data source
-            check(TAPDS_TEST);
-        } catch (CheckException ce) {
-            // tests determined that the resource is not working
-            isGood = false;
-            note = ce.getMessage();
-        } catch (Throwable t) {
-            // the test itself failed
-            log.error("web service status test failed", t);
-            isGood = false;
-            note = "test failed, reason: " + t;
-        }
-        return new Availability(isGood, note);
-    }
-
-    private void check(final String query) throws CheckException {
-        new CheckDataSource(TAPDS_NAME, query).check();
-    }
-
-    @Override
-    public void setState(String string) {
-        throw new UnsupportedOperationException();
-    }
-}
+import org.opencadc.tap.query.bigquery.expression.BigQueryKeywordExpression;
+ 
+ /**
+  * Abstract class for an Bq Geometric Function.
+  */
+ abstract class BigQueryGeometricFunction extends Function {
+ 
+     private static final String POINT_FUNCTION_NAME = "ST_GEOGPOINT";
+     private static final String CIRCLE_FUNCTION_NAME = "CIRCLE";
+     private static final String POLYGON_FUNCTION_NAME = "ST_MAKEPOLYGON";
+     private static final String LINE_FUNCTION_NAME = "ST_MAKELINE";
+     private static final String ARRAY = "ARRAY";
+ 
+     final List<Expression> vertices = new ArrayList<>();
+ 
+     BigQueryGeometricFunction(Expression ra, Expression dec) {
+         setName(POINT_FUNCTION_NAME);
+ 
+         ExpressionList parameters = new ExpressionList(new ArrayList<>());
+         parameters.getExpressions().add(ra);
+         parameters.getExpressions().add(dec);
+ 
+         setParameters(parameters);
+     }
+ 
+     BigQueryGeometricFunction(Expression ra, Expression dec, Expression radius) {
+         setName(CIRCLE_FUNCTION_NAME);
+ 
+         Function pointFunction = new Function();
+         pointFunction.setName(POINT_FUNCTION_NAME);
+         pointFunction.setParameters(new ExpressionList(Arrays.asList(ra, dec)));
+ 
+         ExpressionList parameters = new ExpressionList(new ArrayList<>());
+         parameters.getExpressions().add(pointFunction);
+         parameters.getExpressions().add(radius);
+ 
+         setParameters(parameters);
+     }
+ 
+     BigQueryGeometricFunction(List<Expression> verticeExpressions) {
+         if (verticeExpressions != null) {
+             List<Expression> verticeValues = verticeExpressions.stream().skip(1).collect(Collectors.toList());
+             vertices.addAll(verticeValues);
+         }
+     }
+ 
+     private Function getMakeLineFunction() {
+         Function makeLineFunction = new Function();
+         makeLineFunction.setName(LINE_FUNCTION_NAME);
+ 
+         return makeLineFunction;
+     }
+ 
+     /**
+      * For Polygon shapes (i.e. non-point shapes), convert the values to be used as function parameters.  Point
+      * Functions can omit this call.
+      */
+     void processVerticesParameters() {
+         setName(POLYGON_FUNCTION_NAME);
+ 
+         Function makeLineFunction = getMakeLineFunction();
+ 
+         ExpressionList verticesArrayFunctionParameters = new ExpressionList(new ArrayList<>());
+         String geoText = String.format("%s%s", ARRAY, mapValues(verticesArrayFunctionParameters));
+ 
+         makeLineFunction.setParameters(new ExpressionList(Arrays.asList(new BigQueryKeywordExpression(geoText))));
+ 
+         setParameters(new ExpressionList(Arrays.asList(makeLineFunction)));
+     }
+ 
+     /**
+      * Map this shape's values to BQ function parameters.
+      *
+      * @param parameterList The ExpressionList to add parameters to.
+      */
+     abstract String mapValues(ExpressionList parameterList);
+ }

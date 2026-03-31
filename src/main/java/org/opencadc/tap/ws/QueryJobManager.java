@@ -2,10 +2,12 @@
 package org.opencadc.tap.ws;
 
 
-import org.opencadc.tap.impl.RubinQueryRunner;
-import org.opencadc.tap.impl.uws.server.KafkaJobExecutorFactory;
+import org.opencadc.tap.runner.KafkaQueryRunner;
+import org.opencadc.tap.runner.PostgresQueryRunner;
+import org.opencadc.tap.kafka.executor.KafkaJobExecutorFactory;
 
 import ca.nrc.cadc.uws.server.JobExecutor;
+import ca.nrc.cadc.uws.server.ThreadPoolExecutor;
 import ca.nrc.cadc.uws.server.impl.PostgresJobPersistence;
 import ca.nrc.cadc.uws.server.SimpleJobManager;
 import ca.nrc.cadc.auth.AuthenticationUtil;
@@ -23,6 +25,8 @@ public class QueryJobManager extends SimpleJobManager {
     private static final long MAX_QUOTE = 24 * 3600L;         // 24 hours since we have a threadpool with
     // queued jobs
 
+    private static final int PG_THREAD_POOL_SIZE = 6;
+
     public QueryJobManager() {
         super();
 
@@ -30,10 +34,15 @@ public class QueryJobManager extends SimpleJobManager {
         // persist UWS jobs to PostgreSQL using default jdbc/uws connection pool
         JobPersistence jobPersist = new PostgresJobPersistence(new RandomStringGenerator(16), im, true);
 
-        // max threads: 6 == number of simultaneously running async queries (per
-        // web server), plus sync queries, plus VOSI-tables queries
-        
-        final JobExecutor jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, RubinQueryRunner.class, jobPersist);
+        final JobExecutor jobExec;
+        String backend = System.getenv("BACKEND");
+        if ("pg".equals(backend)) {
+            // Direct JDBC execution for PostgreSQL backend
+            jobExec = new ThreadPoolExecutor(jobPersist, PostgresQueryRunner.class, PG_THREAD_POOL_SIZE);
+        } else {
+            // Kafka-based async execution for QServ and BigQuery backends
+            jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, KafkaQueryRunner.class, jobPersist);
+        }
 
         super.setJobPersistence(jobPersist);
         super.setJobExecutor(jobExec);
