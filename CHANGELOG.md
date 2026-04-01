@@ -6,6 +6,21 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.17.0'></a>
+## 3.17.0 (2026-04-01)
+
+### Changed
+
+- Enable setting output limit for TAP capabilities per environment
+- Upgrade base cadc-tomcat image to 1.6
+
+<a id='changelog-3.16.0'></a>
+## 3.16.0 (2026-03-18)
+
+### Changed
+
+- Upgrade uws dependencies
+
 <a id='changelog-3.15.0'></a>
 ## 3.15.0 (2026-02-09)
 
