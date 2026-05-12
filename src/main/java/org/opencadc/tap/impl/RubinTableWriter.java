@@ -9,6 +9,8 @@ import ca.nrc.cadc.dali.tables.votable.VOTableReader;
 import ca.nrc.cadc.dali.tables.votable.VOTableResource;
 import ca.nrc.cadc.dali.tables.votable.VOTableTable;
 import ca.nrc.cadc.date.DateUtil;
+import ca.nrc.cadc.uws.Job;
+import ca.nrc.cadc.uws.ParameterUtil;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -18,6 +20,7 @@ import java.nio.file.Path;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,13 +44,32 @@ public class RubinTableWriter extends DefaultTableWriter {
 
     private static final String baseUrl = System.getProperty("base_url");
     private static final String datalinkConfig = "/tmp/datalink/";
-        
+    private static final String CONESEARCH_UCD_MAP_PARAM = "CONESEARCH_UCD_MAP";
+
+    private final Map<String, String> ucdOverrides = new HashMap<>();
+
     public RubinTableWriter() {
         super();
     }
 
     public RubinTableWriter(boolean errorWriter) {
         super(errorWriter);
+    }
+
+    @Override
+    public void setJob(Job job) {
+        super.setJob(job);
+        String ucdMapParam = ParameterUtil.findParameterValue(
+                CONESEARCH_UCD_MAP_PARAM, job.getParameterList());
+        if (ucdMapParam != null && !ucdMapParam.isEmpty()) {
+            for (String entry : ucdMapParam.split(",")) {
+                String[] parts = entry.split(":", 2);
+                if (parts.length == 2) {
+                    ucdOverrides.put(parts[0].trim(), parts[1].trim());
+                }
+            }
+            log.debug("Parsed " + CONESEARCH_UCD_MAP_PARAM + ": " + ucdOverrides);
+        }
     }
 
     /**
@@ -196,6 +218,13 @@ public class RubinTableWriter extends DefaultTableWriter {
         for (int i = 0; i < fields.size(); i++) {
             VOTableField field = fields.get(i);
             field.id = "col_" + i;
+            if (!ucdOverrides.isEmpty()) {
+                String override = ucdOverrides.get(field.getName());
+                if (override != null) {
+                    log.debug("Injecting UCD for field " + field.getName() + ": " + override);
+                    field.ucd = override;
+                }
+            }
         }
 
         return votableDocument;
