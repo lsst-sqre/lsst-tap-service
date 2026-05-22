@@ -91,6 +91,10 @@
       <default>600</default>
       <hard>600</hard>
     </executionDuration>
+    <executionDuration forMode="sync">
+      <default>${tap.syncExecutionDuration}</default>
+      <hard>${tap.syncExecutionDuration}</hard>
+    </executionDuration>
     <outputLimit>
       <default unit="${tap.outputLimitUnit}">${tap.outputLimit}</default>
       <hard unit="${tap.outputLimitUnit}">${tap.outputLimit}</hard>
