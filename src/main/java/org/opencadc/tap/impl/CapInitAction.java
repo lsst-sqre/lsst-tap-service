@@ -165,6 +165,18 @@ public class CapInitAction extends InitAction {
             tmpl = tmpl.replace("${tap.outputLimitUnit}", outputLimitUnit);
             log.debug("doInit: tap.outputLimit=" + outputLimit + " tap.outputLimitUnit=" + outputLimitUnit);
 
+            String enableVOParquet = System.getProperty("tap.enableVOParquet", "false");
+            if ("true".equalsIgnoreCase(enableVOParquet)) {
+                String voparquetFormat = "<outputFormat>\n"
+                    + "      <mime>application/vnd.apache.parquet</mime>\n"
+                    + "      <alias>parquet</alias>\n"
+                    + "    </outputFormat>";
+                tmpl = tmpl.replace("${tap.voparquet.outputFormat}", voparquetFormat);
+            } else {
+                tmpl = tmpl.replace("${tap.voparquet.outputFormat}", "");
+            }
+            log.debug("doInit: tap.enableVOParquet=" + enableVOParquet);
+
             // validate
             CapabilitiesReader cr = new CapabilitiesReader();
             cr.read(tmpl);
