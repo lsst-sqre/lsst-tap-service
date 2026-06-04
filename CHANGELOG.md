@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.18.0'></a>
+## 3.18.0 (2026-06-04)
+
+### Changed
+
+- Add support for optionally advertising VOParquet as an available format
+
 <a id='changelog-3.17.0'></a>
 ## 3.17.0 (2026-04-01)
 
