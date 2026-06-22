@@ -91,23 +91,26 @@ public class UWSInitAction extends InitAction {
     @Override
     public void doInit() {
         DataSource uws = null;
-         try {
+        try {
             uws = DBUtil.findJNDIDataSource("jdbc/uws");
             if (!schemaExists(uws, "uws")) {
                 log.debug("uws schema does not exist, creating...");
                 createSchema(uws, "uws");
                 log.debug("uws schema created");
-                // Continue with initialization only if the schema was just created
+            } else {
+                log.debug("uws schema already exists");
+            }
+            if (!tableExists(uws, "uws", "job")) {
+                log.debug("uws.Job table does not exist, initializing...");
                 InitDatabaseUWS uwsi = new InitDatabaseUWS(uws, null, "uws");
                 uwsi.doInit();
                 log.debug("init uws: OK");
             } else {
-                log.debug("uws schema already exists");
-                return; // Exit the method early if the schema already exists
+                log.debug("uws tables already exist");
             }
         } catch (Exception ex) {
             throw new RuntimeException("INIT FAIL", ex);
-        } 
+        }
     }
 
     private boolean schemaExists(DataSource uws, String schemaName) throws SQLException {
@@ -133,6 +136,26 @@ public class UWSInitAction extends InitAction {
             }
         }
         return false;
+    }
+
+    private boolean tableExists(DataSource uws, String schemaName, String tableName) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = uws.getConnection();
+            DatabaseMetaData dbMetaData = conn.getMetaData();
+            ResultSet rs = dbMetaData.getTables(null, schemaName.toLowerCase(), tableName.toLowerCase(), null);
+            return rs.next();
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to check if table exists", ex);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    log.error("Failed to close connection", e);
+                }
+            }
+        }
     }
 
     private void createSchema(DataSource uws, String schemaName) throws SQLException {
