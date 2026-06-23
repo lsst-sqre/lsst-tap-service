@@ -2,8 +2,6 @@ package org.opencadc.tap.kafka.models;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.stringtemplate.v4.compiler.CodeGenerator.primary_return;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -659,6 +657,13 @@ public class JobRun {
         private String tableName;
         private String sourceUrl;
         private String schemaUrl;
+        private String partitionType;
+        private String longitudeColName;
+        private String latitudeColName;
+        private String idColName;
+        private String refDirectorDatabase;
+        private String refDirectorTable;
+        private String refDirectorIdColName;
 
         public UploadTable() {
         }
@@ -670,38 +675,36 @@ public class JobRun {
         }
 
         public static UploadTable fromJson(JSONObject json) {
-            UploadTable uploadTable = new UploadTable();
+            UploadTable t = new UploadTable();
+            t.setTableName(json.optString("tableName", null));
+            t.setSourceUrl(json.optString("sourceUrl", null));
+            t.setSchemaUrl(json.optString("schemaUrl", null));
+            t.setPartitionType(json.optString("partitionType", null));
+            t.setLongitudeColName(json.optString("longitudeColName", null));
+            t.setLatitudeColName(json.optString("latitudeColName", null));
+            t.setIdColName(json.optString("idColName", null));
+            t.setRefDirectorDatabase(json.optString("refDirectorDatabase", null));
+            t.setRefDirectorTable(json.optString("refDirectorTable", null));
+            t.setRefDirectorIdColName(json.optString("refDirectorIdColName", null));
+            return t;
+        }
 
-            if (json.has("tableName")) {
-                uploadTable.setTableName(json.getString("tableName"));
-            }
-
-            if (json.has("sourceUrl")) {
-                uploadTable.setSourceUrl(json.getString("sourceUrl"));
-            }
-            
-            if (json.has("schemaUrl")) {
-                uploadTable.setSchemaUrl(json.getString("schemaUrl"));
-            }
-            
-            return uploadTable;
+        private static void putIfPresent(JSONObject json, String key, String value) {
+            if (value != null) json.put(key, value);
         }
 
         public JSONObject toJson() {
             JSONObject json = new JSONObject();
-
-            if (tableName != null) {
-                json.put("tableName", tableName);
-            }
-
-            if (sourceUrl != null) {
-                json.put("sourceUrl", sourceUrl);
-            }
-
-            if (schemaUrl != null) {
-                json.put("schemaUrl", schemaUrl);
-            }
-
+            putIfPresent(json, "tableName", tableName);
+            putIfPresent(json, "sourceUrl", sourceUrl);
+            putIfPresent(json, "schemaUrl", schemaUrl);
+            putIfPresent(json, "partitionType", partitionType);
+            putIfPresent(json, "longitudeColName", longitudeColName);
+            putIfPresent(json, "latitudeColName", latitudeColName);
+            putIfPresent(json, "idColName", idColName);
+            putIfPresent(json, "refDirectorDatabase", refDirectorDatabase);
+            putIfPresent(json, "refDirectorTable", refDirectorTable);
+            putIfPresent(json, "refDirectorIdColName", refDirectorIdColName);
             return json;
         }
 
@@ -729,10 +732,67 @@ public class JobRun {
             this.schemaUrl = schemaUrl;
         }
 
+        public String getPartitionType() {
+            return partitionType;
+        }
+
+        public void setPartitionType(String partitionType) {
+            this.partitionType = partitionType;
+        }
+
+        public String getLongitudeColName() {
+            return longitudeColName;
+        }
+
+        public void setLongitudeColName(String longitudeColName) {
+            this.longitudeColName = longitudeColName;
+        }
+
+        public String getLatitudeColName() {
+            return latitudeColName;
+        }
+
+        public void setLatitudeColName(String latitudeColName) {
+            this.latitudeColName = latitudeColName;
+        }
+
+        public String getIdColName() {
+            return idColName;
+        }
+
+        public void setIdColName(String idColName) {
+            this.idColName = idColName;
+        }
+
+        public String getRefDirectorDatabase() {
+            return refDirectorDatabase;
+        }
+
+        public void setRefDirectorDatabase(String refDirectorDatabase) {
+            this.refDirectorDatabase = refDirectorDatabase;
+        }
+
+        public String getRefDirectorTable() {
+            return refDirectorTable;
+        }
+
+        public void setRefDirectorTable(String refDirectorTable) {
+            this.refDirectorTable = refDirectorTable;
+        }
+
+        public String getRefDirectorIdColName() {
+            return refDirectorIdColName;
+        }
+
+        public void setRefDirectorIdColName(String refDirectorIdColName) {
+            this.refDirectorIdColName = refDirectorIdColName;
+        }
+
         @Override
         public String toString() {
             return "UploadTable{" +
                     "tableName='" + tableName + '\'' +
+                    ", partitionType='" + partitionType + '\'' +
                     ", schemaUrl='" + schemaUrl + '\'' +
                     '}';
         }
