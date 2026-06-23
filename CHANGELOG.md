@@ -6,6 +6,14 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.19.0'></a>
+## 3.19.0 (2026-06-23)
+
+### Changed
+
+- Change UWS initialization to check table existence rather than just the UWS schema 
+- Upgrade dependencies
+
 <a id='changelog-3.18.0'></a>
 ## 3.18.0 (2026-06-04)
 
