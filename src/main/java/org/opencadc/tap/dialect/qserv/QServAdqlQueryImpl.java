@@ -78,8 +78,13 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import ca.nrc.cadc.util.CaseInsensitiveStringComparator;
+import java.util.Map;
+import java.util.TreeMap;
 import org.apache.log4j.Logger;
 import org.opencadc.tap.dialect.qserv.parser.converter.QServRegionConverter;
+import org.opencadc.tap.dialect.qserv.parser.converter.SchemaNameConverter;
+import org.opencadc.tap.dialect.qserv.parser.converter.SchemaNameReferenceConverter;
 
 /**
  * TAP service implementors must implement this class and add customisations of the 
@@ -133,6 +138,24 @@ public class QServAdqlQueryImpl extends AdqlQuery
 
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
+
+        String schemaMappings = System.getProperty("tap.schema.mappings", "");
+        if (!schemaMappings.isEmpty()) {
+            Map<String, String> schemaMap = new TreeMap<>(new CaseInsensitiveStringComparator());
+            for (String mapping : schemaMappings.split(",")) {
+                String[] parts = mapping.trim().split(":");
+                if (parts.length == 2) {
+                    schemaMap.put(parts[0].trim(), parts[1].trim());
+                    log.info("schema mapping: " + parts[0].trim() + " -> " + parts[1].trim());
+                }
+            }
+            if (!schemaMap.isEmpty()) {
+                SchemaNameConverter snc = new SchemaNameConverter(schemaMap);
+                SchemaNameReferenceConverter snrc = new SchemaNameReferenceConverter(schemaMap);
+                super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), snrc, snc));
+            }
+        }
+
         super.navigatorList.add(new QServRegionConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
     }
 
