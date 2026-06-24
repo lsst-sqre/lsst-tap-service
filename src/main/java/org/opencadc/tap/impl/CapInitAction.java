@@ -161,9 +161,15 @@ public class CapInitAction extends InitAction {
 
             String outputLimit = System.getProperty("tap.outputLimit", DEFAULT_OUTPUT_LIMIT);
             String outputLimitUnit = System.getProperty("tap.outputLimitUnit", DEFAULT_OUTPUT_LIMIT_UNIT);
+            int maxAttempts = Integer.parseInt(System.getProperty("tap.sync.polling.maxAttempts", "20"));
+            int intervalMs = Integer.parseInt(System.getProperty("tap.sync.polling.intervalMs", "3000"));
+            String syncExecutionDuration = String.valueOf((maxAttempts * intervalMs) / 1000);
+
             tmpl = tmpl.replace("${tap.outputLimit}", outputLimit);
             tmpl = tmpl.replace("${tap.outputLimitUnit}", outputLimitUnit);
-            log.debug("doInit: tap.outputLimit=" + outputLimit + " tap.outputLimitUnit=" + outputLimitUnit);
+            tmpl = tmpl.replace("${tap.syncExecutionDuration}", syncExecutionDuration);
+
+            log.debug("doInit: tap.outputLimit=" + outputLimit + " tap.outputLimitUnit=" + outputLimitUnit + " tap.syncExecutionDuration=" + syncExecutionDuration);
 
             String enableVOParquet = System.getProperty("tap.enableVOParquet", "false");
             if ("true".equalsIgnoreCase(enableVOParquet)) {
@@ -178,7 +184,7 @@ public class CapInitAction extends InitAction {
             log.debug("doInit: tap.enableVOParquet=" + enableVOParquet);
 
             // validate
-            CapabilitiesReader cr = new CapabilitiesReader();
+            CapabilitiesReader cr = new CapabilitiesReader(false);
             cr.read(tmpl);
             try {
                 log.debug("unbinding possible existing template");
