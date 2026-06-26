@@ -47,10 +47,10 @@ import org.opencadc.tap.impl.context.WebAppContext;
 public class KafkaJobService {
     private static final Logger log = Logger.getLogger(KafkaJobService.class);
 
-    /**
-     * Default expiration time in minutes for job result URLs
-     */
     private static final int DEFAULT_JOB_RESULT_EXPIRATION_MINUTES = 120;
+
+    private static final UploadPartitionDetector PARTITION_DETECTOR =
+            new UploadPartitionDetector(System.getProperty("upload.partition.directors", ""));
 
     /**
      * Prepares and submits a job to Kafka for execution.
@@ -278,6 +278,10 @@ public class KafkaJobService {
 
                 if (!queryRunner.uploadTableLocations.isEmpty()) {
                     log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
+
+                    Map<String, UploadPartitionDetector.PartitionInfo> partitions =
+                            PARTITION_DETECTOR.detect(qRunner.internalSQL, queryRunner.uploadTableLocations.keySet());
+
                     for (Map.Entry<String, TableDesc.TableLocationInfo> entry : queryRunner.uploadTableLocations
                             .entrySet()) {
                         String tableName = entry.getKey();
@@ -286,6 +290,22 @@ public class KafkaJobService {
                         String sourceUrl = locationInfo.map.get("data").toString();
                         String schemaUrl = locationInfo.map.get("schema").toString();
                         UploadTable uploadTable = new UploadTable(tableName, sourceUrl, schemaUrl);
+
+                        UploadPartitionDetector.PartitionInfo pi = partitions.get(tableName);
+                        if (pi != null) {
+                            log.debug("Upload table " + tableName + " partition: " + pi);
+                            uploadTable.setPartitionType(pi.type.name());
+                            if (pi.type == UploadPartitionDetector.PartitionInfo.Type.DIRECTOR) {
+                                uploadTable.setLongitudeColName(pi.longitudeColName);
+                                uploadTable.setLatitudeColName(pi.latitudeColName);
+                            } else if (pi.type == UploadPartitionDetector.PartitionInfo.Type.DEPENDENT) {
+                                uploadTable.setIdColName(pi.idColName);
+                                uploadTable.setRefDirectorDatabase(pi.refDirectorDatabase);
+                                uploadTable.setRefDirectorTable(pi.refDirectorTable);
+                                uploadTable.setRefDirectorIdColName(pi.refDirectorIdColName);
+                            }
+                        }
+
                         info.uploadTables.add(uploadTable);
                     }
                 }
