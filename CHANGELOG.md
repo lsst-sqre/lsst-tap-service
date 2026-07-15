@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.20.0'></a>
+## 3.20.0 (2026-07-15)
+
+### Added
+
+- Add optional ucd map parameter, used for the Conesearch service to pass a flag so that we generate UCD not UCD1+ values
+
+## Changed
+
+- Enable partitioning user uploaded table automatically (fk match or scisql search)
+
 <a id='changelog-3.19.0'></a>
 ## 3.19.0 (2026-06-23)
 
