@@ -119,17 +119,21 @@ public class QServAdqlQueryImpl extends AdqlQuery
         tnc.put("tap_schema.keys", "tap_schema.keys11");
         tnc.put("tap_schema.key_columns", "tap_schema.key_columns11");
 
-        /* [DM-17021] Don't remap table names when connecting directly.
-         * This only needs to happen when we use presto.
-        tnc.put("uws.job", "uws.uws.job");
-        tnc.put("wise_00.allsky_2band_p1bm_frm", "qserv.wise_00.allsky_2band_p1bm_frm");
-        tnc.put("wise_00.allsky_3band_p1bm_frm", "qserv.wise_00.allsky_3band_p1bm_frm");
-        tnc.put("wise_00.allsky_4band_p1bm_frm", "qserv.wise_00.allsky_4band_p1bm_frm");
-        tnc.put("wise_00.allwise_p3am_cdd", "qserv.wise_00.allwise_p3am_cdd");
-        tnc.put("wise_00.allwise_p3as_cdd", "qserv.wise_00.allwise_p3as_cdd");
-        tnc.put("wise_00.allwise_p3as_mep", "qserv.wise_00.allwise_p3as_mep");
-        tnc.put("wise_00.allwise_p3as_psd", "qserv.wise_00.allwise_p3as_psd");
-         */
+        // additional table mappings configurable via phalanx values
+        String tableMappings = System.getProperty("tap.table.mappings", "");
+        if (!tableMappings.trim().isEmpty()) {
+            for (String mapping : tableMappings.split(",")) {
+                String[] parts = mapping.trim().split(":");
+                if (parts.length == 2) {
+                    String from = parts[0].trim();
+                    String to = parts[1].trim();
+                    tnc.put(from, to);
+                    log.info("table mapping: " + from + " -> " + to);
+                } else {
+                    log.warn("Invalid table mapping format: " + mapping + " (expected format: schema.table:schema.table)");
+                }
+            }
+        }
 
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
         super.navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
