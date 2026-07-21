@@ -80,7 +80,7 @@ dependencies {
     implementation 'org.opencadc:cadc-gms:[1.0.17,2.0)'
     implementation 'org.opencadc:cadc-dali-parquet:[0.5.3,)'
     implementation 'org.opencadc:cadc-rest:[1.4.3,)'
-    implementation 'org.opencadc:cadc-tap-schema:[1.2.12,)'
+    implementation 'org.opencadc:cadc-tap-schema:1.2.18'
     implementation 'org.opencadc:cadc-tap-server:[1.1.34,)'
     implementation 'org.opencadc:cadc-tap-server-pg:[1.1.5,)'
     implementation 'org.opencadc:cadc-tap-server-oracle:[1.2.11,)'
