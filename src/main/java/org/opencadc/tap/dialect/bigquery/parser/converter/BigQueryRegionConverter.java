@@ -310,8 +310,12 @@ import java.util.*;
      }
  
      private Expression getInternalMeasureFunction(Expression expression) {
-         List<Expression> measureFunctionParams = ((Function) expression).getParameters().getExpressions();
- 
+         ExpressionList parameters = ((Function) expression).getParameters();
+         if (parameters == null) {
+             return null;   // e.g. COUNT(*) has no parameter list to inspect
+         }
+         List<Expression> measureFunctionParams = parameters.getExpressions();
+
          return measureFunctionParams
                  .stream()
                  .filter(exp -> isFunction(exp) && MEASURE_FUNCTIONS.contains(((Function) exp).getName()))
