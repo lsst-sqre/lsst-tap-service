@@ -308,7 +308,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             Boolean skipExecutionId = false;
 
             if (status.getExecutionID() != null && !status.getExecutionID().trim().isEmpty()) {
-                metadata.add(new Result("executionId", URI.create(status.getExecutionID())));
+                metadata.add(new Result("executionId", URI.create("execid:" + status.getExecutionID())));
             } else {
                 log.warn("ExecutionID is null or empty for job: " + status.getJobID());
             }

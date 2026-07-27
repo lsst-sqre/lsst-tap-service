@@ -170,7 +170,7 @@ public class KafkaJobService {
         if (job.getResultsList() != null) {
             for (Result result : job.getResultsList()) {
                 if (result.getName().equals("executionId")) {
-                    executionId = result.getURI().toString();
+                    executionId = result.getURI().getSchemeSpecificPart();
                 }
             }
         }
