@@ -89,8 +89,8 @@
       <hard>604800</hard>
     </retentionPeriod>
     <executionDuration>
-      <default>600</default>
-      <hard>600</hard>
+      <default>${tap.maxExecutionDuration}</default>
+      <hard>${tap.maxExecutionDuration}</hard>
     </executionDuration>
     <outputLimit>
       <default unit="${tap.outputLimitUnit}">${tap.outputLimit}</default>

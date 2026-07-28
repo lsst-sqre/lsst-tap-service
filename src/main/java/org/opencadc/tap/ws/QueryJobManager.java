@@ -18,10 +18,17 @@ import ca.nrc.cadc.uws.server.RandomStringGenerator;
  * @author pdowler
  */
 public class QueryJobManager extends SimpleJobManager {
-    private static final long MAX_EXEC_DURATION = 4 * 3600L;    // 4 hours to dump a catalog to vpsace
-    private static final long MAX_DESTRUCTION = 7 * 24 * 60 * 60L; // 1 week
-    private static final long MAX_QUOTE = 24 * 3600L;         // 24 hours since we have a threadpool with
+    private static final long DEFAULT_MAX_EXEC_DURATION = 4 * 3600L;
+    private static final long DEFAULT_MAX_DESTRUCTION = 7 * 24 * 60 * 60L; // 1 week
+    private static final long DEFAULT_MAX_QUOTE = 24 * 3600L; // 24 hours since we have a threadpool with
     // queued jobs
+
+    private static final long MAX_EXEC_DURATION = Long.parseLong(
+            System.getProperty("tap.maxExecutionDuration", String.valueOf(DEFAULT_MAX_EXEC_DURATION)));
+    private static final long MAX_DESTRUCTION = Long.parseLong(
+            System.getProperty("tap.maxDestruction", String.valueOf(DEFAULT_MAX_DESTRUCTION)));
+    private static final long MAX_QUOTE = Long.parseLong(
+            System.getProperty("tap.maxQuote", String.valueOf(DEFAULT_MAX_QUOTE)));
 
     public QueryJobManager() {
         super();
@@ -32,7 +39,7 @@ public class QueryJobManager extends SimpleJobManager {
 
         // max threads: 6 == number of simultaneously running async queries (per
         // web server), plus sync queries, plus VOSI-tables queries
-        
+
         final JobExecutor jobExec = KafkaJobExecutorFactory.createExecutor(jobPersist, RubinQueryRunner.class, jobPersist);
 
         super.setJobPersistence(jobPersist);
