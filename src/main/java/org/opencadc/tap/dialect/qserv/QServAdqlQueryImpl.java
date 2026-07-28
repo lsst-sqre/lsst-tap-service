@@ -125,12 +125,13 @@ public class QServAdqlQueryImpl extends AdqlQuery
             for (String mapping : tableMappings.split(",")) {
                 String[] parts = mapping.trim().split(":");
                 if (parts.length == 2) {
-                    String from = parts[0].trim();
-                    String to = parts[1].trim();
-                    tnc.put(from, to);
-                    log.info("table mapping: " + from + " -> " + to);
+                    String visibleName = parts[0].trim();
+                    String backendName = parts[1].trim();
+                    tnc.put(visibleName, backendName);
+                    log.info("table mapping (visible -> backend): " + visibleName + " -> " + backendName);
                 } else {
-                    log.warn("Invalid table mapping format: " + mapping + " (expected format: schema.table:schema.table)");
+                    log.warn("Invalid table mapping format: " + mapping
+                            + " (expected format: visible.schema.table:backend.schema.table)");
                 }
             }
         }
