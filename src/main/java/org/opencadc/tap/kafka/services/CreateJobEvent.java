@@ -77,7 +77,7 @@ public class CreateJobEvent implements AutoCloseable {
 
     /**
      * Submit a query to be executed with optional parameters
-     * 
+     *
      * @param query             SQL query to execute
      * @param jobID             Specific job identifier
      * @param resultDestination Result destination for the query
@@ -91,8 +91,33 @@ public class CreateJobEvent implements AutoCloseable {
      * @throws InterruptedException if the operation is interrupted
      */
     public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
-            ResultFormat resultFormat, String ownerID, String database, Integer maxrec, 
+            ResultFormat resultFormat, String ownerID, String database, Integer maxrec,
             List<UploadTable> uploadTables)
+            throws ExecutionException, InterruptedException {
+        return submitQuery(query, jobID, resultDestination, resultLocation, resultFormat, ownerID,
+                database, maxrec, uploadTables, null);
+    }
+
+    /**
+     * Submit a query to be executed with optional parameters, including an execution timeout.
+     *
+     * @param query             SQL query to execute
+     * @param jobID             Specific job identifier
+     * @param resultDestination Result destination for the query
+     * @param resultLocation    Optional custom result location
+     * @param resultFormat      Optional custom result format
+     * @param ownerID           Owner identifier
+     * @param database          Optional database to query
+     * @param maxrec            Optional maximum number of records
+     * @param uploadTables      Optional list of upload tables
+     * @param timeout           Optional query execution timeout, in seconds
+     * @return Job ID for the submitted query
+     * @throws ExecutionException   if sending to Kafka fails
+     * @throws InterruptedException if the operation is interrupted
+     */
+    public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
+            ResultFormat resultFormat, String ownerID, String database, Integer maxrec,
+            List<UploadTable> uploadTables, Integer timeout)
             throws ExecutionException, InterruptedException {
 
         if (closed.get()) {
@@ -126,6 +151,7 @@ public class CreateJobEvent implements AutoCloseable {
                     .setResultFormat(resultFormat)
                     .setDatabase(database)
                     .setUploadTables(uploadTables)
+                    .setTimeout(timeout)
                     .build();
 
             String jsonString = jobRun.toJsonString();

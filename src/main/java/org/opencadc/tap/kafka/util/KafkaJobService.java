@@ -32,7 +32,6 @@ import org.opencadc.tap.impl.StorageUtils;
 import org.opencadc.tap.kafka.models.JobRun.UploadTable;
 import org.opencadc.tap.kafka.models.OutputFormat;
 import org.opencadc.tap.kafka.models.JobRun;
-import org.opencadc.tap.kafka.util.DatabaseNameUtil;
 import org.opencadc.tap.kafka.services.CreateDeleteEvent;
 import org.opencadc.tap.kafka.services.CreateJobEvent;
 import org.opencadc.tap.impl.context.WebAppContext;
@@ -47,7 +46,15 @@ import org.opencadc.tap.impl.context.WebAppContext;
 public class KafkaJobService {
     private static final Logger log = Logger.getLogger(KafkaJobService.class);
 
-    private static final int DEFAULT_JOB_RESULT_EXPIRATION_MINUTES = 120;
+    // Buffer added on top of the max execution duration
+    // Accounts for qserv-kafka result processing time
+    private static final int RESULT_DELIVERY_BUFFER_MINUTES = 60;
+
+    // Derived from "tap.maxExecutionDuration" (same property as QueryJobManager)
+    // We want to make sure the signed result URL lifetime is longer than the max query time.
+    private static final int DEFAULT_JOB_RESULT_EXPIRATION_MINUTES =
+            (int) (Long.parseLong(System.getProperty("tap.maxExecutionDuration", "14400")) / 60)
+            + RESULT_DELIVERY_BUFFER_MINUTES;
 
     private static final UploadPartitionDetector PARTITION_DETECTOR =
             new UploadPartitionDetector(System.getProperty("upload.partition.directors", ""));
@@ -107,7 +114,8 @@ public class KafkaJobService {
                     jobInfo.ownerID,
                     databaseString,
                     jobInfo.maxrec,
-                    jobInfo.uploadTables);
+                    jobInfo.uploadTables,
+                    jobInfo.timeout);
 
             log.debug("Job sent to Kafka successfully with event ID: " + eventJobId);
 
@@ -274,6 +282,11 @@ public class KafkaJobService {
             info.resultFormat = VOTableUtil.createResultFormat(job.getID(), queryRunner, format);
             info.maxrec = queryRunner.maxRows;
 
+            Long executionDuration = job.getExecutionDuration();
+            if (executionDuration != null && executionDuration > 0) {
+                info.timeout = executionDuration.intValue();
+            }
+
             try {
 
                 if (!queryRunner.uploadTableLocations.isEmpty()) {
@@ -346,6 +359,7 @@ public class KafkaJobService {
         JobRun.ResultFormat resultFormat = null;
         String ownerID = "";
         Integer maxrec = null;
+        Integer timeout = null;
         List<UploadTable> uploadTables = new ArrayList<>();
     }
 
