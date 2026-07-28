@@ -6,6 +6,21 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.21.0'></a>
+## 3.21.0 (2026-07-28)
+
+### Added
+
+- QServAdqlQueryImpl.java reads `tap.table.mappings` (comma-separated `visible:backend` pairs, where `visible` is the Felis/TAP_SCHEMA table name that appears in user queries and `backend` is the true Qserv table name) and additively feeds it into the existing TAP_SCHEMA mappings.
+
+### Changed
+
+- Add execid prefx to UWS output for qserv executionID
+
+### Fixed
+
+- Fix bug in BigQuery translator when query includes a HAVING COUNT(*) > .. expression
+
 <a id='changelog-3.20.0'></a>
 ## 3.20.0 (2026-07-15)
 
