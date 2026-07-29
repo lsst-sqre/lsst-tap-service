@@ -69,7 +69,9 @@
 package org.opencadc.tap.dialect.bigquery.expression;
 
 import ca.nrc.cadc.tap.parser.BaseExpressionDeParser;
+import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
+import org.opencadc.tap.dialect.bigquery.parser.BigQueryQuerySelectDeParser;
 
 public class BigQueryExpressionDeParser extends BaseExpressionDeParser {
     public BigQueryExpressionDeParser(SelectVisitor selectVisitor, StringBuffer buffer) {
@@ -78,5 +80,14 @@ public class BigQueryExpressionDeParser extends BaseExpressionDeParser {
 
     void visit(BigQueryKeywordExpression expression) {
         buffer.append(expression.toString());
+    }
+
+    /**
+     * Covers columns deparsed inside expressions (WHERE, HAVING, join ON).
+     */
+    @Override
+    public void visit(Column tableColumn) {
+        BigQueryQuerySelectDeParser.normalizeColumnQuotes(tableColumn);
+        super.visit(tableColumn);
     }
 }
