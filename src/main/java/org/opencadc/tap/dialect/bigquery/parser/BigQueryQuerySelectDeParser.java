@@ -87,14 +87,30 @@ import net.sf.jsqlparser.statement.select.SelectExpressionItem;
          Expression selectExpression = selectExpressionItem.getExpression();
  
          if (selectExpression instanceof Column) {
-             String normalizedColumnName = ((Column) selectExpression).getColumnName().replaceAll("\"", "");
-             ((Column) selectExpression).setColumnName(normalizedColumnName);
+             normalizeColumnQuotes((Column) selectExpression);
          }
- 
+
          if (selectExpressionItem instanceof BigQueryColumnAliasSelectItem) {
              getBuffer().append(selectExpressionItem);
          } else {
              super.visit(selectExpressionItem);
          }
+     }
+
+     /**
+      * Covers columns deparsed outside the select list (GROUP BY, ORDER BY).
+      */
+     @Override
+     public void visit(Column column) {
+         normalizeColumnQuotes(column);
+         super.visit(column);
+     }
+
+     /**
+      * ADQL delimited identifiers are double-quoted, but BigQuery reads double
+      * quotes as string literals.
+      */
+     public static void normalizeColumnQuotes(Column column) {
+         column.setColumnName(column.getColumnName().replaceAll("\"", ""));
      }
  }
