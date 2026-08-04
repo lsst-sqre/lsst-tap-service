@@ -6,6 +6,17 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.22.0'></a>
+## 3.22.0 (2026-08-04)
+
+### Added
+
+- Add jobInfo to UWS job metadata that includes progress information
+
+### Changed
+
+- Forward UWS execution duration to qserv-kafka and make timeout & URL expiration limits configurable via system properties
+
 <a id='changelog-3.21.0'></a>
 ## 3.21.0 (2026-07-28)
 
