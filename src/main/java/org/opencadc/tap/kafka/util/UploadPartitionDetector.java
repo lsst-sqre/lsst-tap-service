@@ -259,6 +259,7 @@ public class UploadPartitionDetector {
             Map<String, String> uploadAliases, Map<String, String[]> otherAliases,
             Map<String, PartitionInfo> result) {
 
+        // Does (lon1, lat1) identify an upload table column pair?
         if (!(lon1 instanceof Column) || !(lat1 instanceof Column)) {
             return;
         }
@@ -266,55 +267,80 @@ public class UploadPartitionDetector {
         Column lonCol = (Column) lon1;
         Column latCol = (Column) lat1;
 
-        if (lonCol.getTable() == null || latCol.getTable() == null) {
+        String lonAlias = tableAlias(lonCol);
+        String latAlias = tableAlias(latCol);
+
+        if (lonAlias == null || latAlias == null) {
             return;
         }
-
-        String lonAlias = lonCol.getTable().getName().toLowerCase();
-        String latAlias = latCol.getTable().getName().toLowerCase();
 
         if (!lonAlias.equals(latAlias)) {
             return;
         }
 
-        if (lon2 != null) {
+        String uploadTable = uploadAliases.get(lonAlias);
+        if (uploadTable == null || result.containsKey(uploadTable)) {
+            return;
+        }
 
-            if (lon2 instanceof Column && lat2 instanceof Column) {
+        // Try to confirm the other side of the spatial predicate is a known
+        // director table. Need to handle both qualified and unqualified columns.
+        if (lon2 instanceof Column && lat2 instanceof Column) {
+            Column lonCol2 = (Column) lon2;
+            Column latCol2 = (Column) lat2;
 
-                Column lonCol2 = (Column) lon2;
-                Column latCol2 = (Column) lat2;
+            String lonAlias2 = resolveOtherAlias(lonCol2, otherAliases);
+            String latAlias2 = resolveOtherAlias(latCol2, otherAliases);
+            boolean explicitlyQualified = tableAlias(lonCol2) != null && tableAlias(latCol2) != null;
 
-                if (lonCol2.getTable() == null || latCol2.getTable() == null) {
+            if (lonAlias2 == null || latAlias2 == null || !lonAlias2.equals(latAlias2)) {
+                if (explicitlyQualified) {
                     return;
                 }
-
-                String lonAlias2 = lonCol2.getTable().getName().toLowerCase();
-                String latAlias2 = latCol2.getTable().getName().toLowerCase();
-
-                if (!lonAlias2.equals(latAlias2)) {
-                    return;
-                }
-
-                if (!otherAliases.containsKey(lonAlias2)) {
-                    return;
-                }
-
-                String key = otherAliases.get(lonAlias2)[0].toLowerCase() + "."
-                        + otherAliases.get(lonAlias2)[1].toLowerCase();
+                // Ambiguous unqualified with no single
+                // candidate to infer, so fall through and register based on (lon1, lat1) alone.
+            } else {
+                String[] otherTable = otherAliases.get(lonAlias2);
+                String key = otherTable[0].toLowerCase() + "." + otherTable[1].toLowerCase();
                 if (!directors.containsKey(key)) {
+                    // Resolved to a specific catalog table that isn't configured
+                    // as a director.
                     return;
                 }
-
+                log.debug("Confirmed director partition for " + uploadTable + " against " + key);
             }
         }
 
-        String uploadTable = uploadAliases.get(lonAlias);
-        if (uploadTable != null && !result.containsKey(uploadTable)) {
-            log.debug("Detected director partition for " + uploadTable
-                    + ": lon=" + lonCol.getColumnName() + ", lat=" + latCol.getColumnName());
-            result.put(uploadTable, PartitionInfo.director(lonCol.getColumnName(), latCol.getColumnName()));
-        }
+        log.debug("Detected director partition for " + uploadTable
+                + ": lon=" + lonCol.getColumnName() + ", lat=" + latCol.getColumnName());
+        result.put(uploadTable, PartitionInfo.director(lonCol.getColumnName(), latCol.getColumnName()));
+    }
 
+    /**
+     * Resolve the table alias for a column that appears on the non-upload side of
+     * a spatial function. If the column is already qualified, use that qualifier,
+     * otherwise, if we have one non-upload table assume the
+     * column belongs to it.
+     */
+    private String resolveOtherAlias(Column c, Map<String, String[]> otherAliases) {
+        String alias = tableAlias(c);
+        if (alias != null) {
+            return otherAliases.containsKey(alias) ? alias : null;
+        }
+        if (otherAliases.size() == 1) {
+            return otherAliases.keySet().iterator().next();
+        }
+        return null;
+    }
+
+    /**
+     * Null-safe table alias lookup for a column.
+     */
+    private String tableAlias(Column c) {
+        if (c.getTable() == null || c.getTable().getName() == null) {
+            return null;
+        }
+        return c.getTable().getName().toLowerCase();
     }
 
     private void checkSpatialColumns(Expression lon1, Expression lat1,
@@ -373,15 +399,15 @@ public class UploadPartitionDetector {
         }
         Column uploadCol = (Column) uploadSide;
         Column dirCol = (Column) directorSide;
-        if (uploadCol.getTable() == null || dirCol.getTable() == null) {
+        String uploadAlias = tableAlias(uploadCol);
+        String dirAlias = tableAlias(dirCol);
+        if (uploadAlias == null || dirAlias == null) {
             return;
         }
-        String uploadAlias = uploadCol.getTable().getName().toLowerCase();
         String uploadTable = uploadAliases.get(uploadAlias);
         if (uploadTable == null || result.containsKey(uploadTable)) {
             return;
         }
-        String dirAlias = dirCol.getTable().getName().toLowerCase();
         String[] dirTableInfo = otherAliases.get(dirAlias);
         if (dirTableInfo == null) {
             return;
