@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.23.0'></a>
+## 3.23.0 (2026-08-20)
+
+### Fixed
+
+- Correctly handle unqualified column references for upload table queries
+
 <a id='changelog-3.22.0'></a>
 ## 3.22.0 (2026-08-04)
 
