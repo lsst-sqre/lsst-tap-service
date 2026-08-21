@@ -233,7 +233,7 @@ public class UploadPartitionDetector {
         if (expr instanceof Function) {
             Function func = (Function) expr;
             String name = func.getName().toLowerCase();
-            boolean isSpatial = name.equals("scisql_angsep");
+            boolean isSpatial = name.equals("scisql_angsep") || name.equals("scisql_s2ptincircle");
             if (isSpatial && func.getParameters() != null) {
                 List<Expression> args = func.getParameters().getExpressions();
                 if (args.size() >= 4 && (name.equals("scisql_s2ptincircle") || name.equals("scisql_angsep"))) {
