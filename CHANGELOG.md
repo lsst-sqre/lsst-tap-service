@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.24.0'></a>
+## 3.24.0 (2026-08-21)
+
+### Changed
+
+- Point in Circle added as a pattern that triggers uploaded table partitioning
+
 <a id='changelog-3.23.0'></a>
 ## 3.23.0 (2026-08-20)
 
