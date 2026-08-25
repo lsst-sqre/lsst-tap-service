@@ -100,6 +100,17 @@ public class StorageUtils {
      * Unified method to generate signed URLs for GCS and S3
      */
     public static String getSignedUrl(String filename, HttpMethod httpMethod, double expirationHours) {
+        return getSignedUrl(filename, httpMethod, expirationHours, null);
+    }
+
+    /**
+     * Unified method to generate signed URLs for GCS and S3.
+     *
+     * @param contentType Content type to bind into the signature for an S3 PUT
+     *                    request.
+     */
+    public static String getSignedUrl(String filename, HttpMethod httpMethod, double expirationHours,
+            String contentType) {
         if (isS3Storage()) {
             try (S3Presigner presigner = getS3Presigner()) {
                 if (httpMethod == HttpMethod.GET) {
@@ -118,13 +129,15 @@ public class StorageUtils {
                     return presigned.url().toString();
 
                 } else if (httpMethod == HttpMethod.PUT) {
-                    PutObjectRequest putRequest = PutObjectRequest.builder()
+                    PutObjectRequest.Builder putRequestBuilder = PutObjectRequest.builder()
                             .bucket(bucket)
-                            .key(filename)
-                            .build();
+                            .key(filename);
+                    if (contentType != null) {
+                        putRequestBuilder.contentType(contentType);
+                    }
 
                     PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                            .putObjectRequest(putRequest)
+                            .putObjectRequest(putRequestBuilder.build())
                             .signatureDuration(Duration.ofMillis((long) (expirationHours * 3600 * 1000)))
                             .build();
 
@@ -174,7 +187,7 @@ public class StorageUtils {
         if (isS3Storage()) {
             // Convert validMinutes to hours fraction
             double expirationHours = validMinutes / 60.0;
-            return getSignedUrl(objectName, HttpMethod.PUT, expirationHours);
+            return getSignedUrl(objectName, HttpMethod.PUT, expirationHours, contentType);
         } else {
             try {
                 Storage storage = StorageOptions.getDefaultInstance().getService();

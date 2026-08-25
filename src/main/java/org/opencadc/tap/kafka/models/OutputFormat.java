@@ -10,7 +10,7 @@ public final class OutputFormat {
     private final String serialization;
 
     public static final OutputFormat VOTABLE =
-        new OutputFormat("VOTable", "application/x-votable+xml", "xml", "BINARY2");
+        new OutputFormat("VOTable", "application/x-votable+xml; serialization=binary2", "xml", "BINARY2");
 
     public static final OutputFormat PARQUET =
         new OutputFormat("Parquet", "application/vnd.apache.parquet", "parquet", null);
