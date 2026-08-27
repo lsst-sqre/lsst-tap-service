@@ -6,6 +6,14 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.25.0'></a>
+## 3.25.0 (2026-08-27)
+
+### Fixed
+
+- Always send through the content type to the result signed URLs
+- Correct the content type to add the serialization, matching what qserv-kafka uses
+
 <a id='changelog-3.24.0'></a>
 ## 3.24.0 (2026-08-21)
 
