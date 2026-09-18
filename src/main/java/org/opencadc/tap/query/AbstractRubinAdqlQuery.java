@@ -1,5 +1,7 @@
 package org.opencadc.tap.query;
 
+import org.opencadc.tap.config.TapConfig;
+
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.parser.PgsphereDeParser;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
@@ -9,6 +11,7 @@ import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
+import org.apache.log4j.Logger;
 
 /**
  * Base class for the Rubin ADQL query implementations that target a
@@ -18,6 +21,7 @@ import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
  * region converter and any extra table-name mappings.
  */
 public abstract class AbstractRubinAdqlQuery extends AdqlQuery {
+    private static final Logger log = Logger.getLogger(AbstractRubinAdqlQuery.class);
 
     protected AbstractRubinAdqlQuery() {
         super();
@@ -65,6 +69,33 @@ public abstract class AbstractRubinAdqlQuery extends AdqlQuery {
      */
     protected void configureTableNameConverter(TableNameConverter tnc) {
         // no-op by default
+    }
+
+    /**
+     * Parse the {@code tap.table.mappings} configuration (comma-separated
+     * {@code visible:backend} pairs, e.g. {@code ppdb.mpc_orbits:project.dataset.mpc_orbits})
+     * and add each entry to the given converter. This lets new backend tables be
+     * exposed under a TAP-visible name via phalanx values.
+     *
+     * @param tnc the converter to add mappings to
+     */
+    public static void applyConfiguredTableMappings(TableNameConverter tnc) {
+        String tableMappings = TapConfig.tableMappings();
+        if (tableMappings.trim().isEmpty()) {
+            return;
+        }
+        for (String mapping : tableMappings.split(",")) {
+            String[] parts = mapping.trim().split(":");
+            if (parts.length == 2) {
+                String visibleName = parts[0].trim();
+                String backendName = parts[1].trim();
+                tnc.put(visibleName, backendName);
+                log.info("table mapping (visible -> backend): " + visibleName + " -> " + backendName);
+            } else {
+                log.warn("Invalid table mapping format: " + mapping
+                        + " (expected format: visible.schema.table:backend.schema.table)");
+            }
+        }
     }
 
     /**

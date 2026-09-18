@@ -69,14 +69,11 @@
 
 package org.opencadc.tap.query.qserv;
 
-import org.opencadc.tap.config.TapConfig;
-
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
 import ca.nrc.cadc.tap.parser.navigator.ExpressionNavigator;
 import ca.nrc.cadc.tap.parser.navigator.FromItemNavigator;
 import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import ca.nrc.cadc.tap.parser.navigator.SelectNavigator;
-import org.apache.log4j.Logger;
 import org.opencadc.tap.query.AbstractRubinAdqlQuery;
 import org.opencadc.tap.query.qserv.parser.converter.QServRegionConverter;
 
@@ -86,7 +83,6 @@ import org.opencadc.tap.query.qserv.parser.converter.QServRegionConverter;
  * configured via the {@code tap.table.mappings} system property.
  */
 public class QServAdqlQuery extends AbstractRubinAdqlQuery {
-    private static final Logger log = Logger.getLogger(QServAdqlQuery.class);
 
     public QServAdqlQuery() {
         super();
@@ -94,23 +90,7 @@ public class QServAdqlQuery extends AbstractRubinAdqlQuery {
 
     @Override
     protected void configureTableNameConverter(TableNameConverter tnc) {
-        // additional table mappings configurable via phalanx values
-        String tableMappings = TapConfig.tableMappings();
-        if (tableMappings.trim().isEmpty()) {
-            return;
-        }
-        for (String mapping : tableMappings.split(",")) {
-            String[] parts = mapping.trim().split(":");
-            if (parts.length == 2) {
-                String visibleName = parts[0].trim();
-                String backendName = parts[1].trim();
-                tnc.put(visibleName, backendName);
-                log.info("table mapping (visible -> backend): " + visibleName + " -> " + backendName);
-            } else {
-                log.warn("Invalid table mapping format: " + mapping
-                        + " (expected format: visible.schema.table:backend.schema.table)");
-            }
-        }
+        applyConfiguredTableMappings(tnc);
     }
 
     @Override
