@@ -62,6 +62,7 @@ public class CreateJobEvent implements AutoCloseable {
      * Submit a query to be executed with a specific job ID
      * 
      * @param query             SQL query to execute
+     * @param adqlQuery          ADQL query to execute
      * @param jobID             Specific job identifier
      * @param resultDestination Result destination for the query
      * @param resultFormat      Optional custom result format
@@ -69,16 +70,17 @@ public class CreateJobEvent implements AutoCloseable {
      * @throws ExecutionException   if sending to Kafka fails
      * @throws InterruptedException if the operation is interrupted
      */
-    public String submitQuery(String query, String jobID, String resultDestination, ResultFormat resultFormat)
+    public String submitQuery(String query, String adqlQuery, String jobID, String resultDestination, ResultFormat resultFormat)
             throws ExecutionException, InterruptedException {
 
-        return submitQuery(query, jobID, resultDestination, null, resultFormat, null, null, null, null);
+        return submitQuery(query, adqlQuery, jobID, resultDestination, null, resultFormat, null, null, null, null);
     }
 
     /**
      * Submit a query to be executed with optional parameters
      *
      * @param query             SQL query to execute
+     * @param adqlQuery          ADQL query to execute
      * @param jobID             Specific job identifier
      * @param resultDestination Result destination for the query
      * @param resultLocation    Optional custom result location
@@ -90,11 +92,11 @@ public class CreateJobEvent implements AutoCloseable {
      * @throws ExecutionException   if sending to Kafka fails
      * @throws InterruptedException if the operation is interrupted
      */
-    public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
+    public String submitQuery(String query, String adqlQuery, String jobID, String resultDestination, String resultLocation,
             ResultFormat resultFormat, String ownerID, String database, Integer maxrec,
             List<UploadTable> uploadTables)
             throws ExecutionException, InterruptedException {
-        return submitQuery(query, jobID, resultDestination, resultLocation, resultFormat, ownerID,
+        return submitQuery(query, adqlQuery, jobID, resultDestination, resultLocation, resultFormat, ownerID,
                 database, maxrec, uploadTables, null);
     }
 
@@ -102,6 +104,7 @@ public class CreateJobEvent implements AutoCloseable {
      * Submit a query to be executed with optional parameters, including an execution timeout.
      *
      * @param query             SQL query to execute
+     * @param adqlQuery          ADQL query to execute
      * @param jobID             Specific job identifier
      * @param resultDestination Result destination for the query
      * @param resultLocation    Optional custom result location
@@ -115,7 +118,7 @@ public class CreateJobEvent implements AutoCloseable {
      * @throws ExecutionException   if sending to Kafka fails
      * @throws InterruptedException if the operation is interrupted
      */
-    public String submitQuery(String query, String jobID, String resultDestination, String resultLocation,
+    public String submitQuery(String query, String adqlQuery, String jobID, String resultDestination, String resultLocation,
             ResultFormat resultFormat, String ownerID, String database, Integer maxrec,
             List<UploadTable> uploadTables, Integer timeout)
             throws ExecutionException, InterruptedException {
@@ -144,6 +147,7 @@ public class CreateJobEvent implements AutoCloseable {
             JobRun jobRun = JobRun.newBuilder()
                     .setJobID(jobID)
                     .setQuery(query)
+                    .setAdqlQuery(adqlQuery)
                     .setMaxrec(maxrec)
                     .setOwnerID(ownerID)
                     .setResultDestination(resultDestination)

@@ -41,6 +41,7 @@ import ca.nrc.cadc.vosi.TAPRegExtParser;
 public class CreateJobEventTest {
     private static final Logger log = Logger.getLogger(CreateJobEventTest.class);
 
+    private static final String TEST_ADQL_QUERY = "SELECT * FROM test_table";
     private static final String TEST_QUERY = "SELECT * FROM test_table";
     private static final String TEST_JOB_ID = "k51tn910ak8wuc2z";
     private static final String TEST_OWNER_ID = "bot-mobu-tap";
@@ -138,6 +139,7 @@ public class CreateJobEventTest {
 
         String result = createJobEvent.submitQuery(
                 TEST_QUERY,
+                TEST_ADQL_QUERY,
                 TEST_JOB_ID,
                 TEST_RESULT_DESTINATION,
                 TEST_RESULT_LOCATION,
@@ -164,6 +166,8 @@ public class CreateJobEventTest {
                 assertEquals(TEST_JOB_ID, jsonMessage.getString("jobID"));
                 assertEquals(TEST_RESULT_DESTINATION, jsonMessage.getString("resultDestination"));
                 assertEquals(TEST_RESULT_LOCATION, jsonMessage.getString("resultLocation"));
+                assertEquals(TEST_QUERY, jsonMessage.getString("query"));
+                assertEquals(TEST_ADQL_QUERY, jsonMessage.getString("adqlQuery"));
                 assertEquals(TEST_QUERY, jsonMessage.getString("query"));
                 assertEquals(TEST_OWNER_ID, jsonMessage.getString("ownerID"));
                 assertEquals(TEST_DATABASE, jsonMessage.getString("database"));
@@ -210,6 +214,7 @@ public class CreateJobEventTest {
 
         createJobEvent.submitQuery(
                 TEST_QUERY,
+                TEST_ADQL_QUERY,
                 null,
                 TEST_RESULT_DESTINATION,
                 resultFormat);
@@ -224,6 +229,7 @@ public class CreateJobEventTest {
 
         createJobEvent.submitQuery(
                 TEST_QUERY,
+                TEST_ADQL_QUERY,
                 TEST_JOB_ID,
                 "",
                 resultFormat);
@@ -242,6 +248,7 @@ public class CreateJobEventTest {
 
         String result = createJobEvent.submitQuery(
                 TEST_QUERY,
+                TEST_ADQL_QUERY,
                 TEST_JOB_ID + "-close",
                 TEST_RESULT_DESTINATION,
                 TEST_RESULT_LOCATION,
@@ -259,6 +266,7 @@ public class CreateJobEventTest {
         try {
             createJobEvent.submitQuery(
                     TEST_QUERY,
+                    TEST_ADQL_QUERY,
                     TEST_JOB_ID + "-close-2",
                     TEST_RESULT_DESTINATION,
                     TEST_RESULT_LOCATION,

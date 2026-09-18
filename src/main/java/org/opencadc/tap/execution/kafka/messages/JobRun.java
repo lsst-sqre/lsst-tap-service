@@ -14,6 +14,7 @@ public class JobRun {
 
     private String jobID;
     private String query;
+    private String adqlQuery;
     private Integer maxrec;
     private String database;
     private String ownerID;
@@ -32,9 +33,10 @@ public class JobRun {
     /**
      * Constructor with required fields
      */
-    public JobRun(String jobID, String query, String ownerID, String resultDestination, ResultFormat resultFormat) {
+    public JobRun(String jobID, String query, String adqlQuery, String ownerID, String resultDestination, ResultFormat resultFormat) {
         this.jobID = jobID;
         this.query = query;
+        this.adqlQuery = adqlQuery;
         this.ownerID = ownerID;
         this.resultDestination = resultDestination;
         this.resultFormat = resultFormat;
@@ -54,7 +56,11 @@ public class JobRun {
         if (json.has("query")) {
             jobRun.setQuery(json.getString("query"));
         }
-
+        
+        if (json.has("adqlQuery")) {
+            jobRun.setAdqlQuery(json.getString("adqlQuery"));
+        }
+        
         if (json.has("maxrec")) {
             jobRun.setMaxrec(json.getInt("maxrec"));
         }
@@ -95,6 +101,7 @@ public class JobRun {
         return jobRun;
     }
 
+
     /**
      * Convert to JSON
      */
@@ -103,6 +110,7 @@ public class JobRun {
 
         json.put("jobID", jobID);
         json.put("query", query);
+        json.put("adqlQuery", adqlQuery);
         json.put("maxrec", maxrec);
         json.put("ownerID", ownerID);
         json.put("resultDestination", resultDestination);
@@ -154,6 +162,14 @@ public class JobRun {
         this.query = query;
     }
 
+    public String getAdqlQuery() {
+        return adqlQuery;
+    }
+
+    public void setAdqlQuery(String adqlQuery) {
+        this.adqlQuery = adqlQuery;
+    }
+    
     public Integer getMaxrec() {
         return maxrec;
     }
@@ -238,6 +254,7 @@ public class JobRun {
     public static class Builder {
         private String jobID;
         private String query;
+        private String adqlQuery;
         private Integer maxrec;
         private String database;
         private String ownerID;
@@ -257,6 +274,11 @@ public class JobRun {
 
         public Builder setQuery(String query) {
             this.query = query;
+            return this;
+        }
+
+        public Builder setAdqlQuery(String adqlQuery) {
+            this.adqlQuery = adqlQuery;
             return this;
         }
 
@@ -309,7 +331,7 @@ public class JobRun {
         }
 
         public JobRun build() {
-            JobRun jobRun = new JobRun(jobID, query, ownerID, resultDestination, resultFormat);
+            JobRun jobRun = new JobRun(jobID, query, adqlQuery, ownerID, resultDestination, resultFormat);
             jobRun.setDatabase(database);
             jobRun.setResultLocation(resultLocation);
             jobRun.setMaxrec(maxrec);
@@ -324,6 +346,7 @@ public class JobRun {
         return "JobRun{" +
                 "jobID='" + jobID + '\'' +
                 ", query='" + query + '\'' +
+                ", adqlQuery='" + adqlQuery + '\'' +
                 ", maxrec='" + maxrec + '\'' +
                 ", database='" + database + '\'' +
                 ", ownerID='" + ownerID + '\'' +

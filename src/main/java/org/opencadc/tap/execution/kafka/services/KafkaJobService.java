@@ -112,6 +112,7 @@ public class KafkaJobService {
             // Submit job to Kafka
             String eventJobId = createJobEventService.submitQuery(
                     jobInfo.sql,
+                    jobInfo.adqlQuery,
                     jobId,
                     jobInfo.resultDestination,
                     jobInfo.resultLocation,
@@ -279,6 +280,7 @@ public class KafkaJobService {
             KafkaQueryRunner qRunner = (KafkaQueryRunner) jobRunner;
             QueryRunner queryRunner = (QueryRunner) jobRunner;
             info.sql = qRunner.internalSQL;
+            info.adqlQuery = extractAdqlQuery(job);
             OutputFormat format = extractFormat(job);
 
             info.resultDestination = StorageUtils.generateJobResultSignedUrl(
@@ -336,8 +338,26 @@ public class KafkaJobService {
     }
     
     /**
+     * Extract the original ADQL query text from job parameters.
+     *
+     * @param job The job
+     * @return The ADQL query string, or null if not specified
+     */
+    private static String extractAdqlQuery(Job job) {
+        List<Parameter> params = job.getParameterList();
+        if (params != null) {
+            for (Parameter param : params) {
+                if ("QUERY".equalsIgnoreCase(param.getName())) {
+                    return param.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Extract the desired output format from job parameters.
-     * 
+     *
      * @param job The job
      * @return The output format string, or null if not specified
      */
@@ -359,6 +379,7 @@ public class KafkaJobService {
      */
     private static class JobSubmissionInfo {
         String sql = "";
+        String adqlQuery = "";
         String resultDestination = "";
         String resultLocation = "";
         JobRun.ResultFormat resultFormat = null;
