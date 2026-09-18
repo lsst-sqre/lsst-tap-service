@@ -22,9 +22,10 @@ import org.opencadc.tap.query.bigquery.parser.converter.BigQueryRegionConverter;
 /**
  * ADQL Query implementation for BigQuery backend.
  *
- * Table mappings are loaded from bigquery-tables.properties on the classpath,
- * or can be set via system properties with prefix "tap.bigquery.table."
- *
+ * The core tables are always mapped from the configured TAP
+ * schema name onto {@code project.dataset.table}. 
+ * Additional tables (e.g. new PPDB tables) can be expose via the
+ * {@code tap.table.mappings} configuration.
  */
 public class BigQueryAdqlQuery extends AdqlQuery {
     private static final Logger log = Logger.getLogger(BigQueryAdqlQuery.class);
@@ -56,6 +57,10 @@ public class BigQueryAdqlQuery extends AdqlQuery {
         tnc.put(schemaName + ".DiaObject", prefix + "DiaObject`");
         tnc.put(schemaName + ".DiaSource", prefix + "DiaSource`");
         tnc.put(schemaName + ".DiaForcedSource", prefix + "DiaForcedSource`");
+
+        // additional table mappings configurable via phalanx values, e.g. for
+        // new PPDB tables that don't warrant a code change
+        AbstractRubinAdqlQuery.applyConfiguredTableMappings(tnc);
 
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
 
