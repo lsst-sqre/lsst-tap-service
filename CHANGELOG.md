@@ -6,6 +6,16 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.27.0'></a>
+## 3.27.0 (2026-09-22)
+
+### Added
+
+- Add ADQL Query to Kafka job-run event
+
+## Changed
+
+- Allow table mappings to be updated dynamically via phalanx configuration
 
 <a id='changelog-3.26.0'></a>
 ## 3.26.0 (2026-09-08)
