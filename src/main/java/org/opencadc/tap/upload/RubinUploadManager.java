@@ -22,7 +22,6 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.UploadLimits;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import org.opencadc.tap.util.DatabaseNameUtil;
-import ca.nrc.cadc.uws.Job;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -100,8 +99,6 @@ public class RubinUploadManager extends BasicUploadManager {
      */
     protected final UploadLimits uploadLimits;
 
-    protected Job job;
-
     /**
      * Storage for file metadata and signed URLs
      */
@@ -137,7 +134,8 @@ public class RubinUploadManager extends BasicUploadManager {
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 if (attempt > 1) {
-                    tapLog.logUpload(table.getTableName(), "Retry attempt " + attempt + " of " + maxRetries);
+                    tapLog.logInfo(jobID(), null,
+                            "Retry attempt " + attempt + " of " + maxRetries + " for " + table.getTableName());
                 }
 
                 doStoreTable(table, vot);
@@ -145,12 +143,12 @@ public class RubinUploadManager extends BasicUploadManager {
 
             } catch (Exception e) {
                 lastException = e;
-                tapLog.logUploadWarn(table.getTableName(),
-                        "Upload attempt " + attempt + " failed: " + e.getMessage());
+                tapLog.logWarn(jobID(), null,
+                        "Upload attempt " + attempt + " for " + table.getTableName() + " failed: " + e.getMessage());
 
                 if (attempt < maxRetries) {
                     long delay = backoffMs[attempt - 1];
-                    tapLog.logUpload(table.getTableName(), "Waiting " + delay + "ms before retry");
+                    tapLog.logInfo(jobID(), null, "Waiting " + delay + "ms before retrying " + table.getTableName());
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
@@ -162,8 +160,8 @@ public class RubinUploadManager extends BasicUploadManager {
         }
 
         // All retries exhausted
-        tapLog.logUploadError(table.getTableName(),
-                "Failed to store table after " + maxRetries + " attempts: " + lastException.getMessage());
+        tapLog.logError(jobID(), null, "Failed to store " + table.getTableName() + " after " + maxRetries
+                + " attempts: " + lastException.getMessage(), lastException);
         throw new RuntimeException("Failed to store table in cloud storage after " + maxRetries + " attempts",
                 lastException);
     }
@@ -197,19 +195,20 @@ public class RubinUploadManager extends BasicUploadManager {
         signedUrls.put(schemaFilename, schemaSignedUrl);
 
         // Write CSV version of the data
-        tapLog.logUpload(csvFilename, "Starting CSV upload with " + fields.size() + " fields");
+        log.debug("Starting CSV upload of " + csvFilename + " with " + fields.size() + " fields");
         OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
-        tapLog.logUpload(csvFilename, "GCS OutputStream obtained: " + csvOs.getClass().getName());
+        log.debug("GCS OutputStream obtained: " + csvOs.getClass().getName());
 
         long writeStartTime = System.currentTimeMillis();
         long writeEndTime;
+        int rowCount;
         try {
-            writeDataWithoutHeaders(fields, originalData, csvOs);
+            rowCount = writeDataWithoutHeaders(fields, originalData, csvOs);
             writeEndTime = System.currentTimeMillis();
-            tapLog.logUpload(csvFilename, "CSV data written in " + (writeEndTime - writeStartTime) + "ms, starting GCS flush/close");
+            log.debug("CSV data written in " + (writeEndTime - writeStartTime) + "ms, starting GCS flush/close");
 
             csvOs.flush();
-            tapLog.logUpload(csvFilename, "GCS OutputStream flushed, starting close");
+            log.debug("GCS OutputStream flushed, starting close");
         } catch (Exception writeEx) {
             try {
                 csvOs.close();
@@ -221,14 +220,15 @@ public class RubinUploadManager extends BasicUploadManager {
         try {
             csvOs.close();
         } catch (Exception closeEx) {
-            tapLog.logUploadWarn(csvFilename, "Exception during GCS stream close, verifying upload: " + closeEx.getMessage());
+            tapLog.logWarn(jobID(), null,
+                    "Exception closing GCS stream for " + csvFilename + ", verifying upload: " + closeEx.getMessage());
             if (!StorageUtils.blobExists(csvFilename)) {
                 throw new IOException("GCS upload failed: blob does not exist after close error", closeEx);
             }
-            tapLog.logUpload(csvFilename, "Blob verified to exist despite close exception");
+            tapLog.logInfo(jobID(), null, csvFilename + " exists despite the close exception");
         }
         long closeEndTime = System.currentTimeMillis();
-        tapLog.logUploadComplete(csvFilename, closeEndTime - writeStartTime, null, "CSV upload complete");
+        tapLog.uploadFinished(jobID(), csvFilename, (long) rowCount, closeEndTime - writeStartTime);
 
         // Generate and store signed URL for CSV file
         String csvSignedUrl = StorageUtils.getSignedUrl(csvFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
@@ -253,7 +253,8 @@ public class RubinUploadManager extends BasicUploadManager {
             try {
                 xmlOsEmpty.close();
             } catch (Exception closeEx) {
-                tapLog.logUploadWarn(xmlEmptyFilename, "Exception during GCS stream close, verifying upload: " + closeEx.getMessage());
+                tapLog.logWarn(jobID(), null, "Exception closing GCS stream for " + xmlEmptyFilename
+                        + ", verifying upload: " + closeEx.getMessage());
                 if (!StorageUtils.blobExists(xmlEmptyFilename)) {
                     throw new IOException("GCS upload failed - blob does not exist after close error", closeEx);
                 }
@@ -364,7 +365,8 @@ public class RubinUploadManager extends BasicUploadManager {
         try {
             writer.close();
         } catch (Exception closeEx) {
-            tapLog.logUploadWarn(schemaFilename, "Exception during GCS stream close, verifying upload: " + closeEx.getMessage());
+            tapLog.logWarn(jobID(), null, "Exception closing GCS stream for " + schemaFilename
+                    + ", verifying upload: " + closeEx.getMessage());
             if (!StorageUtils.blobExists(schemaFilename)) {
                 throw new IOException("GCS upload failed - blob does not exist after close error", closeEx);
             }
@@ -452,11 +454,12 @@ public class RubinUploadManager extends BasicUploadManager {
     /**
      * Write CSV data without the header row.
      *
+     * @return the number of rows written
      */
-    private void writeDataWithoutHeaders(List<VOTableField> fields, TableData tableData, OutputStream out)
+    private int writeDataWithoutHeaders(List<VOTableField> fields, TableData tableData, OutputStream out)
             throws IOException {
         int fieldCount = fields != null ? fields.size() : 0;
-        tapLog.logUpload(null, "writeDataWithoutHeaders starting with " + fieldCount + " fields");
+        log.debug("writeDataWithoutHeaders starting with " + fieldCount + " fields");
 
         BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
         CsvWriter csvWriter = new CsvWriter(bufferedWriter, CSV_DELI);
@@ -491,17 +494,19 @@ public class RubinUploadManager extends BasicUploadManager {
                 rowCount++;
             }
 
-            tapLog.logUpload(null, "writeDataWithoutHeaders wrote " + rowCount + " rows");
+            log.debug("writeDataWithoutHeaders wrote " + rowCount + " rows");
 
         } catch (Exception ex) {
-            tapLog.logUploadError(null, "Error writing CSV data after " + rowCount + " rows: " + ex.getMessage());
+            tapLog.logError(jobID(), null,
+                    "Error writing CSV data after " + rowCount + " rows: " + ex.getMessage(), ex);
             throw new IOException("error while writing CSV data", ex);
         } finally {
-            tapLog.logUpload(null, "writeDataWithoutHeaders flushing buffers");
+            log.debug("writeDataWithoutHeaders flushing buffers");
             csvWriter.flush();
             bufferedWriter.flush();
-            tapLog.logUploadComplete(null, null, (long) rowCount, "CSV data write and flush complete");
+            log.debug("CSV data write and flush complete");
         }
+        return rowCount;
     }
 
     /**
@@ -572,6 +577,10 @@ public class RubinUploadManager extends BasicUploadManager {
     @Override
     public String getDatabaseTableName(UploadTable uploadTable) {
         return DatabaseNameUtil.getDatabaseTableName(uploadTable);
+    }
+
+    private String jobID() {
+        return job != null ? job.getID() : null;
     }
 
     /**

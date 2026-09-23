@@ -20,6 +20,7 @@ import ca.nrc.cadc.uws.server.JobPersistence;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.logging.TAPLogger;
 import org.opencadc.tap.storage.StorageUtils;
 import org.opencadc.tap.execution.kafka.VOTableUtil;
 
@@ -31,6 +32,7 @@ import org.opencadc.tap.execution.kafka.VOTableUtil;
  */
 public class JobPollingService {
     private static final Logger log = Logger.getLogger(JobPollingService.class);
+    private static final TAPLogger tapLog = new TAPLogger(JobPollingService.class);
 
     private static final int DEFAULT_MAX_ATTEMPTS = TapConfig.syncPollingMaxAttempts();
     private static final int DEFAULT_POLL_INTERVAL_MS = TapConfig.syncPollingIntervalMs();
@@ -57,7 +59,7 @@ public class JobPollingService {
      * 
      * @param jobId      The job identifier to poll
      * @param syncOutput The synchronous output for writing results
-     * @return true if job completed and results were handled, false otherwise
+     * @return what was sent to the client, and whether it was handled
      * @throws TransientException      If polling times out or is interrupted
      * @throws JobNotFoundException    If the job is not found
      * @throws JobPersistenceException If there's an error accessing job data
@@ -65,7 +67,7 @@ public class JobPollingService {
      * @throws JobServiceUnavailableException If the job service is unavailable
      * @throws IOException
      */
-    public boolean pollAndHandleResults(String jobId, SyncOutput syncOutput)
+    public Delivery pollAndHandleResults(String jobId, SyncOutput syncOutput)
             throws TransientException, JobNotFoundException, JobPersistenceException, IOException,
             JobServiceUnavailableException {
         try {
@@ -86,18 +88,18 @@ public class JobPollingService {
                 return streamResults(job, syncOutput);
             } else if (ExecutionPhase.ERROR.equals(finalPhase)) {
                 log.debug("Job " + jobId + " completed with ERROR, retrieving error information");
-                return streamError(job, syncOutput);
+                return new Delivery(streamError(job, syncOutput), TAPLogger.RESPONSE_ERROR, null);
             } else if (ExecutionPhase.ABORTED.equals(finalPhase)) {
                 log.debug("Job " + jobId + " was ABORTED");
                 handleAborted(syncOutput);
-                return true;
+                return new Delivery(true, TAPLogger.RESPONSE_ABORTED, null);
             } else {
-                log.warn("Job " + jobId + " in unexpected final phase: " + finalPhase);
+                tapLog.logWarn(jobId, null, "Job in unexpected final phase: " + finalPhase);
                 handleUnexpectedPhase(syncOutput, finalPhase);
-                return false;
+                return new Delivery(false, null, null);
             }
         } catch (InterruptedException e) {
-            log.error("Polling interrupted for job: " + jobId, e);
+            tapLog.logError(jobId, null, "Polling interrupted", e);
             Thread.currentThread().interrupt();
             throw new TransientException("Polling interrupted", e);
         } 
@@ -108,10 +110,10 @@ public class JobPollingService {
      * 
      * @param job        The completed job
      * @param syncOutput The synchronous output
-     * @return true if streaming succeeded, false otherwise
+     * @return the delivery, with the number of bytes streamed on success
      * @throws MalformedURLException
      */
-    private boolean streamResults(Job job, SyncOutput syncOutput) throws MalformedURLException {
+    private Delivery streamResults(Job job, SyncOutput syncOutput) throws MalformedURLException {
         String resultURL = null;
         String jobId = job.getID();
 
@@ -125,9 +127,9 @@ public class JobPollingService {
         }
 
         if (resultURL == null) {
-            log.warn("No result URL found for completed job: " + jobId);
+            tapLog.logWarn(jobId, null, "No result URL found for completed job");
             handleError(syncOutput, 404, "No result found for completed job");
-            return false;
+            return new Delivery(false, TAPLogger.RESPONSE_RESULTS, null);
         }
 
         log.debug("Streaming result from URL: " + resultURL);
@@ -147,19 +149,19 @@ public class JobPollingService {
             String contentDisposition = "inline; filename=\"" + filename + "\"";
             syncOutput.setHeader("Content-Disposition", contentDisposition);
 
-            boolean success = StorageUtils.streamBlobToOutput(filename, syncOutput.getOutputStream());
-
+            CountingOutputStream out = new CountingOutputStream(syncOutput.getOutputStream());
+            boolean success = StorageUtils.streamBlobToOutput(filename, out);
             if (success) {
                 log.debug("Result successfully streamed for job: " + jobId);
-                return true;
+                return new Delivery(true, TAPLogger.RESPONSE_RESULTS, out.count);
             } else {
                 handleError(syncOutput, 404, "Result file not found in storage");
-                return false;
+                return new Delivery(false, TAPLogger.RESPONSE_RESULTS, null);
             }
         } catch (IOException e) {
-            log.error("Error streaming results from GCS: " + e.getMessage(), e);
+            tapLog.logError(job.getID(), null, "Error streaming results from GCS: " + e.getMessage(), e);
             handleError(syncOutput, 500, "Failed to stream result: " + e.getMessage());
-            return false;
+            return new Delivery(false, TAPLogger.RESPONSE_RESULTS, null);
         }
     }
 
@@ -174,7 +176,7 @@ public class JobPollingService {
         try {
             ErrorSummary errorSummary = job.getErrorSummary();
             if (errorSummary == null) {
-                log.warn("No error summary found for job in ERROR state: " + job.getID());
+                tapLog.logWarn(job.getID(), null, "No error summary found for job in ERROR state");
                 handleError(syncOutput, 500, "Unknown error occurred during job execution");
                 return false;
             }
@@ -189,7 +191,8 @@ public class JobPollingService {
 
                 int responseCode = conn.getResponseCode();
                 if (responseCode != 200) {
-                    log.error("Failed to fetch error document from " + url + ", response code: " + responseCode);
+                    tapLog.logError(job.getID(), null,
+                            "Failed to fetch error document from " + url + ", response code: " + responseCode);
                     handleError(syncOutput, 500, errorSummary.getSummaryMessage());
                     return false;
                 }
@@ -209,14 +212,14 @@ public class JobPollingService {
             log.debug("Error information streamed for job: " + job.getID());
             return true;
         } catch (Exception e) {
-            log.error("Error streaming error information: " + e.getMessage(), e);
+            tapLog.logError(job.getID(), null, "Error streaming error information: " + e.getMessage(), e);
             try {
                 syncOutput.setCode(500);
                 syncOutput.setHeader("Content-Type", "application/x-votable+xml");
                 String message = VOTableUtil.generateErrorVOTable("Error processing job failure: " + e.getMessage());
                 syncOutput.getOutputStream().write(message.getBytes());
             } catch (IOException ioe) {
-                log.error("Failed to write error message to output stream", ioe);
+                tapLog.logError(job.getID(), null, "Failed to write error message to output stream", ioe);
             }
             return false;
         }
@@ -257,7 +260,7 @@ public class JobPollingService {
         }
 
         if (!isTerminal) {
-            log.warn("Job " + jobId + " did not reach terminal state after " + attempts + " polling attempts");
+            log.debug("Job " + jobId + " did not reach terminal state after " + attempts + " polling attempts");
             // We want to return a 503 if the job is still in a transient state and the
             // polling exceeded the max attempts
             // The retry-after header is set to 5 times the poll interval. No idea if 
@@ -389,7 +392,60 @@ public class JobPollingService {
                 syncOutput.getOutputStream().write(errorMessage.getBytes());
             }
         } catch (IOException e) {
-            log.error("Failed to write error message to output stream", e);
+            tapLog.logError(null, null, "Failed to write error message to output stream", e);
+        }
+    }
+
+    /**
+     * What a sync request sent back to the client.
+     */
+    public static class Delivery {
+        private final boolean handled;
+        private final String response;
+        private final Long bytes;
+
+        Delivery(boolean handled, String response, Long bytes) {
+            this.handled = handled;
+            this.response = response;
+            this.bytes = bytes;
+        }
+
+        public boolean isHandled() {
+            return handled;
+        }
+
+        public String getResponse() {
+            return response;
+        }
+
+        public Long getBytes() {
+            return bytes;
+        }
+    }
+
+    private static class CountingOutputStream extends OutputStream {
+        private final OutputStream out;
+        private long count = 0;
+
+        CountingOutputStream(OutputStream out) {
+            this.out = out;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            out.write(b);
+            count++;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            out.write(b, off, len);
+            count += len;
+        }
+
+        @Override
+        public void flush() throws IOException {
+            out.flush();
         }
     }
 }

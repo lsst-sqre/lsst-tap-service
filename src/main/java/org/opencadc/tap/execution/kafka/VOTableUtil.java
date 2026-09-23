@@ -7,6 +7,7 @@ import ca.nrc.cadc.tap.QueryRunner;
 import ca.nrc.cadc.tap.TapSelectItem;
 import ca.nrc.cadc.tap.schema.TapDataType;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.logging.TAPLogger;
 import org.opencadc.tap.execution.kafka.messages.JobRun;
 import org.opencadc.tap.execution.kafka.messages.JobRun.ResultFormat;
 import org.opencadc.tap.execution.kafka.messages.JobRun.ResultFormat.ColumnType;
@@ -26,6 +27,7 @@ import java.util.Map;
  */
 public class VOTableUtil {
     private static final Logger log = Logger.getLogger(VOTableUtil.class);
+    private static final TAPLogger tapLog = new TAPLogger(VOTableUtil.class);
     private static final String BASE_URL = TapConfig.baseUrl();
     private static final boolean URL_REWRITE_ENABLED = TapConfig.urlRewriteEnabled();
     private static final String URL_REWRITE_RULES = TapConfig.urlRewriteRules();
@@ -112,7 +114,7 @@ public class VOTableUtil {
             }
     
         } catch (Exception e) {
-            log.error("Error generating VOTable XML", e);
+            tapLog.logError(null, null, "Error generating VOTable XML", e);
             throw new RuntimeException("Failed to generate VOTable XML: " + e.getMessage());
         }
     
@@ -198,12 +200,12 @@ public class VOTableUtil {
                                     .add(columnName);
                             log.debug("Added URL rewrite rule: " + tableName + "." + columnName);
                         } else {
-                            log.warn("Invalid URL rewrite rule format: " + rule +
+                            tapLog.logWarn(null, null, "Invalid URL rewrite rule format: " + rule +
                                     " (expected format: table:column)");
                         }
                     }
                 } catch (Exception e) {
-                    log.error("Error parsing URL rewrite rules: " + URL_REWRITE_RULES, e);
+                    tapLog.logError(null, null, "Error parsing URL rewrite rules: " + URL_REWRITE_RULES, e);
                 }
             }
 

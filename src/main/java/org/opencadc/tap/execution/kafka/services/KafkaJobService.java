@@ -3,6 +3,7 @@ package org.opencadc.tap.execution.kafka.services;
 import org.opencadc.tap.config.TapConfig;
 
 import org.apache.log4j.Logger;
+import org.opencadc.tap.logging.TAPLogger;
 
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -15,6 +16,7 @@ import javax.security.auth.Subject;
 
 import ca.nrc.cadc.uws.ErrorType;
 import ca.nrc.cadc.uws.ExecutionPhase;
+import ca.nrc.cadc.uws.ParameterUtil;
 import ca.nrc.cadc.uws.Job;
 import ca.nrc.cadc.uws.Parameter;
 import ca.nrc.cadc.uws.Result;
@@ -50,6 +52,7 @@ import org.opencadc.tap.ws.WebAppContext;
  */
 public class KafkaJobService {
     private static final Logger log = Logger.getLogger(KafkaJobService.class);
+    private static final TAPLogger tapLog = new TAPLogger(KafkaJobService.class);
 
     // Buffer added on top of the max execution duration
     // Accounts for qserv-kafka result processing time
@@ -74,6 +77,8 @@ public class KafkaJobService {
      * @param bucketURL             Storage bucket URL
      * @param bucket                Storage bucket name
      * @param jobUpdater            JobUpdater implementation
+     * @param mode                  TAPLogger.MODE_SYNC or TAPLogger.MODE_ASYNC, for logging
+     * @param startMs               When the job started, for logging the preparation time
      * @return true if submission was successful, false otherwise
      * @throws JobNotFoundException    If the job is not found
      * @throws JobPersistenceException If there's an error accessing job data
@@ -84,7 +89,9 @@ public class KafkaJobService {
             String databaseString,
             String bucketURL,
             String bucket,
-            JobUpdater jobUpdater)
+            JobUpdater jobUpdater,
+            String mode,
+            long startMs)
             throws JobNotFoundException, JobPersistenceException {
 
         String jobId = job.getID();
@@ -124,6 +131,10 @@ public class KafkaJobService {
                     jobInfo.timeout);
 
             log.debug("Job sent to Kafka successfully with event ID: " + eventJobId);
+            // only log maxrec if the user set one
+            boolean userMaxrec = ParameterUtil.findParameterValue("MAXREC", job.getParameterList()) != null;
+            tapLog.jobSubmitted(jobId, job.getOwnerID(), mode, System.currentTimeMillis() - startMs,
+                    jobInfo.uploadTables.size(), userMaxrec ? jobInfo.maxrec : null);
 
             try {
                 ExecutionPhase currentPhase = jobUpdater.getPhase(jobId);
@@ -131,16 +142,16 @@ public class KafkaJobService {
                     boolean transitioned = JobPhaseManager.transitionJobPhase(
                             jobId, ExecutionPhase.HELD, ExecutionPhase.EXECUTING, jobUpdater);
                     if (!transitioned) {
-                        log.warn("Failed to set job " + jobId + " to EXECUTING, phase may have changed");
+                        tapLog.logWarn(jobId, null, "Failed to set job to EXECUTING, phase may have changed");
                     }
                 }
             } catch (Exception ex) {
-                log.error("Failed to update job phase after Kafka submission: " + jobId, ex);
+                tapLog.logError(jobId, null, "Failed to update job phase after Kafka submission", ex);
             }
 
             return true;
         } catch (Exception e) {
-            log.error("Failed to send job to Kafka: " + jobId, e);
+            tapLog.logError(jobId, null, "Failed to send job to Kafka", e);
             try {
                 JobPhaseManager.setErrorPhase(
                         jobId,
@@ -148,7 +159,7 @@ public class KafkaJobService {
                         ErrorType.FATAL,
                         jobUpdater);
             } catch (Exception ex) {
-                log.error("Failed to set job " + jobId + " to ERROR state", ex);
+                tapLog.logError(jobId, null, "Failed to set job to ERROR state", ex);
             }
             return false;
         }
@@ -191,7 +202,7 @@ public class KafkaJobService {
 
         try {
             if (executionId == null || executionId.trim().isEmpty()) {
-                log.warn("No executionId found for job " + jobId + ", skipping Kafka deletion request");
+                tapLog.logWarn(jobId, null, "No executionId found for job, skipping Kafka deletion request");
                 if (jobId != null && !jobId.trim().isEmpty() && jobUpdater != null) {
                     try {
                         ExecutionPhase currentPhase = jobUpdater.getPhase(jobId);
@@ -199,11 +210,11 @@ public class KafkaJobService {
                             boolean transitioned = JobPhaseManager.transitionJobPhase(
                                     jobId, ExecutionPhase.EXECUTING, ExecutionPhase.ABORTED, jobUpdater);
                             if (!transitioned) {
-                                log.warn("Failed to set job " + jobId + " to ABORTED, phase may have changed");
+                                tapLog.logWarn(jobId, null, "Failed to set job to ABORTED, phase may have changed");
                             }
                         }
                     } catch (Exception ex) {
-                        log.error("Failed to update job phase after deletion request: " + jobId, ex);
+                        tapLog.logError(jobId, null, "Failed to update job phase after deletion request", ex);
                     }
                 }
                 return true;
@@ -230,11 +241,11 @@ public class KafkaJobService {
                         boolean transitioned = JobPhaseManager.transitionJobPhase(
                                 jobId, ExecutionPhase.EXECUTING, ExecutionPhase.ABORTED, jobUpdater);
                         if (!transitioned) {
-                            log.warn("Failed to set job " + jobId + " to ABORTED, phase may have changed");
+                            tapLog.logWarn(jobId, null, "Failed to set job to ABORTED, phase may have changed");
                         }
                     }
                 } catch (Exception ex) {
-                    log.error("Failed to update job phase after deletion request: " + jobId, ex);
+                    tapLog.logError(jobId, null, "Failed to update job phase after deletion request", ex);
                 }
             }
 
@@ -243,8 +254,8 @@ public class KafkaJobService {
 
             return true;
         } catch (Exception e) {
-            log.error("Failed to send job deletion request to Kafka for jobId: " + jobId +
-                    ", executionId: " + executionId, e);
+            tapLog.logError(jobId, null,
+                    "Failed to send job deletion request to Kafka, executionId: " + executionId, e);
 
             if (jobId != null && !jobId.trim().isEmpty() && jobUpdater != null) {
                 try {
@@ -254,7 +265,7 @@ public class KafkaJobService {
                             ErrorType.FATAL,
                             jobUpdater);
                 } catch (Exception ex) {
-                    log.error("Failed to set job " + jobId + " to ERROR state", ex);
+                    tapLog.logError(jobId, null, "Failed to set job to ERROR state", ex);
                 }
             }
 
@@ -330,7 +341,7 @@ public class KafkaJobService {
                     }
                 }
             } catch (Exception e) {
-                log.error("Error parsing upload parameter: " + e.getMessage(), e);
+                tapLog.logError(job.getID(), null, "Error parsing upload parameter: " + e.getMessage(), e);
             }
         }
 
