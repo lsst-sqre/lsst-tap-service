@@ -52,7 +52,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
         try {
             if (status == null || status.getJobID() == null) {
-                log.warn("Received null status or status with null job ID");
+                tapLog.logWarn(null, null, "Received null status or status with null job ID");
                 return;
             }
 
@@ -101,38 +101,51 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
             jobPersist.put(job);
 
-            // Only log phase transitions when the phase actually changes
-            if (phaseChanged) {
-                tapLog.logPhaseTransition(job.getID(), username, previousPhase.toString(), newPhase.toString());
+            if (phaseChanged && !isTerminalStatus(status.getStatus())) {
+                tapLog.jobPhase(job.getID(), username, previousPhase.toString(), newPhase.toString());
             }
 
-            if (isTerminalStatus(status.getStatus())) {
-                // Calculate duration from job start time
-                Long duration = null;
-                if (job.getStartTime() != null && job.getEndTime() != null) {
-                    duration = job.getEndTime().getTime() - job.getStartTime().getTime();
-                }
-
-                // Get row count from result info
-                Long rowCount = null;
-                if (status.getResultInfo() != null && status.getResultInfo().getTotalRows() != null) {
-                    rowCount = status.getResultInfo().getTotalRows().longValue();
-                }
-
+            // Skip duplicate terminal status updates
+            if (isTerminalStatus(status.getStatus()) && !JobPhaseManager.isTerminalPhase(previousPhase)) {
+                TAPLogger.Outcome outcome = buildOutcome(status, job);
                 if (status.getStatus() == JobStatus.ExecutionStatus.ERROR) {
-                    String errorMessage = "Job failed";
-                    if (status.getErrorInfo() != null && status.getErrorInfo().getErrorMessage() != null) {
-                        errorMessage = status.getErrorInfo().getErrorMessage();
-                    }
-                    tapLog.logError(job.getID(), username, errorMessage);
+                    String errorMessage =
+                            status.getErrorInfo() != null ? status.getErrorInfo().getErrorMessage() : null;
+                    tapLog.jobFailed(job.getID(), username, errorMessage, outcome);
+                } else if (status.getStatus() == JobStatus.ExecutionStatus.ABORTED) {
+                    tapLog.jobAborted(job.getID(), username, TAPLogger.REASON_BACKEND, outcome);
                 } else {
-                    tapLog.logJobComplete(job.getID(), username, newPhase.toString(), duration, rowCount);
+                    tapLog.jobFinished(job.getID(), username, newPhase.toString(), outcome);
                 }
             }
         } catch (Exception e) {
-            log.error("Error processing status update for job ID: " +
-                    (status != null ? status.getJobID() : "unknown"), e);
+            tapLog.logError(status != null ? status.getJobID() : null, null, "Error processing status update", e);
         }
+    }
+
+    /**
+     * executionMs runs from submission (UWS start) to the terminal status.
+     */
+    private TAPLogger.Outcome buildOutcome(JobStatus status, Job job) {
+        TAPLogger.Outcome outcome = new TAPLogger.Outcome().executionID(status.getExecutionID());
+        if (job.getStartTime() != null && job.getEndTime() != null) {
+            outcome.executionMs(job.getEndTime().getTime() - job.getStartTime().getTime());
+        }
+        JobStatus.QueryInfo queryInfo = status.getQueryInfo();
+        if (queryInfo != null) {
+            if (queryInfo.getStartTime() != null && queryInfo.getEndTime() != null) {
+                outcome.queryMs(queryInfo.getEndTime() - queryInfo.getStartTime());
+            }
+            outcome.chunks(queryInfo.getCompletedChunks(), queryInfo.getTotalChunks());
+            outcome.bytes(queryInfo.getBytesProcessed(), queryInfo.getBytesBilled(), queryInfo.getCached());
+        }
+        if (status.getResultInfo() != null && status.getResultInfo().getTotalRows() != null) {
+            outcome.rowCount(status.getResultInfo().getTotalRows().longValue());
+        }
+        if (status.getErrorInfo() != null) {
+            outcome.errorCode(status.getErrorInfo().getErrorCode());
+        }
+        return outcome;
     }
 
     /**
@@ -164,7 +177,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
                 }
             }
         } catch (Exception e) {
-            log.error("Error updating error info for job: " + status.getJobID(), e);
+            tapLog.logError(status.getJobID(), null, "Could not read error info from status update", e);
         }
         return null;
     }
@@ -202,7 +215,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             return errorURL;
             
         } catch (Exception e) {
-            log.error("Failed to create error document for job: " + job.getID(), e);
+            tapLog.logError(job.getID(), null, "Could not create error document", e);
             return null;
         }
     }
@@ -250,7 +263,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
                 }
             }
         } catch (Exception e) {
-            log.warn("Error calculating progress for job: " + status.getJobID(), e);
+            tapLog.logWarn(status.getJobID(), null, "Could not calculate query progress", e);
             return null;
         }
 
@@ -288,7 +301,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
 
             content = xmlBuilder.toString();
         } catch (Exception e) {
-            log.warn("Error generating job info for job: " + status.getJobID(), e);
+            tapLog.logWarn(status.getJobID(), null, "Could not build job progress info", e);
             return null;
         }
 
@@ -313,7 +326,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             if (status.getExecutionID() != null && !status.getExecutionID().trim().isEmpty()) {
                 metadata.add(new Result("executionId", URI.create("execid:" + status.getExecutionID())));
             } else {
-                log.warn("ExecutionID is null or empty for job: " + status.getJobID());
+                tapLog.logWarn(status.getJobID(), null, "Status update has no executionID");
             }
 
             if (status.getResultInfo() != null) {
@@ -333,7 +346,7 @@ public class JobStatusListener implements ReadJobStatus.StatusListener {
             }
             return metadata;
         } catch (Exception e) {
-            log.error("Error updating metadata for job: " + status.getJobID(), e);
+            tapLog.logError(status.getJobID(), null, "Could not read job metadata from status update", e);
         }
 
         return metadata;

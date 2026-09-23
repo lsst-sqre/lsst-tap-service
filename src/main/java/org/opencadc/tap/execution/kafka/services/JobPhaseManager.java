@@ -8,6 +8,7 @@ import ca.nrc.cadc.uws.server.JobNotFoundException;
 import ca.nrc.cadc.uws.server.JobPersistenceException;
 import ca.nrc.cadc.uws.server.JobUpdater;
 import org.apache.log4j.Logger;
+import org.opencadc.tap.logging.TAPLogger;
 
 import java.util.Date;
 
@@ -18,6 +19,7 @@ import java.util.Date;
  */
 public class JobPhaseManager {
     private static final Logger log = Logger.getLogger(JobPhaseManager.class);
+    private static final TAPLogger tapLog = new TAPLogger(JobPhaseManager.class);
 
     /**
      * Transition a job from one phase to another (with timestamp).
@@ -42,7 +44,7 @@ public class JobPhaseManager {
             if (result == null) {
                 ExecutionPhase actual = jobUpdater.getPhase(jobId);
 
-                log.warn("Failed to set job " + jobId + " to " + toPhase +
+                tapLog.logWarn(jobId, null, "Failed to set job to " + toPhase +
                         ", phase changed from " + fromPhase +
                         " to " + actual + " instead");
                 return false;
@@ -51,7 +53,7 @@ public class JobPhaseManager {
             log.debug("Job " + jobId + " transitioned from " + fromPhase + " to " + toPhase);
             return true;
         } catch (Throwable e) {
-            log.error("Phase transition error for job " + jobId, e);
+            tapLog.logError(jobId, null, "Phase transition failed", e);
             return false;
         }
     }
@@ -80,14 +82,17 @@ public class JobPhaseManager {
             ExecutionPhase result = jobUpdater.setPhase(jobId, currentPhase, ExecutionPhase.ERROR, es, now);
 
             if (result == null) {
-                log.warn("Failed to set job " + jobId + " to ERROR, phase may have changed from " + currentPhase);
+                tapLog.logWarn(jobId, null, "Failed to set job to ERROR, phase may have changed from " + currentPhase);
                 return false;
             }
 
             log.debug("Job " + jobId + " set to ERROR state: " + errorMessage);
+            if (!isTerminalPhase(currentPhase)) {
+                tapLog.jobFailed(jobId, null, errorMessage, null);
+            }
             return true;
         } catch (Throwable e) {
-            log.error("Error setting job " + jobId + " to ERROR state", e);
+            tapLog.logError(jobId, null, "Error setting job to ERROR state", e);
             return false;
         }
     }
@@ -128,6 +133,14 @@ public class JobPhaseManager {
             throws JobNotFoundException, JobPersistenceException {
         return isInPhase(jobId, jobUpdater,
                 ExecutionPhase.COMPLETED, ExecutionPhase.ERROR, ExecutionPhase.ABORTED);
+    }
+
+    /**
+     * Check if the phase is COMPLETED, ERROR, ABORTED or ARCHIVED.
+     */
+    public static boolean isTerminalPhase(ExecutionPhase phase) {
+        return ExecutionPhase.COMPLETED.equals(phase) || ExecutionPhase.ERROR.equals(phase)
+                || ExecutionPhase.ABORTED.equals(phase) || ExecutionPhase.ARCHIVED.equals(phase);
     }
 
 }

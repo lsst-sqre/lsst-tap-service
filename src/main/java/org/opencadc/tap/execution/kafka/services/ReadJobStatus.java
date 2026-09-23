@@ -1,6 +1,7 @@
 package org.opencadc.tap.execution.kafka.services;
 
 import org.apache.log4j.Logger;
+import org.opencadc.tap.logging.TAPLogger;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,6 +29,7 @@ import org.opencadc.tap.execution.kafka.KafkaConfig;
 public class ReadJobStatus implements AutoCloseable {
 
     private static final Logger log = Logger.getLogger(ReadJobStatus.class);
+    private static final TAPLogger tapLog = new TAPLogger(ReadJobStatus.class);
 
     private final KafkaConfig kafkaConfig;
     private final String groupId;
@@ -140,11 +142,11 @@ public class ReadJobStatus implements AutoCloseable {
                     try {
                         JobStatus status = JobStatus.fromJson(jsonString);
                         if (status == null) {
-                            log.warn("Received null status from Kafka");
+                            tapLog.logWarn(null, null, "Received null status from Kafka");
                             continue;
                         }
                         if (status.getJobID() == null) {
-                            log.warn("Received status with null job ID");
+                            tapLog.logWarn(null, null, "Received status with null job ID");
                             continue;
                         }
 
@@ -155,7 +157,7 @@ public class ReadJobStatus implements AutoCloseable {
                                 try {
                                     listener.onStatusUpdate(status);
                                 } catch (Exception e) {
-                                    log.error("Error notifying listener", e);
+                                    tapLog.logError(status.getJobID(), null, "Error notifying listener", e);
                                 }
                             }
                         }
@@ -166,25 +168,25 @@ public class ReadJobStatus implements AutoCloseable {
                         }
 
                     } catch (JSONException e) {
-                        log.error("Error parsing JSON message: " + jsonString, e);
+                        tapLog.logError(null, null, "Error parsing JSON message: " + jsonString, e);
                     } catch (Exception e) {
-                        log.error("Unexpected error processing message: " + jsonString, e);
+                        tapLog.logError(null, null, "Unexpected error processing message: " + jsonString, e);
                     }
                 }
             }
         } catch (WakeupException e) {
             // Ignore, we expect this
             if (running.get()) {
-                log.error("Unexpected wakeup exception", e);
+                tapLog.logError(null, null, "Unexpected wakeup exception", e);
             }
         } catch (Exception e) {
-            log.error("Error consuming status updates", e);
+            tapLog.logError(null, null, "Error consuming status updates", e);
         } finally {
             try {
                 consumer.close();
                 log.debug("Consumer closed in consumer loop");
             } catch (Exception e) {
-                log.error("Error closing consumer", e);
+                tapLog.logError(null, null, "Error closing consumer", e);
             }
         }
     }
@@ -211,12 +213,12 @@ public class ReadJobStatus implements AutoCloseable {
             log.debug("Shutting down executor");
             executor.shutdown();
             if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                log.warn("Executor did not terminate in the specified time.. Forcing shutdown");
+                tapLog.logWarn(null, null, "Executor did not terminate in the specified time.. Forcing shutdown");
                 executor.shutdownNow();
             }
             log.debug("Executor shut down successfully");
         } catch (InterruptedException e) {
-            log.warn("Executor shutdown interrupted.. Forcing shutdown");
+            tapLog.logWarn(null, null, "Executor shutdown interrupted.. Forcing shutdown");
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
@@ -226,7 +228,7 @@ public class ReadJobStatus implements AutoCloseable {
             consumer.close(Duration.ofSeconds(5));
             log.debug("Kafka consumer closed successfully");
         } catch (Exception e) {
-            log.warn("Error closing Kafka consumer", e);
+            tapLog.logWarn(null, null, "Error closing Kafka consumer", e);
         }
 
         log.debug("ReadJobStatus closed successfully");
