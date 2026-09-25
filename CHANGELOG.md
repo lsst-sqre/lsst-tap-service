@@ -6,6 +6,15 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.28.0'></a>
+## 3.28.0 (2026-09-25)
+
+### Changed
+
+- Log job lifecycle as structured JSON with a severity, an event field and the job ID in the message, so logs are parsed properly in Google Cloud Logging
+- Every job now logs how it ended (finished, failed or aborted), with timings and backend details like the execution ID and query time
+- Stack traces are kept on a single log line, and upload progress logs moved to debug
+
 <a id='changelog-3.27.0'></a>
 ## 3.27.0 (2026-09-22)
 
