@@ -1,5 +1,6 @@
 package org.opencadc.tap.execution.kafka.services;
 
+import org.opencadc.tap.config.Backend;
 import org.opencadc.tap.config.TapConfig;
 
 import org.apache.log4j.Logger;
@@ -8,6 +9,7 @@ import org.opencadc.tap.logging.TAPLogger;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,8 +112,10 @@ public class KafkaJobService {
             JobSubmissionInfo jobInfo = extractJobInfo(job, jobRunner, bucketURL, bucket);
 
             // Temp fix
-            // If there is a table upload, use the username as the database
-            if (!jobInfo.uploadTables.isEmpty()) {
+            // If there is a table upload, use the username as the database.
+            // BigQuery uploads go into a shared dataset and are referenced by
+            // their fully qualified names, so the database stays as it is.
+            if (!jobInfo.uploadTables.isEmpty() && !isBigQuery()) {
                 String username = DatabaseNameUtil.getUsername();
                 databaseString = DatabaseNameUtil.constructDatabaseName(username, jobId);
             }
@@ -310,17 +314,22 @@ public class KafkaJobService {
                 if (!queryRunner.uploadTableLocations.isEmpty()) {
                     log.debug("Found " + queryRunner.uploadTableLocations.size() + " upload table locations");
 
-                    Map<String, UploadPartitionDetector.PartitionInfo> partitions =
-                            PARTITION_DETECTOR.detect(qRunner.internalSQL, queryRunner.uploadTableLocations.keySet());
+                    // Partitioning only applies to Qserv
+                    Map<String, UploadPartitionDetector.PartitionInfo> partitions = isBigQuery()
+                            ? Collections.emptyMap()
+                            : PARTITION_DETECTOR.detect(qRunner.internalSQL, queryRunner.uploadTableLocations.keySet());
 
                     for (Map.Entry<String, TableDesc.TableLocationInfo> entry : queryRunner.uploadTableLocations
                             .entrySet()) {
                         String tableName = entry.getKey();
                         log.debug("Table name in KafkaJobService: " + tableName);
+                        // BigQuery table names are quoted with backticks in the
+                        // query, but the worker expects the bare name.
+                        String uploadTableName = tableName.replace("`", "");
                         TableDesc.TableLocationInfo locationInfo = entry.getValue();
                         String sourceUrl = locationInfo.map.get("data").toString();
                         String schemaUrl = locationInfo.map.get("schema").toString();
-                        UploadTable uploadTable = new UploadTable(tableName, sourceUrl, schemaUrl);
+                        UploadTable uploadTable = new UploadTable(uploadTableName, sourceUrl, schemaUrl);
 
                         UploadPartitionDetector.PartitionInfo pi = partitions.get(tableName);
                         if (pi != null) {
@@ -348,6 +357,10 @@ public class KafkaJobService {
         return info;
     }
     
+    private static boolean isBigQuery() {
+        return Backend.currentOrDefault(Backend.QSERV) == Backend.BIGQUERY;
+    }
+
     /**
      * Extract the original ADQL query text from job parameters.
      *

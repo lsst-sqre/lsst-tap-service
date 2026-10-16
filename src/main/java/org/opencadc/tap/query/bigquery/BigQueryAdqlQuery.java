@@ -2,6 +2,10 @@ package org.opencadc.tap.query.bigquery;
 
 import org.opencadc.tap.config.TapConfig;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import ca.nrc.cadc.tap.AdqlQuery;
 import ca.nrc.cadc.tap.parser.QuerySelectDeParser;
 import ca.nrc.cadc.tap.parser.converter.TableNameConverter;
@@ -65,10 +69,33 @@ public class BigQueryAdqlQuery extends AdqlQuery {
         TableNameReferenceConverter tnrc = new TableNameReferenceConverter(tnc.map);
 
         navigatorList.add(new TopConverter(new ExpressionNavigator(), new ReferenceNavigator(), new FromItemNavigator()));
-        navigatorList.add(new BigQueryRegionConverter(new ExpressionNavigator(), tnrc, tnc));
+        navigatorList.add(new BigQueryRegionConverter(new ExpressionNavigator(), tnrc, tnc,
+                getGeoPointTables(schemaName)));
         navigatorList.add(new SelectNavigator(new ExpressionNavigator(), tnrc, tnc));
 
         // TODO: add more custom query visitors here
+    }
+
+    /**
+     * TAP names of the tables that have a geo_point column. 
+     *
+     * @param schemaName the TAP schema name of the PPDB tables
+     * @return the configured tables, or the DiaObject table by default
+     */
+    static List<String> getGeoPointTables(String schemaName) {
+        String configured = TapConfig.bigQueryGeoPointTables();
+        if (configured == null) {
+            return Collections.singletonList(schemaName + ".DiaObject");
+        }
+
+        List<String> tables = new ArrayList<>();
+
+        for (String table : configured.split(",")) {
+            if (!table.trim().isEmpty()) {
+                tables.add(table.trim());
+            }
+        }
+        return tables;
     }
 
     /**

@@ -21,7 +21,7 @@ import ca.nrc.cadc.tap.db.DatabaseDataType;
 import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.UploadLimits;
 import ca.nrc.cadc.tap.upload.UploadTable;
-import org.opencadc.tap.util.DatabaseNameUtil;
+import org.opencadc.tap.config.Backend;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -40,14 +40,13 @@ import org.apache.log4j.Logger;
 import org.opencadc.tap.storage.StorageUtils;
 import org.opencadc.tap.logging.TAPLogger;
 import com.csvreader.CsvWriter;
-import com.google.cloud.storage.HttpMethod;
 
 /**
  * Implementation of the UploadManager interface for Rubin.
- * This class handles the upload of tables to cloud storage and generates signed
- * URLs for accessing
- * the uploaded files. It also handles generating the JSON schema for the
- * uploaded tables.
+ * This class handles the upload of tables to cloud storage and generates the
+ * JSON schema for the uploaded tables. The backend-specific parts (table name,
+ * column types and the location handed to the worker) come from an
+ * {@link UploadTarget}.
  *
  * @author stvoutsin
  */
@@ -65,11 +64,6 @@ public class RubinUploadManager extends BasicUploadManager {
 
     // TSV format delimiter.
     public static final char TSV_DELI = '\t';
-
-    /**
-     * Default expiration time for signed URLs in hours.
-     */
-    private static final long DEFAULT_URL_EXPIRATION_HOURS = 24;
 
     public static final UploadLimits MAX_UPLOAD;
     /**
@@ -100,9 +94,14 @@ public class RubinUploadManager extends BasicUploadManager {
     protected final UploadLimits uploadLimits;
 
     /**
-     * Storage for file metadata and signed URLs
+     * Backend the uploaded tables are loaded into.
      */
-    protected Map<String, String> signedUrls;
+    protected final UploadTarget target;
+
+    /**
+     * Locations of the stored files, by filename.
+     */
+    protected Map<String, URI> locations;
 
     public RubinUploadManager() {
         this(MAX_UPLOAD);
@@ -114,9 +113,25 @@ public class RubinUploadManager extends BasicUploadManager {
      * @param uploadLimits limits on table upload
      */
     public RubinUploadManager(UploadLimits uploadLimits) {
+        this(uploadLimits, defaultTarget());
+    }
+
+    /**
+     * @param uploadLimits limits on table upload
+     * @param target       backend the uploaded tables are loaded into
+     */
+    public RubinUploadManager(UploadLimits uploadLimits, UploadTarget target) {
         super(uploadLimits);
         this.uploadLimits = uploadLimits;
-        this.signedUrls = new HashMap<>();
+        this.target = target;
+        this.locations = new HashMap<>();
+    }
+
+    private static UploadTarget defaultTarget() {
+        if (Backend.currentOrDefault(Backend.QSERV) == Backend.BIGQUERY) {
+            return new BigQueryUploadTarget();
+        }
+        return new QservUploadTarget();
     }
 
     @Override
@@ -171,7 +186,9 @@ public class RubinUploadManager extends BasicUploadManager {
      * Called by storeTable with retry logic.
      */
     private void doStoreTable(TableDesc table, VOTableTable vot) throws Exception {
-        String baseFileName = table.getTableName();
+        // BigQuery table names are quoted with backticks, which don't belong in
+        // object names.
+        String baseFileName = table.getTableName().replace("`", "");
         String xmlEmptyFilename = baseFileName + ".empty.xml";
         String csvFilename = baseFileName + ".csv";
         String schemaFilename = baseFileName + ".schema.json";
@@ -189,14 +206,11 @@ public class RubinUploadManager extends BasicUploadManager {
         writeSchemaFile(votable.getFields(), schemaFilename);
         log.debug("Schema file written to: " + schemaFilename);
 
-        // Generate and store signed URL for schema file
-        String schemaSignedUrl = StorageUtils.getSignedUrl(schemaFilename, HttpMethod.GET,
-                DEFAULT_URL_EXPIRATION_HOURS);
-        signedUrls.put(schemaFilename, schemaSignedUrl);
+        locations.put(schemaFilename, target.getLocation(schemaFilename));
 
         // Write CSV version of the data
         log.debug("Starting CSV upload of " + csvFilename + " with " + fields.size() + " fields");
-        OutputStream csvOs = StorageUtils.getOutputStream(csvFilename, "text/csv");
+        OutputStream csvOs = StorageUtils.getUploadOutputStream(csvFilename, "text/csv");
         log.debug("GCS OutputStream obtained: " + csvOs.getClass().getName());
 
         long writeStartTime = System.currentTimeMillis();
@@ -222,7 +236,7 @@ public class RubinUploadManager extends BasicUploadManager {
         } catch (Exception closeEx) {
             tapLog.logWarn(jobID(), null,
                     "Exception closing GCS stream for " + csvFilename + ", verifying upload: " + closeEx.getMessage());
-            if (!StorageUtils.blobExists(csvFilename)) {
+            if (!StorageUtils.uploadBlobExists(csvFilename)) {
                 throw new IOException("GCS upload failed: blob does not exist after close error", closeEx);
             }
             tapLog.logInfo(jobID(), null, csvFilename + " exists despite the close exception");
@@ -230,14 +244,13 @@ public class RubinUploadManager extends BasicUploadManager {
         long closeEndTime = System.currentTimeMillis();
         tapLog.uploadFinished(jobID(), csvFilename, (long) rowCount, closeEndTime - writeStartTime);
 
-        // Generate and store signed URL for CSV file
-        String csvSignedUrl = StorageUtils.getSignedUrl(csvFilename, HttpMethod.GET, DEFAULT_URL_EXPIRATION_HOURS);
-        signedUrls.put(csvFilename, csvSignedUrl);
+        locations.put(csvFilename, target.getLocation(csvFilename));
 
         // Empty the table data for metadata-only version
         votable.setTableData(null);
         try {
-            OutputStream xmlOsEmpty = StorageUtils.getOutputStream(xmlEmptyFilename, "application/x-votable+xml");
+            OutputStream xmlOsEmpty = StorageUtils.getUploadOutputStream(xmlEmptyFilename,
+                    "application/x-votable+xml");
             try {
                 VOTableWriter voWriterEmpty = new VOTableWriter();
                 voWriterEmpty.write(doc, xmlOsEmpty);
@@ -255,48 +268,35 @@ public class RubinUploadManager extends BasicUploadManager {
             } catch (Exception closeEx) {
                 tapLog.logWarn(jobID(), null, "Exception closing GCS stream for " + xmlEmptyFilename
                         + ", verifying upload: " + closeEx.getMessage());
-                if (!StorageUtils.blobExists(xmlEmptyFilename)) {
+                if (!StorageUtils.uploadBlobExists(xmlEmptyFilename)) {
                     throw new IOException("GCS upload failed - blob does not exist after close error", closeEx);
                 }
                 log.debug("Blob verified to exist despite close exception: " + xmlEmptyFilename);
             }
             log.debug("Empty VOTable file written to: " + xmlEmptyFilename);
 
-            // Generate and store signed URL for empty XML file
-            String xmlSignedUrl = StorageUtils.getSignedUrl(xmlEmptyFilename, HttpMethod.GET,
-                    DEFAULT_URL_EXPIRATION_HOURS);
-            signedUrls.put(xmlEmptyFilename, xmlSignedUrl);
+            locations.put(xmlEmptyFilename, target.getLocation(xmlEmptyFilename));
         } finally {
             // Always restore the original data for potential retries
             votable.setTableData(originalData);
         }
 
-        // Store the signed URL for the CSV file and its schema as the data location
+        // Store the locations of the CSV file and its schema as the data location
         // and schema location.
         TableDesc.TableLocationInfo location = new TableDesc.TableLocationInfo();
-        location.map.put("data", new URI(signedUrls.get(csvFilename)));
-        location.map.put("schema", new URI(signedUrls.get(schemaFilename)));
-        location.map.put("metadata", new URI(signedUrls.get(xmlEmptyFilename)));
+        location.map.put("data", locations.get(csvFilename));
+        location.map.put("schema", locations.get(schemaFilename));
+        location.map.put("metadata", locations.get(xmlEmptyFilename));
         table.dataLocation = location;
     }
 
     /**
-     * Get all generated signed URLs
+     * Get the locations of all stored files.
      *
-     * @return Map of filenames to signed URLs
+     * @return Map of filenames to locations
      */
-    public Map<String, String> getSignedUrls() {
-        return signedUrls;
-    }
-
-    /**
-     * Get signed URL for a specific file
-     *
-     * @param filename The name of the file
-     * @return The signed URL or null if not found
-     */
-    public String getSignedUrl(String filename) {
-        return signedUrls.get(filename);
+    public Map<String, URI> getLocations() {
+        return locations;
     }
 
     /**
@@ -306,7 +306,7 @@ public class RubinUploadManager extends BasicUploadManager {
     private void writeSchemaFile(List<VOTableField> fields, String schemaFilename)
             throws IOException {
         log.debug("Writing schema to: " + schemaFilename);
-        OutputStream schemaOs = StorageUtils.getOutputStream(schemaFilename, "application/json");
+        OutputStream schemaOs = StorageUtils.getUploadOutputStream(schemaFilename, "application/json");
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(schemaOs, "UTF-8"));
 
         try {
@@ -321,32 +321,7 @@ public class RubinUploadManager extends BasicUploadManager {
 
                 writer.write("\n  { ");
                 writer.write("\"name\": \"" + escapeJsonString(field.getName()) + "\", ");
-                String datatype = field.getDatatype().toLowerCase();
-                String typeString = convertVOTableTypeToMySQL(datatype);
-
-                if (field.getArraysize() != null && !field.getArraysize().trim().isEmpty()) {
-                    String arraysize = field.getArraysize().trim();
-                    if ("*".equals(arraysize)) {
-                        if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
-                            typeString = "VARCHAR(255)";
-                        } else if ("bit".equals(datatype)) {
-                            typeString = "BIT(64)";
-                        } else {
-                            log.debug("Array type detected for " + datatype + " with arraysize=*, converting to TEXT");
-                            typeString = "TEXT";
-                        }
-                    } else {
-                        if ("char".equals(datatype) || "unicodechar".equals(datatype)) {
-                            typeString += "(" + arraysize + ")";
-                        } else if ("bit".equals(datatype)) {
-                            typeString += "(" + arraysize + ")";
-                        } else {
-                            log.debug("Array type detected for " + datatype + " with arraysize=" + arraysize
-                                    + ", converting to TEXT");
-                            typeString = "TEXT";
-                        }
-                    }
-                }
+                String typeString = target.getColumnType(field);
                 writer.write("\"type\": \"" + escapeJsonString(typeString) + "\"");
 
                 writer.write(" }");
@@ -367,44 +342,10 @@ public class RubinUploadManager extends BasicUploadManager {
         } catch (Exception closeEx) {
             tapLog.logWarn(jobID(), null, "Exception closing GCS stream for " + schemaFilename
                     + ", verifying upload: " + closeEx.getMessage());
-            if (!StorageUtils.blobExists(schemaFilename)) {
+            if (!StorageUtils.uploadBlobExists(schemaFilename)) {
                 throw new IOException("GCS upload failed - blob does not exist after close error", closeEx);
             }
             log.debug("Blob verified to exist despite close exception: " + schemaFilename);
-        }
-    }
-
-    /**
-     * Convert VOTable data types to MySQL equivalents
-     */
-    private String convertVOTableTypeToMySQL(String voTableType) {
-        switch (voTableType) {
-            case "boolean":
-                return "BOOLEAN";
-            case "unsignedbyte":
-                return "TINYINT UNSIGNED";
-            case "short":
-                return "SMALLINT";
-            case "int":
-                return "INT";
-            case "long":
-                return "BIGINT";
-            case "float":
-                return "FLOAT";
-            case "double":
-                return "DOUBLE";
-            case "char":
-            case "unicodechar":
-                return "CHAR";
-            case "bit":
-                return "BIT";
-            case "floatcomplex":
-            case "doublecomplex":
-                log.debug("Complex type " + voTableType + " not supported in MySQL, using VARCHAR");
-                return "VARCHAR(255)";
-            default:
-                log.debug("Unknown VOTable type: " + voTableType + ", keeping as-is");
-                return voTableType.toUpperCase();
         }
     }
 
@@ -576,7 +517,18 @@ public class RubinUploadManager extends BasicUploadManager {
      */
     @Override
     public String getDatabaseTableName(UploadTable uploadTable) {
-        return DatabaseNameUtil.getDatabaseTableName(uploadTable);
+        return target.getDatabaseTableName(uploadTable);
+    }
+
+    @Override
+    protected void validateTable(TableDesc td) {
+        String tableName = td.getTableName();
+        td.setTableName(target.getValidatedTableName(tableName));
+        try {
+            super.validateTable(td);
+        } finally {
+            td.setTableName(tableName);
+        }
     }
 
     private String jobID() {
