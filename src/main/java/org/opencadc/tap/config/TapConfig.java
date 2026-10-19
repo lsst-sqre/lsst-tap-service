@@ -38,6 +38,23 @@ public final class TapConfig {
         return property("gcs_bucket_type", null);
     }
 
+    /**
+     * Name of the bucket uploaded tables are written to. Falls back to the
+     * result bucket if not set.
+     */
+    public static String gcsUploadBucket() {
+        return envOrProperty("GCS_UPLOAD_BUCKET", "gcs_upload_bucket", gcsBucket());
+    }
+
+    /**
+     * Whether to access the upload bucket as the pod's Workload Identity
+     * instead of the credentials in GOOGLE_APPLICATION_CREDENTIALS. The upload
+     * bucket must then be separate from the result bucket.
+     */
+    public static boolean gcsUploadWorkloadIdentity() {
+        return Boolean.parseBoolean(property("gcs_upload_workload_identity", "false"));
+    }
+
     /** Whether the service advertises itself as available (VOSI availability). */
     public static boolean serviceAvailable() {
         return Boolean.parseBoolean(property("tap.service.available", "true"));
@@ -99,6 +116,30 @@ public final class TapConfig {
 
     public static String bigQuerySchema() {
         return property("tap.bigquery.schema", "ppdb");
+    }
+
+    /**
+     * Project holding the dataset for uploaded tables. 
+     * If not set, the BigQuery backend rejects table uploads.
+     */
+    public static String bigQueryUploadProject() {
+        return property("tap.bigquery.upload.project", null);
+    }
+
+    /** Dataset that uploaded tables are loaded into. */
+    public static String bigQueryUploadDataset() {
+        return property("tap.bigquery.upload.dataset", "tap_uploads");
+    }
+
+    /**
+     * TAP names of the tables that have a {@code geo_point} column, comma
+     * separated. Spatial queries on these tables use {@code geo_point} so that
+     * BigQuery can use the clustering on it. If not set, defaults to the
+     * DIA tables (DiaObject, DiaSource, DiaForcedSource) in the configured
+     * schema.
+     */
+    public static String bigQueryGeoPointTables() {
+        return property("tap.bigquery.geoPointTables", null);
     }
 
     /** visible:backend table-name mappings, comma separated (may be empty). */

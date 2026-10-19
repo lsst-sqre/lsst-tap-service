@@ -23,6 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "11"
+
       - name: Build and test
         run: scripts/build-war.sh
 
@@ -84,6 +90,12 @@ jobs:
            gh_img="${{ env.ghcr }}:${{ env.tag }}-${{ matrix.platform.arch }}"
            images="${dh_img},${gh_img}"
            echo "images=${images}" >> ${GITHUB_OUTPUT}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "11"
 
       - name: Install Gradle
         id: install_gradle

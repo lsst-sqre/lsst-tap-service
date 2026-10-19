@@ -2,6 +2,7 @@ package org.opencadc.tap.storage;
 
 import org.opencadc.tap.config.TapConfig;
 
+import com.google.auth.oauth2.ComputeEngineCredentials;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -46,12 +47,37 @@ public class StorageUtils {
     private static final String bucket = TapConfig.gcsBucket();
     private static final String bucketURL = TapConfig.gcsBucketUrl();
     private static final String bucketType = TapConfig.gcsBucketType();
+    private static final String uploadBucket = TapConfig.gcsUploadBucket();
 
     // Default settings
     private static final long DEFAULT_EXPIRATION_HOURS = 1;
     private static final int DEFAULT_BUFFER_SIZE = 8192;
 
     private static final Region REGION = Region.US_EAST_1;
+
+    /**
+     * GCS client for the upload bucket when it is accessed as the pod's
+     * Workload Identity. Asking the metadata server directly skips the key
+     * file in GOOGLE_APPLICATION_CREDENTIALS, which the default client uses.
+     */
+    private static final class WorkloadIdentityStorage {
+        static final Storage INSTANCE = StorageOptions.newBuilder()
+                .setCredentials(ComputeEngineCredentials.create())
+                .build()
+                .getService();
+    }
+
+    // The S3 code paths ignore the GCS client, so don't create one for them.
+    private static Storage defaultStorage() {
+        return isS3Storage() ? null : StorageOptions.getDefaultInstance().getService();
+    }
+
+    private static Storage uploadStorage() {
+        if (!isS3Storage() && TapConfig.gcsUploadWorkloadIdentity()) {
+            return WorkloadIdentityStorage.INSTANCE;
+        }
+        return defaultStorage();
+    }
 
     /**
      * Get an output stream for writing to a file in storage.
@@ -61,11 +87,63 @@ public class StorageUtils {
      * @return OutputStream for writing to the file
      */
     public static OutputStream getOutputStream(String filename, String contentType) {
+        return getOutputStream(defaultStorage(), bucket, filename, contentType);
+    }
+
+    /**
+     * Get an output stream for writing an uploaded table file.
+     *
+     * @param filename    Filename of the stored object
+     * @param contentType Content type of the file
+     * @return OutputStream for writing to the file
+     */
+    public static OutputStream getUploadOutputStream(String filename, String contentType) {
+        return getOutputStream(uploadStorage(), uploadBucket, filename, contentType);
+    }
+
+    private static OutputStream getOutputStream(Storage storage, String bucketName, String filename,
+            String contentType) {
         if (isS3Storage()) {
-            return getOutputStreamS3(filename);
+            return getOutputStreamS3(bucketName, filename);
         } else {
-            return getOutputStreamGCS(filename, contentType);
+            return getOutputStreamGCS(storage, bucketName, filename, contentType);
         }
+    }
+
+    /**
+     * Generate a signed URL for an uploaded table file in the upload bucket.
+     *
+     * @param filename        Filename of the stored object
+     * @param httpMethod      HTTP method (GET, PUT, etc)
+     * @param expirationHours How long the URL should be valid for
+     * @return Signed URL string
+     */
+    public static String getUploadSignedUrl(String filename, HttpMethod httpMethod, double expirationHours) {
+        return getSignedUrl(uploadStorage(), uploadBucket, filename, httpMethod, expirationHours, null);
+    }
+
+    /**
+     * Get the gs:// URI of an uploaded table file in the upload bucket.
+     *
+     * @param filename Filename of the stored object
+     * @return gs:// URI string
+     * @throws IllegalStateException if the upload bucket is not a GCS bucket
+     */
+    public static String getUploadGsUri(String filename) {
+        if (isS3Storage()) {
+            throw new IllegalStateException("gs:// URIs require a GCS upload bucket");
+        }
+        return "gs://" + uploadBucket + "/" + filename;
+    }
+
+    /**
+     * Check if an uploaded table file exists in the upload bucket.
+     *
+     * @param filename Filename to check
+     * @return true if the blob exists, false otherwise
+     */
+    public static boolean uploadBlobExists(String filename) {
+        return blobExists(uploadStorage(), uploadBucket, filename);
     }
 
     /**
@@ -113,11 +191,16 @@ public class StorageUtils {
      */
     public static String getSignedUrl(String filename, HttpMethod httpMethod, double expirationHours,
             String contentType) {
+        return getSignedUrl(defaultStorage(), bucket, filename, httpMethod, expirationHours, contentType);
+    }
+
+    private static String getSignedUrl(Storage storage, String bucketName, String filename,
+            HttpMethod httpMethod, double expirationHours, String contentType) {
         if (isS3Storage()) {
             try (S3Presigner presigner = getS3Presigner()) {
                 if (httpMethod == HttpMethod.GET) {
                     GetObjectRequest getRequest = GetObjectRequest.builder()
-                            .bucket(bucket)
+                            .bucket(bucketName)
                             .key(filename)
                             .build();
 
@@ -132,7 +215,7 @@ public class StorageUtils {
 
                 } else if (httpMethod == HttpMethod.PUT) {
                     PutObjectRequest.Builder putRequestBuilder = PutObjectRequest.builder()
-                            .bucket(bucket)
+                            .bucket(bucketName)
                             .key(filename);
                     if (contentType != null) {
                         putRequestBuilder.contentType(contentType);
@@ -153,8 +236,7 @@ public class StorageUtils {
             }
         } else {
             try {
-                Storage storage = StorageOptions.getDefaultInstance().getService();
-                BlobId blobId = BlobId.of(bucket, filename);
+                BlobId blobId = BlobId.of(bucketName, filename);
 
                 long expiration = TimeUnit.HOURS.toSeconds((long) expirationHours);
                 URL signedUrl = storage.signUrl(
@@ -231,10 +313,14 @@ public class StorageUtils {
      * @return true if the blob exists, false otherwise
      */
     public static boolean blobExists(String filename) {
+        return blobExists(defaultStorage(), bucket, filename);
+    }
+
+    private static boolean blobExists(Storage storage, String bucketName, String filename) {
         if (isS3Storage()) {
             try (S3Client s3Client = getS3Client()) {
                 HeadObjectRequest head = HeadObjectRequest.builder()
-                        .bucket(bucket)
+                        .bucket(bucketName)
                         .key(filename)
                         .build();
                 s3Client.headObject(head);
@@ -243,8 +329,7 @@ public class StorageUtils {
                 return false;
             }
         } else {
-            Storage storage = StorageOptions.getDefaultInstance().getService();
-            Blob blob = storage.get(BlobId.of(bucket, filename));
+            Blob blob = storage.get(BlobId.of(bucketName, filename));
             return blob != null;
         }
     }
@@ -311,14 +396,14 @@ public class StorageUtils {
     /**
      * Helper method to create an output stream for S3 storage.
      */
-    private static OutputStream getOutputStreamS3(String filename) {
+    private static OutputStream getOutputStreamS3(String bucketName, String filename) {
         S3Configuration config = S3Configuration.builder()
                 .pathStyleAccessEnabled(true)
                 .useArnRegionEnabled(true)
                 .build();
 
         S3Client s3Client = getS3Client(config);
-        return new S3OutputStream(s3Client, filename, bucket);
+        return new S3OutputStream(s3Client, filename, bucketName);
     }
 
     /**
@@ -326,10 +411,10 @@ public class StorageUtils {
      * Uses storage.writer() directly instead of create() + blob.writer() to avoid
      * potential timing issues where the channel could be closed prematurely.
      */
-    private static OutputStream getOutputStreamGCS(String filename, String contentType) {
+    private static OutputStream getOutputStreamGCS(Storage storage, String bucketName, String filename,
+            String contentType) {
         try {
-            Storage storage = StorageOptions.getDefaultInstance().getService();
-            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, filename))
+            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, filename))
                     .setContentType(contentType)
                     .build();
             return Channels.newOutputStream(storage.writer(blobInfo));

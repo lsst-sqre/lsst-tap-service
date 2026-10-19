@@ -78,6 +78,7 @@ import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import org.apache.log4j.Logger;
@@ -103,10 +104,25 @@ import java.util.*;
      private static final double ARC_SECOND_METERS = 30.8874796235;
      private static final String SAFE_DIVIDE = "SAFE_DIVIDE";
      private static final String SAFE_MULTIPLY = "SAFE_MULTIPLY";
- 
+     private static final String GEO_POINT_COLUMN = "geo_point";
+
+     /**
+      * TAP names of the tables that have a geo_point column.
+      */
+     private final Set<String> geoPointTables;
+
+     /**
+      * @param geoPointTables TAP names of the tables that have a geo_point
+      *                       column, we use geo_point so that BigQuery
+      *                       can use the clustering on it. Every other
+      *                       table, including uploaded tables, uses
+      *                       ST_GEOGPOINT on the columns in the query.
+      */
      public BigQueryRegionConverter(ExpressionNavigator en, ReferenceNavigator rn,
-                              FromItemNavigator fn) {
+                              FromItemNavigator fn, Collection<String> geoPointTables) {
          super(en, rn, fn);
+         this.geoPointTables = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+         this.geoPointTables.addAll(geoPointTables);
      }
  
      @Override
@@ -240,6 +256,9 @@ import java.util.*;
              if (radius > 0.0D) {
                  return new BigQueryCircle(ra, dec, radiusExpression);
              }
+         } else if (radiusExpression != null && !(radiusExpression instanceof NullValue)) {
+             // A radius from a column or expression, e.g. CIRCLE(u.ra, u.dec, u.radius)
+             return new BigQueryCircle(ra, dec, radiusExpression);
          }
  
          LOGGER.debug("Radius is missing or is 0.0.  Returning a POINT instead.");
@@ -388,20 +407,27 @@ import java.util.*;
      }
  
      private boolean isCircle(Expression expression) {
-         return expression.toString().toLowerCase().contains("circle");
+         return expression instanceof BigQueryCircle;
      }
  
      private boolean isContainsCircle(Expression left, Expression right) {
          return isCircle(left) || isCircle(right);
      }
  
-     private DoubleValue getRadius(Expression expression) {
+     private Expression getRadius(Expression expression) {
          Expression radiusExpression = (Expression) ((Function) expression).getParameters().getExpressions().get(1);
- 
-         double radius = getDoubleValue(radiusExpression).getValue();
-         double archDistanceInMeters = getArchDistanceInMeters(radius);
- 
-         return new DoubleValue(Double.toString(archDistanceInMeters));
+
+         if (isNumberValue(radiusExpression)) {
+             double radius = getDoubleValue(radiusExpression).getValue();
+             double archDistanceInMeters = getArchDistanceInMeters(radius);
+             return new DoubleValue(Double.toString(archDistanceInMeters));
+         }
+
+         // Convert a radius from a column or expression to meters in the query.
+         Multiplication radiusInMeters = new Multiplication();
+         radiusInMeters.setLeftExpression(new Parenthesis(radiusExpression));
+         radiusInMeters.setRightExpression(new DoubleValue(Double.toString(getArchDistanceInMeters(1.0))));
+         return radiusInMeters;
      }
  
      private DoubleValue getArchDistanceInMetersFromExpression(Expression expression) {
@@ -419,45 +445,87 @@ import java.util.*;
      }
  
      private List<Expression> circleDataParams(Expression left, Expression right, boolean isContains) {
- 
-         LOGGER.info("Left side SQL "+ left);
- 
-         // remove ST_GEOGPOINT and parenthesis
-         String point = left.toString().replace("ST_GEOGPOINT","").replace("(","").replace(")","");
-         LOGGER.info("Point " + point);
- 
-         String leftTableString;
-         Expression geoPoint;
- 
-         // Handle nested neighbor queries with table names
-         if (point.contains(".")) {
-             String[] table = point.split("\\.");
-             char firstChar = table[0].charAt(0);
-             if (Character.isDigit(firstChar)) {
-                 leftTableString = null;
-             } else {
-                 leftTableString = table[0];
-             }
-             LOGGER.info("table " + table[0]);
-             Table leftTable = new Table(null, leftTableString);
-             geoPoint = new Column(leftTable,"geo_point");
-         } else {
-             // Handle queries without table names
-             geoPoint = new Column(new Table(), "geo_point");
-         }
- 
+         LOGGER.debug("circleDataParams(" + left + ", " + right + ")");
+
          if (isCircle(left)) {
-             DoubleValue radius = right.toString().toLowerCase().contains("point") && isContains ?
+             Expression radius = right instanceof BigQueryPoint && isContains ?
                      new DoubleValue("0") :
                      getRadius(left);
- 
-             return new ArrayList<>(Arrays.asList(right, getCircleCenterPoint(left), radius));
+
+             return new ArrayList<>(Arrays.asList(toGeoPoint(right), getCircleCenterPoint(left), radius));
          }
- 
-         return new ArrayList<>(Arrays.asList(getCircleCenterPoint(right), geoPoint, getRadius(right)));
- 
+
+         return new ArrayList<>(Arrays.asList(getCircleCenterPoint(right), toGeoPoint(left), getRadius(right)));
      }
- 
+
+     /**
+      * Replace a point on the columns of a table that has a geo_point column
+      * with a reference to geo_point, so that BigQuery can use the clustering
+      * on it. Any other expression is returned unchanged.
+      *
+      * @param expression the expression to check
+      * @return geo_point, qualified as in the query, or the original expression
+      */
+     private Expression toGeoPoint(Expression expression) {
+         if (geoPointTables.isEmpty() || !(expression instanceof BigQueryPoint)) {
+             return expression;
+         }
+
+         List<Expression> params = ((Function) expression).getParameters().getExpressions();
+         if (!(params.get(0) instanceof Column) || !(params.get(1) instanceof Column)) {
+             return expression;
+         }
+         Column ra = (Column) params.get(0);
+         Column dec = (Column) params.get(1);
+         String raTable = getTableReference(ra);
+         String decTable = getTableReference(dec);
+         if (raTable == null ? decTable != null : !raTable.equalsIgnoreCase(decTable)) {
+             return expression;
+         }
+
+         Table fromTable = findFromTable(raTable);
+         if (fromTable == null || !geoPointTables.contains(fromTable.getWholeTableName())) {
+             return expression;
+         }
+
+         LOGGER.debug("Using " + GEO_POINT_COLUMN + " of " + fromTable.getWholeTableName());
+         return new Column(raTable == null ? new Table() : ra.getTable(), GEO_POINT_COLUMN);
+     }
+
+     /**
+      * @return the table name or alias a column is qualified with, or null if
+      *         it is not qualified
+      */
+     private String getTableReference(Column column) {
+         Table table = column.getTable();
+         if (table == null || table.getName() == null) {
+             return null;
+         }
+         return table.getWholeTableName();
+     }
+
+     /**
+      * Find the table in the FROM clause that a table name or alias refers to.
+      * An unqualified column can only be resolved if there is one table.
+      *
+      * @param reference table name or alias, or null for an unqualified column
+      * @return the table, or null if it can't be resolved
+      */
+     private Table findFromTable(String reference) {
+         List<Table> fromTables = ParserUtil.getFromTableList(plainSelect);
+         if (reference == null) {
+             return fromTables.size() == 1 ? fromTables.get(0) : null;
+         }
+         for (Table table : fromTables) {
+             if (reference.equalsIgnoreCase(table.getAlias())
+                     || reference.equalsIgnoreCase(table.getWholeTableName())
+                     || (table.getAlias() == null && reference.equalsIgnoreCase(table.getName()))) {
+                 return table;
+             }
+         }
+         return null;
+     }
+
      private Expression shapeContainsShape(Expression left, Expression right, String distanceFunctionName, BinaryExpression binaryExpression) {
  
          List<Expression> paramList = circleDataParams(left, right, true);
@@ -500,6 +568,6 @@ import java.util.*;
      }
  
      private boolean isContainsPolygon(Expression expression) {
-         return expression.toString().toLowerCase().contains("polygon");
+         return expression instanceof BigQueryPolygon;
      }
  }
