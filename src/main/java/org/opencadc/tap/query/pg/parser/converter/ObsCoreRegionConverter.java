@@ -15,7 +15,7 @@ import org.apache.log4j.Logger;
 
 /**
  * Converts ADQL region predicates to pg_sphere equivalents for ObsCore queries.
- * Handles column renaming (s_region -> pgs_region/pgs_center) and COORDSYS.
+ * Handles column renaming ({@code s_region -> pgs_region/pgs_center}) and COORDSYS.
  */
 public class ObsCoreRegionConverter extends PgsphereRegionConverter {
     private static Logger log = Logger.getLogger(ObsCoreRegionConverter.class);
