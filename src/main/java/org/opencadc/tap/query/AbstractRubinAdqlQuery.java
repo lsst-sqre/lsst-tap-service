@@ -90,7 +90,7 @@ public abstract class AbstractRubinAdqlQuery extends AdqlQuery {
                 String visibleName = parts[0].trim();
                 String backendName = parts[1].trim();
                 tnc.put(visibleName, backendName);
-                log.info("table mapping (visible -> backend): " + visibleName + " -> " + backendName);
+                log.debug("table mapping (visible -> backend): " + visibleName + " -> " + backendName);
             } else {
                 log.warn("Invalid table mapping format: " + mapping
                         + " (expected format: visible.schema.table:backend.schema.table)");
