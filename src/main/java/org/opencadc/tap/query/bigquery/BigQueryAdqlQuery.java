@@ -50,7 +50,7 @@ public class BigQueryAdqlQuery extends AdqlQuery {
                 "tap.bigquery.project and tap.bigquery.dataset must be set");
         }
 
-        log.info("BigQuery configuration: project=" + project + ", dataset=" + dataset + ", schema=" + schemaName);
+        log.debug("BigQuery configuration: project=" + project + ", dataset=" + dataset + ", schema=" + schemaName);
         
         // TAP-1.1 tap_schema version is encoded in table names
         TableNameConverter tnc = AbstractRubinAdqlQuery.newTapSchema11Converter();
