@@ -92,6 +92,13 @@ public final class TapConfig {
         return property("tap.outputLimitUnit", DEFAULT_OUTPUT_LIMIT_UNIT);
     }
 
+    public static final long DEFAULT_MAX_UPLOAD_SIZE = 32 * 1024L * 1024L; // 32 MiB
+
+    /** Maximum size in bytes of an uploaded table (TAP_UPLOAD). */
+    public static long maxUploadSize() {
+        return longProperty("tap.maxUploadSize", DEFAULT_MAX_UPLOAD_SIZE);
+    }
+
     public static boolean voParquetEnabled() {
         return Boolean.parseBoolean(property("tap.enableVOParquet", "false"));
     }

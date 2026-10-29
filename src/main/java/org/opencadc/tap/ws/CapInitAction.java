@@ -169,6 +169,10 @@ public class CapInitAction extends InitAction {
             tmpl = tmpl.replace("${tap.maxExecutionDuration}", maxExecutionDuration);
             log.debug("doInit: tap.maxExecutionDuration=" + maxExecutionDuration);
 
+            String maxUploadSize = String.valueOf(TapConfig.maxUploadSize());
+            tmpl = tmpl.replace("${tap.maxUploadSize}", maxUploadSize);
+            log.debug("doInit: tap.maxUploadSize=" + maxUploadSize);
+
             boolean enableVOParquet = TapConfig.voParquetEnabled();
             if (enableVOParquet) {
                 String voparquetFormat = "<outputFormat>\n"

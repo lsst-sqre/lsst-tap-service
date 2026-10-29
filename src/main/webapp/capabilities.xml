@@ -98,8 +98,8 @@
     </outputLimit>
     <!-- outputLimit for sync queries: no limit -->
     <uploadLimit>
-      <default unit="byte">33554432</default>
-      <hard unit="byte">33554432</hard>
+      <default unit="byte">${tap.maxUploadSize}</default>
+      <hard unit="byte">${tap.maxUploadSize}</hard>
     </uploadLimit>
   </capability>
 
