@@ -22,6 +22,7 @@ import ca.nrc.cadc.tap.schema.TableDesc;
 import ca.nrc.cadc.tap.upload.UploadLimits;
 import ca.nrc.cadc.tap.upload.UploadTable;
 import org.opencadc.tap.config.Backend;
+import org.opencadc.tap.config.TapConfig;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -65,14 +66,6 @@ public class RubinUploadManager extends BasicUploadManager {
     // TSV format delimiter.
     public static final char TSV_DELI = '\t';
 
-    public static final UploadLimits MAX_UPLOAD;
-    /**
-     * Use A filesize limit of 32 Mb using UploadLimits.
-     */
-    static {
-        MAX_UPLOAD = new UploadLimits(32 * 1024L * 1024L); // 32 Mb
-    }
-
     /**
      * DataSource for the DB.
      */
@@ -104,7 +97,7 @@ public class RubinUploadManager extends BasicUploadManager {
     protected Map<String, URI> locations;
 
     public RubinUploadManager() {
-        this(MAX_UPLOAD);
+        this(new UploadLimits(TapConfig.maxUploadSize()));
     }
 
     /**

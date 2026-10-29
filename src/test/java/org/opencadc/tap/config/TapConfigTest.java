@@ -15,7 +15,7 @@ public class TapConfigTest {
         for (String k : new String[] {
                 "base_url", "gcs_bucket", "gcs_bucket_type",
                 "tap.service.available", "tap.maxExecutionDuration", "tap.maxRec",
-                "tap.outputLimit", "tap.enableVOParquet", "url.rewrite.enabled",
+                "tap.outputLimit", "tap.maxUploadSize", "tap.enableVOParquet", "url.rewrite.enabled",
                 "tap.bigquery.schema", "tap.table.mappings", "tap.sync.polling.maxAttempts"}) {
             System.clearProperty(k);
         }
@@ -32,6 +32,7 @@ public class TapConfigTest {
         Assert.assertEquals(TapConfig.DEFAULT_MAX_REC, TapConfig.maxRec());
         Assert.assertEquals("100000000", TapConfig.outputLimit());
         Assert.assertEquals("row", TapConfig.outputLimitUnit());
+        Assert.assertEquals(32 * 1024L * 1024L, TapConfig.maxUploadSize());
         Assert.assertFalse(TapConfig.voParquetEnabled());
         Assert.assertTrue(TapConfig.urlRewriteEnabled());
         Assert.assertEquals("ivoa.ObsCore:access_url", TapConfig.urlRewriteRules());
@@ -47,6 +48,7 @@ public class TapConfigTest {
         System.setProperty("tap.service.available", "false");
         System.setProperty("tap.maxExecutionDuration", "60");
         System.setProperty("tap.maxRec", "42");
+        System.setProperty("tap.maxUploadSize", "1048576");
         System.setProperty("tap.enableVOParquet", "true");
         System.setProperty("url.rewrite.enabled", "false");
         System.setProperty("tap.sync.polling.maxAttempts", "7");
@@ -56,6 +58,7 @@ public class TapConfigTest {
         Assert.assertFalse(TapConfig.serviceAvailable());
         Assert.assertEquals(60L, TapConfig.maxExecutionDurationSeconds());
         Assert.assertEquals(42, TapConfig.maxRec());
+        Assert.assertEquals(1048576L, TapConfig.maxUploadSize());
         Assert.assertTrue(TapConfig.voParquetEnabled());
         Assert.assertFalse(TapConfig.urlRewriteEnabled());
         Assert.assertEquals(7, TapConfig.syncPollingMaxAttempts());

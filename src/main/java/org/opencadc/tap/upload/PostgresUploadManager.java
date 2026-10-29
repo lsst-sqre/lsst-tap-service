@@ -2,6 +2,7 @@ package org.opencadc.tap.upload;
 
 import ca.nrc.cadc.tap.BasicUploadManager;
 import ca.nrc.cadc.tap.upload.UploadLimits;
+import org.opencadc.tap.config.TapConfig;
 
 /**
  * UploadManager for the PostgreSQL backend.
@@ -17,10 +18,8 @@ import ca.nrc.cadc.tap.upload.UploadLimits;
  */
 public class PostgresUploadManager extends BasicUploadManager {
 
-    /** File-size limit for the uploaded VOTable (32 MiB). */
-    public static final UploadLimits MAX_UPLOAD = new UploadLimits(32 * 1024L * 1024L);
-
+    /** File-size limit for the uploaded VOTable comes from {@code tap.maxUploadSize}. */
     public PostgresUploadManager() {
-        super(MAX_UPLOAD);
+        super(new UploadLimits(TapConfig.maxUploadSize()));
     }
 }
