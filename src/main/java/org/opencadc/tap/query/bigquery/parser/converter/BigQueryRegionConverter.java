@@ -76,7 +76,9 @@ import ca.nrc.cadc.tap.parser.navigator.ReferenceNavigator;
 import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.schema.Column;
@@ -146,7 +148,12 @@ import java.util.*;
      @Override
      protected Expression handleRegionPredicate(BinaryExpression binaryExpression) {
          LOGGER.debug("handleRegionPredicate(" + binaryExpression.getClass().getSimpleName() + "): " + binaryExpression);
- 
+
+         Function dwithinFunction = distanceToDWithin(binaryExpression);
+         if (dwithinFunction != null) {
+             return dwithinFunction;
+         }
+
          binaryExpression = convertToMeters(binaryExpression);
  
          Expression left = binaryExpression.getLeftExpression();
@@ -296,36 +303,73 @@ import java.util.*;
      private BinaryExpression convertToMeters(BinaryExpression binaryExpression) {
          Expression left = binaryExpression.getLeftExpression();
          Expression right = binaryExpression.getRightExpression();
- 
-         if (isFunction(right)) {
+
+         if (isFunction(right) && isNumberValue(left)) {
              Expression measureFunction = getInternalMeasureFunction(right);
              if (measureFunction != null) {
-                 right = measureFunction;
-                 binaryExpression.setRightExpression(right);
- 
-                 if (isNumberValue(left)) {
-                     DoubleValue leftNormalized = getDoubleValue(left);
-                     DoubleValue leftInMeters = getArchDistanceInMetersFromExpression(leftNormalized);
-                     binaryExpression.setLeftExpression(leftInMeters);
-                 }
+                 binaryExpression.setRightExpression(measureFunction);
+                 DoubleValue leftInMeters = getArchDistanceInMetersFromExpression(getDoubleValue(left));
+                 binaryExpression.setLeftExpression(leftInMeters);
              }
          }
- 
-         if (isFunction(left)) {
+
+         if (isFunction(left) && isNumberValue(right)) {
              Expression measureFunction = getInternalMeasureFunction(left);
              if (measureFunction != null) {
-                 left = measureFunction;
-                 binaryExpression.setLeftExpression(left);
- 
-                 if (isNumberValue(right)) {
-                     DoubleValue rightNormalized = getDoubleValue(right);
-                     DoubleValue rightInMeters = getArchDistanceInMetersFromExpression(rightNormalized);
-                     binaryExpression.setRightExpression(rightInMeters);
-                 }
+                 binaryExpression.setLeftExpression(measureFunction);
+                 DoubleValue rightInMeters = getArchDistanceInMetersFromExpression(getDoubleValue(right));
+                 binaryExpression.setRightExpression(rightInMeters);
              }
          }
- 
+
          return binaryExpression;
+     }
+
+     /**
+      * Rewrite an upper bound on a DISTANCE as ST_DWITHIN. BigQuery can
+      * run ST_DWITHIN as a spatial join, while comparing ST_DISTANCE against a
+      * value means computing the distance for every pair of rows.
+      */
+     private Function distanceToDWithin(BinaryExpression binaryExpression) {
+         Function distanceFunction;
+         Expression radius;
+         if (binaryExpression instanceof MinorThan || binaryExpression instanceof MinorThanEquals) {
+             distanceFunction = getDistanceFunction(binaryExpression.getLeftExpression());
+             radius = binaryExpression.getRightExpression();
+         } else if (binaryExpression instanceof GreaterThan || binaryExpression instanceof GreaterThanEquals) {
+             distanceFunction = getDistanceFunction(binaryExpression.getRightExpression());
+             radius = binaryExpression.getLeftExpression();
+         } else {
+             return null;
+         }
+
+         if (distanceFunction == null || getDistanceFunction(radius) != null) {
+             return null;
+         }
+
+         List<Expression> paramList = new ArrayList<>(distanceFunction.getParameters().getExpressions());
+         paramList.add(degreesToMeters(radius));
+
+         Function dwithinFunction = new Function();
+         dwithinFunction.setName(DWITHIN_FUNCTION_NAME);
+         dwithinFunction.setParameters(new ExpressionList(paramList));
+         return dwithinFunction;
+     }
+
+     private Function getDistanceFunction(Expression expression) {
+         if (!isFunction(expression) || !SAFE_DIVIDE.equals(((Function) expression).getName())) {
+             return null;
+         }
+         ExpressionList parameters = ((Function) expression).getParameters();
+         if (parameters == null || parameters.getExpressions().isEmpty()) {
+             return null;
+         }
+         Expression measureFunction = (Expression) parameters.getExpressions().get(0);
+         if (isFunction(measureFunction)
+                 && ST_DISTANCE_FUNCTION_NAME.equals(((Function) measureFunction).getName())) {
+             return (Function) measureFunction;
+         }
+         return null;
      }
  
      private Expression getInternalMeasureFunction(Expression expression) {
@@ -376,7 +420,7 @@ import java.util.*;
       */
      @Override
      protected Expression handleDistance(Expression left, Expression right) {
-         Function distanceFunction = handleDistance(left, right, ST_DISTANCE_FUNCTION_NAME);
+         Function distanceFunction = handleDistance(toGeoPoint(left), toGeoPoint(right), ST_DISTANCE_FUNCTION_NAME);
          return metersToDegreeFunction(distanceFunction);
      }
  
@@ -416,18 +460,21 @@ import java.util.*;
  
      private Expression getRadius(Expression expression) {
          Expression radiusExpression = (Expression) ((Function) expression).getParameters().getExpressions().get(1);
+         return degreesToMeters(radiusExpression);
+     }
 
-         if (isNumberValue(radiusExpression)) {
-             double radius = getDoubleValue(radiusExpression).getValue();
-             double archDistanceInMeters = getArchDistanceInMeters(radius);
+     private Expression degreesToMeters(Expression expression) {
+         if (isNumberValue(expression)) {
+             double degrees = getDoubleValue(expression).getValue();
+             double archDistanceInMeters = getArchDistanceInMeters(degrees);
              return new DoubleValue(Double.toString(archDistanceInMeters));
          }
 
-         // Convert a radius from a column or expression to meters in the query.
-         Multiplication radiusInMeters = new Multiplication();
-         radiusInMeters.setLeftExpression(new Parenthesis(radiusExpression));
-         radiusInMeters.setRightExpression(new DoubleValue(Double.toString(getArchDistanceInMeters(1.0))));
-         return radiusInMeters;
+         // Convert a column or expression to meters in the query.
+         Multiplication inMeters = new Multiplication();
+         inMeters.setLeftExpression(new Parenthesis(expression));
+         inMeters.setRightExpression(new DoubleValue(Double.toString(getArchDistanceInMeters(1.0))));
+         return inMeters;
      }
  
      private DoubleValue getArchDistanceInMetersFromExpression(Expression expression) {

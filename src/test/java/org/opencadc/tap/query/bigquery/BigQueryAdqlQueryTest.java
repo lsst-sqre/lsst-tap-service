@@ -73,7 +73,6 @@ public class BigQueryAdqlQueryTest {
 
     @Test
     public void testConeSearchWithoutGeoPoint() {
-        // The SS tables have no geo_point
         String sql = toSql("SELECT s.ssObjectId FROM ppdb.SSSource AS s"
                 + " WHERE CONTAINS(POINT('ICRS', s.ra, s.dec), CIRCLE('ICRS', 10.0, 20.0, 0.1)) = 1");
         Assert.assertFalse(sql, sql.contains("geo_point"));
@@ -106,7 +105,7 @@ public class BigQueryAdqlQueryTest {
 
     @Test
     public void testCrossMatchPointOnUpload() {
-        // The upload table has no geo_point, so the point is built from its columns
+
         String sql = toSql("SELECT o.diaObjectId, u.id FROM ppdb.DiaObject AS o"
                 + " JOIN TAP_UPLOAD.targets AS u"
                 + " ON CONTAINS(POINT('ICRS', u.ra, u.dec), CIRCLE('ICRS', o.ra, o.dec, 0.001)) = 1");
@@ -120,6 +119,32 @@ public class BigQueryAdqlQueryTest {
                 + " JOIN TAP_UPLOAD.targets AS u"
                 + " ON CONTAINS(POINT('ICRS', o.ra, o.dec), CIRCLE('ICRS', u.ra, u.dec, u.radius)) = 1");
         Assert.assertTrue(sql, sql.contains("st_dwithin(st_geogpoint(u.ra,u.dec),o.geo_point,(u.radius)*"));
+    }
+
+    @Test
+    public void testDistanceColumnRadius() {
+        String sql = toSql("SELECT o.diaObjectId, u.id FROM ppdb.DiaObject AS o"
+                + " JOIN TAP_UPLOAD.targets AS u"
+                + " ON DISTANCE(POINT('ICRS', o.ra, o.dec), POINT('ICRS', u.ra, u.dec)) < u.radius");
+        Assert.assertTrue(sql, sql.contains("st_dwithin(st_geogpoint(u.ra,u.dec),o.geo_point,(u.radius)*"));
+        Assert.assertFalse(sql, sql.contains("st_distance"));
+    }
+
+    @Test
+    public void testDistanceLiteralRadius() {
+        String sql = toSql("SELECT o.diaObjectId, u.id FROM ppdb.DiaObject AS o"
+                + " JOIN TAP_UPLOAD.targets AS u"
+                + " ON 0.001 >= DISTANCE(POINT('ICRS', o.ra, o.dec), POINT('ICRS', u.ra, u.dec))");
+        Assert.assertTrue(sql, sql.contains("st_dwithin(st_geogpoint(u.ra,u.dec),o.geo_point,111.19"));
+        Assert.assertFalse(sql, sql.contains("st_distance"));
+    }
+
+    @Test
+    public void testDistanceInSelect() {
+        String sql = toSql("SELECT DISTANCE(POINT('ICRS', o.ra, o.dec), POINT('ICRS', 10.0, 20.0)) AS dist"
+                + " FROM ppdb.DiaObject AS o");
+        Assert.assertTrue(sql, sql.contains(
+                "safe_divide(st_distance(st_geogpoint(10.0,20.0),o.geo_point),safe_multiply(3600.0,30.8874796235))"));
     }
 
     @Test
@@ -151,6 +176,7 @@ public class BigQueryAdqlQueryTest {
         ret.getFunctionDescs().add(new FunctionDesc("CONTAINS", TapDataType.INTEGER));
         ret.getFunctionDescs().add(new FunctionDesc("POINT", TapDataType.POINT));
         ret.getFunctionDescs().add(new FunctionDesc("CIRCLE", TapDataType.CIRCLE));
+        ret.getFunctionDescs().add(new FunctionDesc("DISTANCE", TapDataType.DOUBLE));
         SchemaDesc ppdb = new SchemaDesc("ppdb");
         ppdb.getTableDescs().add(ppdbTable("DiaObject", "diaObjectId"));
         ppdb.getTableDescs().add(ppdbTable("DiaSource", "diaSourceId"));
