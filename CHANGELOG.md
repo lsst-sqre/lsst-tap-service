@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.30.0'></a>
+## 3.30.0 (2026-10-30)
+
+### Added
+
+- Add `tap.maxUploadSize` to set the maximum size in bytes of an uploaded table. It defaults to 32 MiB and is also advertised as the `uploadLimit` in the capabilities.
+
 <a id='changelog-3.29.0'></a>
 ## 3.29.0 (2026-10-26)
 
