@@ -6,6 +6,13 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.31.0'></a>
+## 3.31.0 (2026-11-06)
+
+### Bug fixes
+
+- Shorten Qserv upload database and table names that would go over Qserv's 56 character limit.
+
 <a id='changelog-3.30.0'></a>
 ## 3.30.0 (2026-10-30)
 
