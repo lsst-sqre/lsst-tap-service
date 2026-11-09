@@ -6,6 +6,15 @@ Find changes for the upcoming release in the project's [changelog.d](https://git
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-3.32.0'></a>
+## 3.32.0 (2026-11-09)
+
+### Bug Fixes
+
+- Use ST_DWITHIN for DISTANCE upper bounds in BigQuery queries.
+- Use geo_point where available for Distance joins.
+- Properly convert to meters when using Distance join and comparing against a column radius (not a fixed number).
+
 <a id='changelog-3.31.0'></a>
 ## 3.31.0 (2026-11-06)
 
