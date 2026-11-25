@@ -22,6 +22,9 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
 
     private static final String VOTABLE_CONTENT_TYPE = "application/x-votable+xml";
 
+    // 7 days, the longest a V4 signed URL can be valid for.
+    private static final double UPLOAD_URL_EXPIRATION_HOURS = 168;
+
     private final long maxUploadSize;
 
     public RubinUWSContentHandler() {
@@ -81,8 +84,15 @@ public class RubinUWSContentHandler implements UWSInlineContentHandler {
         }
         log.debug("Copied " + total + " bytes to " + xmlFilename);
 
-        String xmlUrl = StorageUtils.getStorageUrl(xmlFilename);
-        log.debug("Returning URL: " + xmlUrl);
+        // The job reads this URL when it runs, which can be long after the
+        // upload if it sits in PENDING, so sign it for as long as GCS allows.
+        String xmlUrl;
+        try {
+            xmlUrl = StorageUtils.getReadUrl(xmlFilename, UPLOAD_URL_EXPIRATION_HOURS);
+        } catch (RuntimeException e) {
+            throw storageFailure(xmlFilename, e);
+        }
+        log.debug("Returning URL for " + xmlFilename);
 
         Content ret = new Content();
         ret.name = UWSInlineContentHandler.CONTENT_PARAM_REPLACE;

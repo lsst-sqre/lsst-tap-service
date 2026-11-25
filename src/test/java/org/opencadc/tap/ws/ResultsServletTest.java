@@ -64,4 +64,14 @@ public class ResultsServletTest {
         assertEquals(expectedUrl, actualUrl);
     }
 
+    @Test
+    public void testIsResultFilePath() {
+        Assert.assertTrue(ResultsServlet.isResultFilePath("/result_qz4z5hf6qy5509p1.xml"));
+        Assert.assertFalse(ResultsServlet.isResultFilePath(null));
+        Assert.assertFalse(ResultsServlet.isResultFilePath(""));
+        Assert.assertFalse(ResultsServlet.isResultFilePath("/"));
+        Assert.assertFalse(ResultsServlet.isResultFilePath("/bucket12345/result_qz4z5hf6qy5509p1.xml"));
+        Assert.assertFalse(ResultsServlet.isResultFilePath("result_qz4z5hf6qy5509p1.xml"));
+    }
+
 }
