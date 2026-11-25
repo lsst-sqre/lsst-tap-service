@@ -16,7 +16,8 @@ public class TapConfigTest {
                 "base_url", "gcs_bucket", "gcs_bucket_type",
                 "tap.service.available", "tap.maxExecutionDuration", "tap.maxRec",
                 "tap.outputLimit", "tap.maxUploadSize", "tap.enableVOParquet", "url.rewrite.enabled",
-                "tap.bigquery.schema", "tap.table.mappings", "tap.sync.polling.maxAttempts"}) {
+                "tap.bigquery.schema", "tap.table.mappings", "tap.sync.polling.maxAttempts",
+                "gcs_signed_results"}) {
             System.clearProperty(k);
         }
     }
@@ -39,6 +40,7 @@ public class TapConfigTest {
         Assert.assertEquals("ppdb", TapConfig.bigQuerySchema());
         Assert.assertEquals("", TapConfig.tableMappings());
         Assert.assertEquals(20, TapConfig.syncPollingMaxAttempts());
+        Assert.assertFalse(TapConfig.gcsSignedResults());
     }
 
     @Test
@@ -52,6 +54,7 @@ public class TapConfigTest {
         System.setProperty("tap.enableVOParquet", "true");
         System.setProperty("url.rewrite.enabled", "false");
         System.setProperty("tap.sync.polling.maxAttempts", "7");
+        System.setProperty("gcs_signed_results", "true");
 
         Assert.assertEquals("https://example.org", TapConfig.baseUrl());
         Assert.assertEquals("my-bucket", TapConfig.gcsBucket());
@@ -62,5 +65,6 @@ public class TapConfigTest {
         Assert.assertTrue(TapConfig.voParquetEnabled());
         Assert.assertFalse(TapConfig.urlRewriteEnabled());
         Assert.assertEquals(7, TapConfig.syncPollingMaxAttempts());
+        Assert.assertTrue(TapConfig.gcsSignedResults());
     }
 }

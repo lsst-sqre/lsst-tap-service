@@ -166,6 +166,29 @@ public class StorageUtils {
     }
 
     /**
+     * Get the URL clients should use to read a file in the result bucket.
+     * This is a signed GET URL if gcs_signed_results is set and the bucket is
+     * on GCS, otherwise the plain URL from {@link #getStorageUrl(String)}.
+     *
+     * @param filename        Filename of the stored object
+     * @param expirationHours How long a signed URL stays valid
+     * @return URL string
+     */
+    public static String getReadUrl(String filename, double expirationHours) {
+        if (useSignedReadUrls()) {
+            return getSignedUrl(filename, HttpMethod.GET, expirationHours);
+        }
+        return getStorageUrl(filename);
+    }
+
+    /**
+     * Whether clients get signed URLs to read from the result bucket.
+     */
+    public static boolean useSignedReadUrls() {
+        return !isS3Storage() && TapConfig.gcsSignedResults();
+    }
+
+    /**
      * Generate a signed URL for a storage object with default expiration time.
      *
      * @param filename   Filename of the stored object

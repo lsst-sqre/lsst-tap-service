@@ -55,6 +55,15 @@ public final class TapConfig {
         return Boolean.parseBoolean(property("gcs_upload_workload_identity", "false"));
     }
 
+    /**
+     * Whether clients get signed GCS URLs for results and inline uploads
+     * instead of plain ones, so the result bucket doesn't need to be public.
+     * Ignored for S3.
+     */
+    public static boolean gcsSignedResults() {
+        return Boolean.parseBoolean(property("gcs_signed_results", "false"));
+    }
+
     /** Whether the service advertises itself as available (VOSI availability). */
     public static boolean serviceAvailable() {
         return Boolean.parseBoolean(property("tap.service.available", "true"));
